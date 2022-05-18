@@ -1,0 +1,19 @@
+
+camera:
+  id: etri:072
+  uri: videos/etri/etri_072.mp4
+  size: [1920, 1080]
+  fps: 10
+  blind_regions:
+    - [1616, 514, 1929, 1084]
+    - [-4, -2, 934, 531]
+    - [-15, 50, 1038, 404]
+    - [-3, 312, 155, 624]
+    - [891, 115, 1921, 276]
+
+tracker:
+  # detector: yolov4
+  detector: file:videos/etri/etri_072_det.txt
+
+camera_geometry:
+  file: data/camera_geoms/etri_07.pickle

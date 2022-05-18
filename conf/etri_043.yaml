@@ -1,0 +1,23 @@
+
+camera:
+  id: etri:043
+  uri: videos/etri/etri_043.mp4
+  size: [1920, 1080]
+  fps: 10
+
+tracker:
+  #detector: yolov4
+  detector: file:videos/etri/etri_043_det.txt
+  max_age: 30
+  min_size: [20, 18]
+  blind_zones:
+    - [-3,212,636,536]
+    - [532, 129, 995, 394]
+    - [-3, 789, 1243, 1083]
+    - [1317, 371, 1925, 1085]
+    - [1170, 84, 1510, 384]
+  dim_zones:
+    - [805, 129, 996, 395]
+
+camera_geometry:
+  file: data/camera_geoms/etri_04.pickle

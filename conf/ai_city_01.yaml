@@ -1,0 +1,18 @@
+
+camera:
+  id: ai_city:01
+  uri: videos/ai_city/ai_city_01.mp4
+  size: [1280, 960]
+  fps: 10
+  blind_regions:
+    - [7,2,504,115]
+    - [10,591,279,816]
+    - [1156,6,1283,287]
+    - [1144, 362, 1332, 683]
+    - [908, -4, 1157, 158]
+    - [-58, 283, 113, 560]
+
+tracker:
+  # detector: yolov4
+  detector: file:videos/ai_city/ai_city_01_det.txt
+  min_size: [20, 18]

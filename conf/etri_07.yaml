@@ -1,0 +1,27 @@
+
+camera:
+  id: etri:07
+  uri: C:/Temp/data/etri/etri_07.mp4
+  size: [1920, 1080]
+  fps: 10
+  blind_regions:
+    - [-17,-3,727,391]
+    - [719,29,1904,249]
+    - [1307,232,1915,398]
+    - [-5,828,1235,1082]
+
+tracker:
+  # detector: yolov4
+  detector: file:C:/Temp/data/etri/etri_07_det.txt
+  n_init: 3
+  matching_threshold: 0.55
+  max_iou_distance: 0.7
+  max_age: 10
+  min_detection_score: 0
+  det_mapping:
+    car: car
+    bus: car
+    truck: car
+
+camera_geometry:
+  file: C:\development\dna\data\camera_geoms\etri_07.pickle

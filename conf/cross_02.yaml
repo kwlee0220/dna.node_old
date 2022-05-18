@@ -1,0 +1,27 @@
+
+camera:
+  id: cross:02
+  uri: videos/crossroads/cross_02.mp4
+  size: [1920, 1080]
+  fps: 15
+  blind_regions:
+    - [464,-2,1479,144]
+    - [408, -1, 652, 243]
+    - [330, -1, 618, 281]
+    - [-268, 429, 202, 1102]
+    - [1732, 566, 2057, 1093]
+    - [-34, 882, 2057, 1102]
+
+tracker:
+  # detector: yolov4
+  detector: file:videos/crossroads/cross_02_det.txt
+  n_init: 3
+  matching_threshold: 0.55
+  max_iou_distance: 0.7
+  max_age: 10
+  min_size: [30, 30]
+  min_detection_score: 0
+  det_mapping:
+    car: car
+    bus: car
+    truck: car

@@ -1,0 +1,19 @@
+
+camera:
+  id: cross:01
+  uri: videos/crossroads/cross_01.mp4
+  size: [1920, 1080]
+  fps: 15
+
+tracker:
+  # detector: yolov4
+  detector: file:videos/crossroads/cross_01_det.txt
+  max_age: 10
+  blind_zones:
+    - [-3, -2, 695, 339]
+    - [-3, 538, 623, 1084]
+    - [-1, 772, 1921, 1081]
+    - [1590, 656, 1925, 1084]
+    - [1724, 301, 1925, 1083]
+  dim_zones:
+    - [502,-9,1568,175]

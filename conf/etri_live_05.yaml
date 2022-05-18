@@ -1,0 +1,22 @@
+
+camera:
+  id: etri_live:05
+  uri: rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/4/media.smp
+  size: [1920, 1080]
+  fps: 10
+  blind_regions:
+
+tracker:
+  detector: dna.detect.yolov5:model=m&score=0.45
+  n_init: 3
+  matching_threshold: 0.55
+  max_iou_distance: 0.7
+  max_age: 10
+  min_detection_score: 0
+  det_mapping:
+    car: car
+    bus: car
+    truck: car
+
+camera_geometry:
+  file: data/camera_geoms/etri_05.pickle

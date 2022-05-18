@@ -1,0 +1,24 @@
+
+camera:
+  id: cross:04
+  uri: videos/crossroads/cross_04.mp4
+  size: [1920, 1080]
+  fps: 15
+  blind_regions:
+    - [654,-2,1505,68]
+    - [655,-2,1357,67]
+    - [1375,60,1530,195]
+    - [1438,579,1923,1085]
+
+tracker:
+  # detector: yolov4
+  detector: file:videos/crossroads/cross_04_det.txt
+  n_init: 3
+  matching_threshold: 0.55
+  max_iou_distance: 0.7
+  max_age: 10
+  min_detection_score: 0
+  det_mapping:
+    car: car
+    bus: car
+    truck: car

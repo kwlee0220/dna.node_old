@@ -1,0 +1,25 @@
+
+camera:
+  id: ai_city:06
+  uri: videos/ai_city/ai_city_06.mp4
+  size: [1280, 960]
+  fps: 10
+  blind_regions:
+    - [234,2,1054,145]
+    - [806,126,1171,229]
+    - [-8,-1,245,179]
+    - [1237,30,1279,373]
+    - [1164,66,1247,295]
+
+tracker:
+  # detector: yolov4
+  detector: file:videos/ai_city/ai_city_06_det.txt
+  n_init: 3
+  matching_threshold: 0.55
+  max_iou_distance: 0.7
+  max_age: 10
+  min_detection_score: 0
+  det_mapping:
+    car: car
+    bus: car
+    truck: car
