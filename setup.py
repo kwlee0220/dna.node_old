@@ -33,7 +33,7 @@ setup(
         'gdown',
     ],
     packages = find_packages(),
-	package_data = {'conf': ['etri_051.yaml']},
+    package_data = {'conf': ['etri_051.yaml']},
     python_requires = '>=3.10',
     zip_safe = False
 )
