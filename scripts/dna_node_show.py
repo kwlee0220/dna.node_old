@@ -22,7 +22,7 @@ def main():
     camera_params = Camera.Parameters.from_conf(conf.camera)
     camera = dna.camera.create_camera(camera_params)
 
-    if dna.conf.get_config_value(conf.node, 'show').getOrElse(False):
+    if conf.node.get('show', False):
         conf.node.window_name = f'id={conf.node.id}, camera={conf.camera.uri}'
     proc_params = ImageProcessor.Parameters.from_conf(conf.node)
     proc = dna.camera.create_image_processor(proc_params, camera.open())

@@ -6,7 +6,7 @@ setup(
     description = 'DNA framework',
     author = 'Kang-Woo Lee',
     author_email = 'kwlee@etri.re.kr',
-    url = 'https://github.com/kwlee0220/dna',
+    url = 'https://github.com/kwlee0220/dna.node',
 	entry_points={
 		'console_scripts': [
 			'dna_node_show = scripts.dna_node_show:main',

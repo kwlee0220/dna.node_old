@@ -48,3 +48,6 @@ tracker:
 
 camera_geometry:
   file: data/camera_geoms/etri_04.pickle
+
+local_path:
+  max_path_length: 100

@@ -18,7 +18,7 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "program": "${workspaceFolder}/scripts/dna_node_track.py",
             "args": [
-                "conf/etri_041.yaml",
+                "conf/cross_04.yaml",
             ],
             "justMyCode": true
         },
@@ -27,10 +27,10 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "program": "${workspaceFolder}/scripts/dna_node_detect.py",
             "args": [
-                "conf/etri_051.yaml",
+                "conf/cross_01.yaml",
                 // "--detector", "dna.detect.yolov4",
-                "--detector", "dna.detect.rcnn50_fpn",
-                // "--detector", "dna.detect.yolov5:model=m&score=0.45",
+                // "--detector", "dna.detect.rcnn50_fpn",
+                "--detector", "dna.detect.yolov5:model=l&score=0.4",
                 // "--detector", "file:${env:HOME}/Dropbox/data/etri/etri_051_det.txt",
                 // "--output", "C:/Temp/data/cam_1_test.txt",
             ],
@@ -41,7 +41,9 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "program": "${workspaceFolder}/scripts/dna_node_show.py",
             "args": [
-                "conf/etri_051.yaml",
+                "conf/etri_041.yaml",
+                // "conf/cross_01.yaml",
+                // "conf/etri_live_05.yaml",
             ],
             "justMyCode": true
         },
@@ -50,9 +52,8 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "program": "${workspaceFolder}/test.py",
             "args": [
-                "${workspaceFolder}/conf/etri_051.yaml:camera",
-                // "C:/Users/kwlee/Dropbox/data/etri/etri_051.mp4",
-                // "conf/etri_live_04.yaml:camera",
+                // "${workspaceFolder}/conf/etri_051.yaml:camera",
+                "${workspaceFolder}/conf/cross_01.yaml:camera",
                 "--no_sync",
             ],
             "justMyCode": true

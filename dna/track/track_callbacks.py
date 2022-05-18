@@ -12,7 +12,7 @@ from .tracker import Track, TrackState, ObjectTracker, TrackerCallback, Detectio
 
 
 class TrackWriter(TrackerCallback):
-    def __init__(self, track_file: Path) -> None:
+    def __init__(self, track_file: str) -> None:
         super().__init__()
 
         self.track_file = track_file

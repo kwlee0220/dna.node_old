@@ -1,22 +1,52 @@
+node:
+  id: etri_live:04
+  show: true
+  # output_video: C:/Temp/cam_test.mp4
+  show_progress: false
+  pause_on_eos: false
+  min_trail_length: 10
+  kafka:
+    bootstrap_servers: [localhost:9092]
+    topics:
+      track_events: node.tracks
+      # local_path_events: node.local_paths
+  # output: '-'
 
 camera:
-  id: etri_live:04
   uri: rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/3/media.smp
   size: [1920, 1080]
-  fps: 10
-  blind_regions:
+  sync: true
+  threaded: false
 
 tracker:
-  detector: yolov4
-  n_init: 3
-  matching_threshold: 0.55
-  max_iou_distance: 0.7
-  max_age: 10
+  # detector: dna.detect.yolov4
+  detector: dna.detect.yolov5:model=l&score=0.35
+  # detector: dna.detect.rcnn50_fpn
+  # detector: file:C:/Temp/data/etri/etri_041_det.txt
   min_detection_score: 0
+  n_init: 3
+  metric_threshold: 0.55
+  max_iou_distance: 0.85
+  max_overlap_ratio: 0.75
+  max_age: 30
+  min_size: [30, 20]
   det_mapping:
     car: car
     bus: car
     truck: car
+  blind_zones:
+    - [-3,212,636,536]
+    - [532, 129, 995, 394]
+    - [-3, 789, 1243, 1083]
+    - [1317, 371, 1925, 1085]
+    - [1170, 84, 1510, 384]
+  dim_zones:
+    - [805, 129, 996, 395]
+  draw_zones: true
+  # output: C:/Temp/data/track_output.csv
 
 camera_geometry:
   file: data/camera_geoms/etri_04.pickle
+
+local_path:
+  max_path_length: 100

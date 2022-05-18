@@ -50,7 +50,7 @@ class GenerateLocalPath(EventProcessor):
     def __init__(self, in_queue: Queue, publisher: EventPublisher, conf:OmegaConf) -> None:
         super().__init__(in_queue, publisher)
 
-        self.max_path_length = conf.get('local_path.max_path_length', GenerateLocalPath.MAX_PATH_LENGTH)
+        self.max_path_length = conf.local_path.get('max_path_length', GenerateLocalPath.MAX_PATH_LENGTH)
         self.sessions = dict()
 
     def close(self) -> None:

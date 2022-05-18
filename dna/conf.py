@@ -52,8 +52,11 @@ def parse_config_args(args):
             config_grp[grp_key].append((key, value))
     return config_grp
 
-def get_config_value(conf:OmegaConf, key:str) -> Option:
-    return Option.ofNullable(conf.get(key)) if hasattr(conf, key) else Option.empty()
-
-def exists_config(conf:OmegaConf, key:str) -> bool:
-    return hasattr(conf, key)
+def get_config(conf:OmegaConf, key_path:str, def_value: Optional[object]=None) -> object:
+    parts = key_path.split('.')
+    for name in parts:
+        if hasattr(conf, name):
+            conf = conf.get(name)
+        else:
+            return def_value
+    return conf

@@ -1,24 +1,47 @@
+node:
+  id: cross:03
+  show: true
+  # output_video: C:/Temp/cam_test.mp4
+  show_progress: false
+  pause_on_eos: false
+  min_trail_length: 10
+  kafka:
+    bootstrap_servers: [localhost:9092]
+    topics:
+      # track_events: node.tracks
+      # local_path_events: node.local_paths
+  # output: track_output.csv
 
 camera:
-  id: cross:03
-  uri: videos/crossroads/cross_03.mp4
+  uri: ${oc.env:HOME}/Dropbox/data/crossroads/cross_03.mp4
   size: [1920, 1080]
-  fps: 15
+  sync: true
+  # begin_frame: 4050
+  threaded: false
+
+tracker:
+  # detector: dna.detect.yolov4
+  detector: dna.detect.yolov5:model=m&score=0.4
+  # detector: dna.detect.rcnn50_fpn
+  # detector: file:videos/crossroads/cross_03_det.txt
+  # detector: yolov4
+  # n_init: 3
+  # metric_threshold: 0.55
+  # max_iou_distance: 0.7
+  # max_age: 10
+  # min_detection_score: 0
+  # min_size: [30, 20]
+  det_mapping:
+    car: car
+    bus: car
+    truck: car
   blind_regions:
     - [559,-2,1609,58]
     - [1,878,1925,1084]
     - [1483,457,1925,1086]
     - [1698,222,1939,705]
+  draw_zones: true
+  # output: C:/Temp/data/track_output.csv
 
-tracker:
-  # detector: yolov4
-  detector: file:videos/crossroads/cross_03_det.txt
-  n_init: 3
-  matching_threshold: 0.55
-  max_iou_distance: 0.7
-  max_age: 10
-  min_detection_score: 0
-  det_mapping:
-    car: car
-    bus: car
-    truck: car
+local_path:
+  max_path_length: 100

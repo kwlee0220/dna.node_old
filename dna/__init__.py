@@ -3,7 +3,7 @@ from .types import Box, Size2d, Point, Image, Frame
 from .utils import get_logger, gdown_file
 from .conf import *
 
-__version__ = '1.0.0'
+__version__ = '0.0.1'
 
 # DEBUG_FRAME_IDX = -1
 # DEBUG_SHOW_IMAGE = False

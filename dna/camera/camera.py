@@ -9,7 +9,6 @@ import numpy as np
 
 import dna
 from dna import Size2d, Frame
-from dna.conf import get_config_value
 
 
 class Camera(metaclass=ABCMeta):
@@ -24,12 +23,13 @@ class Camera(metaclass=ABCMeta):
 
         @classmethod
         def from_conf(cls, conf:OmegaConf):
-            uri = get_config_value(conf, "uri").get()
-            size = get_config_value(conf, "size").map(Size2d.from_conf).getOrNone()
-            sync = get_config_value(conf, "sync").getOrElse(False)
-            begin_frame = get_config_value(conf, "begin_frame").getOrElse(1)
-            end_frame = get_config_value(conf, "end_frame").getOrNone()
-            threaded = get_config_value(conf, "threaded").getOrElse(False)
+            uri = conf.uri
+            size = conf.get('size', None)
+            size = Size2d.from_conf(size) if size is not None else size
+            sync = conf.get("sync", False)
+            begin_frame = conf.get("begin_frame", 1)
+            end_frame = conf.get("end_frame", None)
+            threaded = conf.get("threaded", False)
             
             return cls(uri=uri, size=size, sync=sync, begin_frame=begin_frame, end_frame=end_frame,
                         threaded=threaded)      

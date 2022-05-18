@@ -158,17 +158,14 @@ class LogFileBasedObjectTracker(ObjectTracker):
 
 
 def load_object_tracking_callback(conf: OmegaConf, domain: Box, show:bool=False,
-                                    output_video: Optional[Path]=None,
+                                    output_video: Optional[str]=None,
                                     tracker_callbacks: List[TrackerCallback]=[]) -> ObjectTracker:
-    from dna.conf import get_config_value
     from dna.detect.utils import load_object_detector
     from .track_callbacks import TrackWriter, ObjectTrackingCallback
     from .deepsort_tracker import DeepSORTTracker
 
-    output = get_config_value(conf, "output") \
-                        .map(lambda ov: ov if isinstance(ov, Path) else Path(str(ov)))  \
-                        .getOrNone()
-    show_zones = get_config_value(conf, 'show_zones').getOrElse(False)
+    output = conf.get("output", None)
+    show_zones = conf.get('show_zones', False)
 
     draw_tracks = show or output_video is not None
 

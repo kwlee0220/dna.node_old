@@ -44,7 +44,7 @@ def main():
     Thread(target=refine.run, args=tuple()).start()
 
     queue = refine.subscribe()
-    min_trail_length = dna.conf.get_config_value(conf.node, 'min_trail_length').getOrElse(0)
+    min_trail_length = conf.node.get('min_trail_length', 0)
     if min_trail_length > 0:
         drop_short_trail = DropShortTrail(queue, PUB_LONG_TRAILS, conf.node.min_trail_length)
         Thread(target=drop_short_trail.run, args=tuple()).start()
@@ -53,12 +53,12 @@ def main():
     world_coords = WorldTransform(queue, PUB_WORLD_COORD, conf.camera_geometry)
     Thread(target=world_coords.run, args=tuple()).start()
 
-    te_topic = dna.conf.get_config_value(conf.node.kafka.topics, 'track_events').getOrNone()
+    te_topic = dna.conf.get_config(conf, 'node.kafka.topics.track_events', None)
     if te_topic is not None:
         tk_pub = KafkaEventPublisher(world_coords.subscribe(), te_topic, conf.node.kafka)
         Thread(target=tk_pub.run, args=tuple()).start()
 
-    lpe_topic = dna.conf.get_config_value(conf.node.kafka.topics, 'local_path_events').getOrNone()
+    lpe_topic = dna.conf.get_config(conf, 'node.kafka.topics.local_path_events', None)
     if lpe_topic is not None:
         gen_lp = GenerateLocalPath(world_coords.subscribe(), PUB_LOCAL_PATHS, conf.node)
         Thread(target=gen_lp.run, args=tuple()).start()
@@ -66,17 +66,17 @@ def main():
         lp_pub = KafkaEventPublisher(gen_lp.subscribe(), lpe_topic, conf.node.kafka)
         Thread(target=lp_pub.run, args=tuple()).start()
 
-    track_output = dna.conf.get_config_value(conf.node, 'output').getOrNone()
+    track_output = conf.node.get('output', None)
     if track_output is not None:
         print_event = PrintTrackEvent(world_coords.subscribe(), track_output)
         Thread(target=print_event.run, args=tuple()).start()
 
-    show = dna.get_config_value(conf.node, 'show').getOrElse(False)
+    show = conf.node.get('show', False)
     if show:
         conf.node.window_name = f'id={conf.node.id}, camera={conf.camera.uri}'
 
     domain = dna.Box.from_size(camera.parameters.size)
-    output_video = dna.get_config_value(conf.node, 'output_video').getOrNone()
+    output_video = conf.node.get('output_video', None)
     cb = load_object_tracking_callback(conf.tracker, domain, show, output_video, [source])
 
     proc_params = ImageProcessor.Parameters.from_conf(conf.node)

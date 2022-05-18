@@ -24,7 +24,7 @@ def main():
     camera_params = Camera.Parameters.from_conf(conf.camera)
     camera = dna.camera.create_camera(camera_params)
 
-    show = dna.conf.get_config_value(conf.node, 'show').getOrElse(False)
+    show = conf.node.get('show', False)
     if show:
         conf.node.window_name = f'id={conf.node.id}, camera={conf.camera.uri}'
 

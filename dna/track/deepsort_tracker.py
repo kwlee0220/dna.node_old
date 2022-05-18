@@ -18,12 +18,20 @@ if not DEEPSORT_DIR in sys.path:
     sys.path.append(DEEPSORT_DIR)
 
 import dna
-from dna import Box, Size2d, utils, get_logger, conf, gdown_file
+from dna import Box, Size2d, utils, get_logger, gdown_file
 from dna.detect import ObjectDetector, Detection
 from . import Track, TrackState, DetectionBasedObjectTracker
 from .deepsort.deepsort import deepsort_rbc
 from .deepsort.track import Track as DSTrack
 from .deepsort.track import TrackState as DSTrackState
+
+DEFAULT_MIN_DETECTION_SCORE = 0
+DEFAULT_METRIC_THRESHOLD = 0.55
+DEFAULT_MAX_IOU_DISTANCE = 0.85
+DEFAULT_MAX_AGE = 10
+DEFAULT_N_INIT = 3
+DEFAULT_MAX_OVERLAP_RATIO=0.75
+DEFAULT_MIN_SIZE=[30, 20]
 
 @dataclass(frozen=True, eq=True, slots=True)
 class DeepSORTParams:
@@ -42,34 +50,38 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
 
         self.__detector = detector
         self.det_dict = tracker_conf.det_mapping
-        self.min_detection_score = tracker_conf.min_detection_score
+        self.min_detection_score = tracker_conf.get('min_detection_score', DEFAULT_METRIC_THRESHOLD)
 
-        model_file = conf.get_config_value(tracker_conf, 'model_file') \
-                        .getOrElse('models/deepsort/model640.pt')
+        model_file = tracker_conf.get('model_file', 'models/deepsort/model640.pt')
         model_file = Path(model_file).resolve()
         if not model_file.exists():
             if model_file.name == 'model640.pt':
-                gdown_file('https://drive.google.com/uc?id=160jJWtgIhyhHIBpgNOkAT52uvvtOYGly',
-                            model_file)
+                gdown_file('https://drive.google.com/uc?id=160jJWtgIhyhHIBpgNOkAT52uvvtOYGly', model_file)
             else:
                 raise ValueError(f'Cannot find DeepSORT reid model: {model_file}')
         wt_path = Path(model_file)
 
-        if tracker_conf.get("blind_zones", None):
-            blind_zones = [Box.from_tlbr(np.array(zone, dtype=np.int32)) for zone in tracker_conf.blind_zones]
-        else:
-            blind_zones = []
-        if tracker_conf.get("dim_zones", None):
-            dim_zones = [Box.from_tlbr(np.array(zone, dtype=np.int32)) for zone in tracker_conf.dim_zones]
-        else:
-            dim_zones = []
+        metric_threshold = tracker_conf.get('metric_threshold', DEFAULT_METRIC_THRESHOLD)
+        max_iou_distance = tracker_conf.get('max_iou_distance', DEFAULT_MAX_IOU_DISTANCE)
+        max_age = int(tracker_conf.get('max_age', DEFAULT_MAX_AGE))
+        n_init = int(tracker_conf.get('n_init', DEFAULT_N_INIT))
+        max_overlap_ratio = tracker_conf.get('max_overlap_ratio', DEFAULT_MAX_OVERLAP_RATIO)
+        min_size = Size2d.from_np(np.array(tracker_conf.get('min_size', DEFAULT_MIN_SIZE)))
 
-        self.params = DeepSORTParams(metric_threshold=tracker_conf.metric_threshold,
-                                    max_iou_distance=tracker_conf.max_iou_distance,
-                                    max_age=int(tracker_conf.max_age),
-                                    n_init=int(tracker_conf.n_init),
-                                    max_overlap_ratio = tracker_conf.max_overlap_ratio,
-                                    min_size=Size2d.from_np(tracker_conf.min_size),
+        blind_zones = tracker_conf.get("blind_zones", [])
+        if len(blind_zones) > 0:
+            blind_zones = [Box.from_tlbr(np.array(zone, dtype=np.int32)) for zone in blind_zones]
+
+        dim_zones = tracker_conf.get("dim_zones", [])
+        if len(dim_zones) > 0:
+            dim_zones = [Box.from_tlbr(np.array(zone, dtype=np.int32)) for zone in dim_zones]
+
+        self.params = DeepSORTParams(metric_threshold=metric_threshold,
+                                    max_iou_distance=max_iou_distance,
+                                    max_age=max_age,
+                                    n_init=n_init,
+                                    max_overlap_ratio=max_overlap_ratio,
+                                    min_size=min_size,
                                     blind_zones=blind_zones,
                                     dim_zones=dim_zones)
         self.deepsort = deepsort_rbc(domain = domain,

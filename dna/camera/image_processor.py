@@ -12,7 +12,6 @@ from tqdm import tqdm
 import cv2
 
 from dna import color, Frame
-from dna.conf import get_config_value
 from .camera import Camera, ImageCapture
 
 
@@ -47,18 +46,16 @@ class ImageProcessor(metaclass=ABCMeta):
     @dataclass(frozen=True, eq=True, slots=True)
     class Parameters:
         window_name: Optional[str] = field(default=None)
-        output_video: Optional[Path] = field(default=None)
+        output_video: Optional[str] = field(default=None)
         show_progress: bool = field(default=False)
         pause_on_eos: bool = field(default=False)
 
         @staticmethod
         def from_conf(conf: OmegaConf):
-            window_name = get_config_value(conf, "window_name").getOrNone()
-            output_video = get_config_value(conf, "output_video") \
-                                .map(lambda ov: ov if isinstance(ov, Path) else Path(str(ov)))  \
-                                .getOrNone()
-            show_progress = get_config_value(conf, "show_progress").getOrElse(False)
-            pause_on_eos = get_config_value(conf, "pause_on_eos").getOrElse(False)
+            window_name = conf.get("window_name", None)
+            output_video = conf.get("output_video", None)
+            show_progress = conf.get("show_progress", False)
+            pause_on_eos = conf.get("pause_on_eos", False)
             param = ImageProcessor.Parameters(window_name=window_name, output_video=output_video,
                                             show_progress=show_progress, pause_on_eos=pause_on_eos)
             return param
@@ -155,8 +152,9 @@ class ImageProcessor(metaclass=ABCMeta):
 
     def __setup_video_writer(self) -> Optional[cv2.VideoWriter]:
         if self.parameters.output_video:
+            path = Path(self.parameters.output_video)
             fourcc = None
-            ext = self.parameters.output_video.suffix.lower()
+            ext = path.suffix.lower()
             if ext == '.mp4':
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             elif ext == '.avi':
@@ -164,8 +162,7 @@ class ImageProcessor(metaclass=ABCMeta):
             else:
                 raise IOError("unknown output video file extension: 'f{ext}'")
 
-            return cv2.VideoWriter(str(self.parameters.output_video.resolve()), fourcc,
-                                            self.__cap.fps, self.__cap.size.to_tuple())
+            return cv2.VideoWriter(str(path.resolve()), fourcc, self.__cap.fps, self.__cap.size.to_tuple())
         else:
             return None
 

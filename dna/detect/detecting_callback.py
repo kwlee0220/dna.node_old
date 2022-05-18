@@ -41,7 +41,7 @@ class DetectingCallback(ImageProcessorCallback):
         img = frame.image
         frame_idx = frame.index
 
-        for det in self.detector.detect(img, frame_idx):
+        for det in self.detector.detect(frame):
             if self.out_handle:
                 self.out_handle.write(self._to_string(frame_idx, det) + '\n')
             if self.draw_detections:

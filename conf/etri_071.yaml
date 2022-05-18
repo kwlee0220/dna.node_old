@@ -4,19 +4,25 @@ node:
   # output_video: C:/Temp/cam_test.mp4
   show_progress: false
   pause_on_eos: false
+  min_trail_length: 10
   kafka:
     bootstrap_servers: [localhost:9092]
-    topic: track_events
+    topics:
+      track_events: node.tracks
+      # local_path_events: node.local_paths
+  # output: '-'
 
 camera:
-  uri: C:/Users/kwlee/Dropbox/data/etri/etri_071.mp4
+  uri: ${oc.env:HOME}/Dropbox/data/etri/etri_071.mp4
   size: [1920, 1080]
   sync: true
   threaded: false
 
 tracker:
-  detector: dna.detect.yolov4_torch_detector
-  #detector: file:videos/etri/etri_071_det.txt
+  # detector: dna.detect.yolov4
+  detector: dna.detect.yolov5:model=l&score=0.35
+  # detector: dna.detect.rcnn50_fpn
+  # detector: file:C:/Temp/data/etri/etri_041_det.txt
   min_detection_score: 0
   n_init: 3
   metric_threshold: 0.55
@@ -39,7 +45,10 @@ tracker:
   #   - [-5,828,1235,1082]
   #   - [1776, -4, 2017, 669]
   draw_zones: true
-  output: C:/Temp/data/etri/track_output.csv
+  # output: C:/Temp/data/track_output.csv
 
 camera_geometry:
   file: data/camera_geoms/etri_07.pickle
+
+local_path:
+  max_path_length: 100
