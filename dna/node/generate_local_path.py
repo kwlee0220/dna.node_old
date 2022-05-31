@@ -2,14 +2,12 @@ from typing import List
 
 from omegaconf import OmegaConf
 from dna.track.tracker import TrackState
-from pubsub import Queue
 from shapely.geometry import LineString
 
 from dna import Point
 from .local_path_event import LocalPathEvent
 from .track_event import TrackEvent
 from .event_processor import EventProcessor
-from .utils import EventPublisher
 
 # _logger = get_logger('dna.enhancer')
 
@@ -34,9 +32,11 @@ class Session:
             self.first_frame = ev.frame_index
         self.last_frame = ev.frame_index
 
-    def build_local_path(self, cont: bool) -> LocalPathEvent:
-        camera_path = LineString([pt.to_tuple() for pt in self.points]).wkb_hex
-        world_path = LineString([pt.to_tuple() for pt in self.world_coords]).wkb_hex
+    def build_local_path(self, length: int, cont: bool) -> LocalPathEvent:
+        camera_path = LineString([pt.to_tuple() for pt in self.points[:length]]).wkb_hex
+        world_path = LineString([pt.to_tuple() for pt in self.world_coords[:length]]).wkb_hex
+        self.points = self.points[length:]
+        self.world_coords = self.world_coords[length:]
 
         return LocalPathEvent(node_id=self.node_id, luid=self.luid,
                             camera_path=camera_path, world_path = world_path,
@@ -47,18 +47,21 @@ class Session:
 class GenerateLocalPath(EventProcessor):
     MAX_PATH_LENGTH = 100
 
-    def __init__(self, in_queue: Queue, publisher: EventPublisher, conf:OmegaConf) -> None:
-        super().__init__(in_queue, publisher)
+    def __init__(self, conf:OmegaConf) -> None:
+        EventProcessor.__init__(self)
 
-        self.max_path_length = conf.local_path.get('max_path_length', GenerateLocalPath.MAX_PATH_LENGTH)
+        self.max_path_length = conf.get('max_path_length', GenerateLocalPath.MAX_PATH_LENGTH)
         self.sessions = dict()
 
     def close(self) -> None:
+        super().close()
+        
         # build local paths from the unfinished sessions and upload them
         for session in self.sessions.values():
             pev = session.build_local_path(cont=False)
             self.publish_event(pev)
         self.sessions.clear()
+
 
     def handle_event(self, ev: TrackEvent) -> None:
         session = self.sessions.get(ev.luid, None)
@@ -69,14 +72,14 @@ class GenerateLocalPath(EventProcessor):
         if ev.state == TrackState.Deleted:
             self.sessions.pop(ev.luid, None)
             if session.length > 0:
-                pev = session.build_local_path(cont=False)
+                pev = session.build_local_path(length=session.length, cont=False)
                 self.publish_event(pev)
         else:
-            if session.length >= self.max_path_length:
-                pev = session.build_local_path(cont=True)
+            if session.length >= self.max_path_length + 10:
+                pev = session.build_local_path(length=self.max_path_length, cont=True)
                 self.publish_event(pev)
 
                 # refresh the current session
-                session = Session(ev.node_id, ev.luid)
-                self.sessions[ev.luid] = session
+                # session = Session(ev.node_id, ev.luid)
+                # self.sessions[ev.luid] = session
             session.append(ev)

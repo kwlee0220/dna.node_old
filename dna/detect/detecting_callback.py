@@ -15,7 +15,7 @@ class DetectingCallback(ImageProcessorCallback):
     
     def __init__(self,
                 detector:ObjectDetector,
-                output: Optional[Path]=None,
+                output: Optional[str]=None,
                 draw_detections: bool=False):
         self.detector = detector
         self.draw_detections = draw_detections
@@ -27,14 +27,13 @@ class DetectingCallback(ImageProcessorCallback):
 
     def on_started(self, proc: ImageProcessor) -> None:
         if self.output:
-            import sys
-            self.out_handle = sys.stdout if self.output == '-' else open(self.output, 'w')
+            Path(self.output).parent.mkdir(exist_ok=True)
+            self.out_handle = open(self.output, "w")
         return self
 
     def on_stopped(self) -> None:
         if self.out_handle:
-            if self.output != '-':
-                self.out_handle.close()
+            self.out_handle.close()
             self.out_handle = None
 
     def process_image(self, frame:Frame) -> Optional[Frame]:

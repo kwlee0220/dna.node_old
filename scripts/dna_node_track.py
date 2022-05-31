@@ -7,34 +7,29 @@ from omegaconf import OmegaConf
 
 import dna
 from dna.camera import Camera, ImageProcessor, create_image_processor
-from dna.track import load_object_tracking_callback
+from dna.track.utils import load_object_tracking_callback
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Track objects from a camera")
     parser.add_argument("conf_path", help="configuration file path")
+    parser.add_argument("--output", "-o", metavar="csv file", help="output detection file.", default=None)
+    parser.add_argument("--output_video", "-v", metavar="mp4 file", help="output video file.", default=None)
+    parser.add_argument("--show", "-s", action='store_true')
+    parser.add_argument("--show_progress", "-p", help="display progress bar.", action='store_true')
     return parser.parse_known_args()
 
 def main():
     args, unknown = parse_args()
+    conf:OmegaConf = dna.load_config(args.conf_path)
 
-    conf = dna.load_config(args.conf_path)
+    camera:Camera = dna.camera.create_camera(conf.camera)
+    proc:ImageProcessor = dna.camera.create_image_processor(camera, OmegaConf.create(vars(args)))
 
-    camera_params = Camera.Parameters.from_conf(conf.camera)
-    camera = dna.camera.create_camera(camera_params)
+    conf.tracker.output = args.output
+    proc.callback = load_object_tracking_callback(camera, proc, conf.tracker)
 
-    show = conf.node.get('show', False)
-    if show:
-        conf.node.window_name = f'id={conf.node.id}, camera={conf.camera.uri}'
-
-    domain = dna.Box.from_size(camera.parameters.size)
-    output_video = conf.node.get('output_video', None)
-    cb = load_object_tracking_callback(conf.tracker, domain, show, output_video)
-
-    proc_params = ImageProcessor.Parameters.from_conf(conf.node)
-    proc = create_image_processor(params=proc_params, capture=camera.open(), callback=cb)
     elapsed, frame_count, fps_measured = proc.run()
-
     print(f"elapsed_time={timedelta(seconds=elapsed)}, frame_count={frame_count}, fps={fps_measured:.1f}" )
 
 if __name__ == '__main__':

@@ -1,20 +1,25 @@
 
 from typing import Optional
 
+from omegaconf import OmegaConf
+
 import dna
-from .camera import Size2d, Camera, ImageCapture
+from .camera import Size2d, Camera
 from .image_processor import ImageProcessor, ImageProcessorCallback
 
 
-def create_camera(params: Camera.Parameters):
-    from .opencv_camera import OpenCvCamera
-    camera = OpenCvCamera(params)
-    if params.threaded:
+def create_camera(conf: OmegaConf):
+    from .opencv_camera import OpenCvCamera, OpenCvVideFile
+
+    camera = OpenCvVideFile(conf) if OpenCvCamera.is_video_file(conf.uri) else OpenCvCamera(conf)
+    if dna.conf.get_config(conf, 'threaded', False):
         from .threaded_camera import ThreadedCamera
         camera = ThreadedCamera(camera)
+
     return camera
 
+def create_image_processor(camera: Camera, conf: OmegaConf) -> ImageProcessor:
+    if conf.get('window_name', None) is None:
+        conf.window_name = f'camera={camera.uri}' if conf.get('show', False) else None
 
-def create_image_processor(params:ImageProcessor.Parameters, capture:ImageCapture,
-                            callback: Optional[ImageProcessorCallback]=None) -> ImageProcessor:
-    return ImageProcessor(params, capture, callback)
+    return ImageProcessor(camera=camera, conf=conf)

@@ -130,6 +130,7 @@ dmypy.json
 
 # dna.node
 data/
+output/
 models/
 *.pt
 track_output*

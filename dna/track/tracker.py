@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from datetime import datetime
 from typing import List, Optional
 from abc import ABCMeta, abstractmethod
@@ -13,6 +14,7 @@ from omegaconf import OmegaConf
 
 import dna
 from dna import Box, Image, plot_utils, BGR, Frame
+from dna.camera import Camera, ImageProcessor
 from dna.detect import Detection
 from dna.detect.object_detector import ObjectDetector
 
@@ -155,21 +157,3 @@ class LogFileBasedObjectTracker(ObjectTracker):
     def __repr__(self) -> str:
         current_idx = int(self.look_ahead[0]) if self.look_ahead else -1
         return f"{self.__class__.__name__}: frame_idx={current_idx}, from={self.__file.name}"
-
-
-def load_object_tracking_callback(conf: OmegaConf, domain: Box, show:bool=False,
-                                    output_video: Optional[str]=None,
-                                    tracker_callbacks: List[TrackerCallback]=[]) -> ObjectTracker:
-    from dna.detect.utils import load_object_detector
-    from .track_callbacks import TrackWriter, ObjectTrackingCallback
-    from .deepsort_tracker import DeepSORTTracker
-
-    output = conf.get("output", None)
-    show_zones = conf.get('show_zones', False)
-
-    draw_tracks = show or output_video is not None
-
-    detector = load_object_detector(conf.detector)
-    tracker = DeepSORTTracker(detector, domain, conf)
-    tracker_cbs = [TrackWriter(output)] + tracker_callbacks if output else tracker_callbacks
-    return ObjectTrackingCallback(tracker, tracker_cbs, draw_tracks, show_zones)

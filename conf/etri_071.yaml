@@ -1,19 +1,7 @@
-node:
-  id: etri:071
-  show: true
-  # output_video: C:/Temp/cam_test.mp4
-  show_progress: false
-  pause_on_eos: false
-  min_trail_length: 10
-  kafka:
-    bootstrap_servers: [localhost:9092]
-    topics:
-      track_events: node.tracks
-      # local_path_events: node.local_paths
-  # output: '-'
+id: etri:071
 
 camera:
-  uri: ${oc.env:HOME}/Dropbox/data/etri/etri_071.mp4
+  uri: data/etri/etri_071.mp4
   size: [1920, 1080]
   sync: true
   threaded: false
@@ -47,8 +35,17 @@ tracker:
   draw_zones: true
   # output: C:/Temp/data/track_output.csv
 
-camera_geometry:
-  file: data/camera_geoms/etri_07.pickle
-
-local_path:
-  max_path_length: 100
+pipeline:
+  refine_track_events: true
+  drop_short_trails:
+    min_length: 10
+  attach_world_coordinates:
+    camera_geometry: data/camera_geoms/etri_07.pickle
+  publish_to_kafka:
+    bootstrap_servers: [localhost:9092]
+    topic: 'node.tracks'
+  generate_local_paths:
+    max_path_length: 100
+    kafka:
+      bootstrap_servers: [localhost:9092]
+      topic: node.local_paths

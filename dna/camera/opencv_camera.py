@@ -1,55 +1,108 @@
 from __future__ import annotations
-from typing import Optional, Union
+
+from typing import Optional, Tuple
 import dataclasses
 import time
 
 import numpy as np
 import cv2
+from omegaconf import OmegaConf
 
 import dna
 from dna import Size2d, Image, Frame
 from .camera import Camera, ImageCapture
 
 
+
 class OpenCvCamera(Camera):
-    __slots__ = ('__params',)
+    def __init__(self, conf:OmegaConf):
+        Camera.__init__(self)
 
-    def __init__(self, params:Camera.Parameters):
-        self.__params = params
+        self.__uri = conf.uri
 
-    def open(self) -> ImageCapture:
-        from_video = False
-        uri = self.parameters.uri
-        if isinstance(uri, str):
-            if uri.isnumeric():
-                vid = cv2.VideoCapture(int(uri))
-            elif uri.startswith('rtsp://'):
-                vid = cv2.VideoCapture(uri)
-            elif uri.endswith('.mp4') or uri.endswith('.avi'):  # from video-file
-                import os
-                if not os.path.exists(uri):
-                    raise IOError(f"invalid video file path: {uri}")
-                vid = cv2.VideoCapture(uri)
-                from_video = True
-            else:
-                raise ValueError(f"invalid camera uri: {uri}")
-        elif isinstance(uri, int):
+        size_conf = conf.get('size', None)
+        self.__size = Size2d.from_conf(size_conf) if size_conf is not None else None
+
+    @staticmethod
+    def is_local_camera(uri: str):
+        return uri.isnumeric()
+
+    @staticmethod
+    def is_rtsp_camera(uri: str):
+        return uri.startswith('rtsp://')
+
+    @staticmethod
+    def is_video_file(uri: str):
+        return uri.endswith('.mp4') or uri.endswith('.avi')
+
+    def __open_cv_capture(self) -> Tuple[cv2.VideoCapture,bool]:
+        uri:str = self.uri
+        live:bool = True
+
+        if uri.isnumeric():
+            vid = cv2.VideoCapture(int(uri))
+        elif uri.startswith('rtsp://'):
             vid = cv2.VideoCapture(uri)
+        elif uri.endswith('.mp4') or uri.endswith('.avi'):  # from video-file
+            import os
+            if not os.path.exists(uri):
+                raise IOError(f"invalid video file path: {uri}")
+            vid = cv2.VideoCapture(uri)
+            live = False
         else:
             raise ValueError(f"invalid camera uri: {uri}")
 
-        if self.parameters.size:
-            vid.set(cv2.CAP_PROP_FRAME_WIDTH, self.parameters.size.width)
-            vid.set(cv2.CAP_PROP_FRAME_HEIGHT, self.parameters.size.height)
+        if self.size is not None:
+            vid.set(cv2.CAP_PROP_FRAME_WIDTH, self.size.width)
+            vid.set(cv2.CAP_PROP_FRAME_HEIGHT, self.size.height)
+
+        return vid, live
+
+    def open(self) -> ImageCapture:
+        from_video = False
+        if self.uri.isnumeric():
+            vid = cv2.VideoCapture(int(self.uri))
+        elif self.uri.startswith('rtsp://'):
+            vid = cv2.VideoCapture(self.uri)
+        elif self.uri.endswith('.mp4') or self.uri.endswith('.avi'):  # from video-file
+            import os
+            if not os.path.exists(self.uri):
+                raise IOError(f"invalid video file path: {self.uri}")
+            vid = cv2.VideoCapture(self.uri)
+            from_video = True
+        else:
+            raise ValueError(f"invalid camera uri: {self.uri}")
+
+        if self.size is not None:
+            vid.set(cv2.CAP_PROP_FRAME_WIDTH, self.size.width)
+            vid.set(cv2.CAP_PROP_FRAME_HEIGHT, self.size.height)
 
         return VideoFileCapture(self, vid) if from_video else OpenCvImageCapture(self, vid)
 
     @property
-    def parameters(self) -> Camera.Parameters:
-        return self.__params
+    def uri(self) -> str:
+        return self.__uri
+
+    @property
+    def size(self) -> Optional[Size2d]:
+        return self.__size
 
     def __repr__(self) -> str:
-        return f"{__class__.__name__}({self.uri}, params=[{self.parameters}])"
+        size_str = f', size={self.size}' if self.__size is not None else ''
+        return f"{__class__.__name__}(uri={self.uri}{size_str})"
+
+
+class OpenCvVideFile(OpenCvCamera):
+    def __init__(self, conf:OmegaConf):
+        OpenCvCamera.__init__(self, conf)
+
+        self.sync = conf.get('sync', True)
+        self.begin_frame = conf.get('begin_frame', 1)
+        self.end_frame = conf.get('end_frame', None)
+
+    def __repr__(self) -> str:
+        size_str = f', size={self.size}' if self.size is not None else ''
+        return f"{__class__.__name__}(uri={self.uri}{size_str}, sync={self.sync})"
 
 
 class OpenCvImageCapture(ImageCapture):
@@ -129,7 +182,7 @@ class VideoFileCapture(OpenCvImageCapture):
     __OVERHEAD = 0.02
     __slots__ = '__interval', '__sync', '__last_img', '__overhead'
 
-    def __init__(self, camera: OpenCvCamera, vid: cv2.VideoCapture) -> None:
+    def __init__(self, camera: OpenCvVideFile, vid: cv2.VideoCapture) -> None:
         """Create a VideoFileCapture object.
 
         Args:
@@ -138,12 +191,12 @@ class VideoFileCapture(OpenCvImageCapture):
         super().__init__(camera, vid)
 
         self.__interval = 1.0 / self.fps
-        self.__sync = self.camera.parameters.sync
+        self.__sync = self.camera.sync
         self.__last_frame = Frame(image=None, index=-1, ts=time.time())
         self.__overhead = 0.0
 
-        if self.camera.parameters.begin_frame > 1:
-            self.set_frame_index(self.camera.parameters.begin_frame)
+        if self.camera.begin_frame > 1:
+            self.set_frame_index(self.camera.begin_frame)
 
     @property
     def total_frame_count(self) -> int:

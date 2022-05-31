@@ -1,25 +1,14 @@
 from threading import Thread
-
 from datetime import timedelta
 
 from omegaconf import OmegaConf
-from dna import track
-from pubsub import PubSub
 
 import dna
 from dna.camera import Camera, ImageProcessor, create_image_processor
-from dna.node import TrackEventSource, RefineTrackEvent, KafkaEventPublisher, \
-                    DropShortTrail, GenerateLocalPath, PrintTrackEvent, EventPublisher
+from dna.node import TrackEventSource, RefineTrackEvent, DropShortTrail, KafkaEventPublisher, \
+                    GenerateLocalPath, PrintTrackEvent, EventQueue
 from dna.enhancer.world_transform import WorldTransform
-from dna.track import load_object_tracking_callback
-
-
-pubsub = PubSub()
-PUB_TRACK_EVENT = EventPublisher(pubsub, "track_events")
-PUB_REFINED = EventPublisher(pubsub, "track_events_refined")
-PUB_LONG_TRAILS = EventPublisher(pubsub, "long_trails")
-PUB_WORLD_COORD = EventPublisher(pubsub, "track_events_world_coord")
-PUB_LOCAL_PATHS = EventPublisher(pubsub, "local_paths")
+from dna.track.utils import load_object_tracking_callback
 
 
 import argparse
@@ -27,62 +16,63 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Detect Objects in a video file")
     parser.add_argument("conf_path", help="configuration file path")
     # parser.add_argument("--track_file", help="Object track log file.", default=None)
-    # parser.add_argument("--tracker", help="tracker", default="tracker.deep_sort")
+    parser.add_argument("--output", "-o", metavar="json file", help="track event file.", default=None)
+    parser.add_argument("--output_video", "-v", metavar="mp4 file", help="output video file.", default=None)
+    parser.add_argument("--show", "-s", action='store_true')
+    parser.add_argument("--show_progress", "-p", help="display progress bar.", action='store_true')
     return parser.parse_known_args()
+
+def build_pipeline(in_queue: EventQueue, pipe_conf: OmegaConf) -> EventQueue:
+    queue0 = in_queue
+
+    if pipe_conf.get('refine_track_events', False):
+        refine = RefineTrackEvent()
+        queue0.subscribe(refine)
+        queue0 = refine
+
+    if pipe_conf.get('drop_short_trails', None) is not None:
+        min_trail_length = pipe_conf.drop_short_trails.get('min_length', 0)
+        if min_trail_length > 0:
+            drop_short_trail = DropShortTrail(min_trail_length)
+            queue0.subscribe(drop_short_trail)
+            queue0 = drop_short_trail
+
+    if pipe_conf.get('attach_world_coordinates', None) is not None:
+        world_coords = WorldTransform(pipe_conf.attach_world_coordinates)
+        queue0.subscribe(world_coords)
+        queue0 = world_coords
+
+    if pipe_conf.get('publish_to_kafka', None) is not None:
+        tk_pub = KafkaEventPublisher(pipe_conf.publish_to_kafka)
+        queue0.subscribe(tk_pub)
+        top1 = tk_pub
+
+    if dna.conf.get_config(pipe_conf, 'generate_local_paths.kafka', None) is not None:
+        gen_lp = GenerateLocalPath(pipe_conf.generate_local_paths)
+        queue0.subscribe(gen_lp)
+        queue2 = gen_lp
+
+        lp_pub = KafkaEventPublisher(pipe_conf.generate_local_paths.kafka)
+        queue2.subscribe(lp_pub)
+        queue2 = lp_pub
+
+    return queue0
 
 def main():
     args, unknown = parse_args()
+    conf:OmegaConf = dna.load_config(args.conf_path)
 
-    conf = dna.load_config(args.conf_path)
+    camera:Camera = dna.camera.create_camera(conf.camera)
+    proc:ImageProcessor = dna.camera.create_image_processor(camera, OmegaConf.create(vars(args)))
 
-    camera_params = Camera.Parameters.from_conf(conf.camera)
-    camera = dna.camera.create_camera(camera_params)
+    source = TrackEventSource(conf.id)
+    if conf.get('pipeline', None) is not None:
+        queue = build_pipeline(source, conf.pipeline)
+        if args.output is not None:
+            queue.subscribe(PrintTrackEvent(args.output))
+    proc.callback = load_object_tracking_callback(camera, proc, conf.tracker, tracker_callbacks=[source])
 
-    source = TrackEventSource(conf.node.id, PUB_TRACK_EVENT)
-
-    refine = RefineTrackEvent(source.subscribe(), PUB_REFINED)
-    Thread(target=refine.run, args=tuple()).start()
-
-    queue = refine.subscribe()
-    min_trail_length = conf.node.get('min_trail_length', 0)
-    if min_trail_length > 0:
-        drop_short_trail = DropShortTrail(queue, PUB_LONG_TRAILS, conf.node.min_trail_length)
-        Thread(target=drop_short_trail.run, args=tuple()).start()
-        queue = drop_short_trail.subscribe()
-
-    world_coords = WorldTransform(queue, PUB_WORLD_COORD, conf.camera_geometry)
-    Thread(target=world_coords.run, args=tuple()).start()
-
-    te_topic = dna.conf.get_config(conf, 'node.kafka.topics.track_events', None)
-    if te_topic is not None:
-        tk_pub = KafkaEventPublisher(world_coords.subscribe(), te_topic, conf.node.kafka)
-        Thread(target=tk_pub.run, args=tuple()).start()
-
-    lpe_topic = dna.conf.get_config(conf, 'node.kafka.topics.local_path_events', None)
-    if lpe_topic is not None:
-        gen_lp = GenerateLocalPath(world_coords.subscribe(), PUB_LOCAL_PATHS, conf.node)
-        Thread(target=gen_lp.run, args=tuple()).start()
-
-        lp_pub = KafkaEventPublisher(gen_lp.subscribe(), lpe_topic, conf.node.kafka)
-        Thread(target=lp_pub.run, args=tuple()).start()
-
-    track_output = conf.node.get('output', None)
-    if track_output is not None:
-        print_event = PrintTrackEvent(world_coords.subscribe(), track_output)
-        Thread(target=print_event.run, args=tuple()).start()
-
-    show = conf.node.get('show', False)
-    if show:
-        conf.node.window_name = f'id={conf.node.id}, camera={conf.camera.uri}'
-
-    domain = dna.Box.from_size(camera.parameters.size)
-    output_video = conf.node.get('output_video', None)
-    cb = load_object_tracking_callback(conf.tracker, domain, show, output_video, [source])
-
-    proc_params = ImageProcessor.Parameters.from_conf(conf.node)
-    proc = create_image_processor(params=proc_params, capture=camera.open(), callback=cb)
     elapsed, frame_count, fps_measured = proc.run()
-
     print(f"elapsed_time={timedelta(seconds=elapsed)}, frame_count={frame_count}, fps={fps_measured:.1f}" )
 
 if __name__ == '__main__':

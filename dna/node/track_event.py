@@ -59,6 +59,17 @@ class TrackEvent(KafkaEvent):
 
         print(type(json_obj))
 
+    def to_json(self) -> str:
+        tlbr_expr = [round(v, 2) for v in self.location.to_tlbr().tolist()]
+        serialized = {'node':self.node_id, 'luid':self.luid, 'state':self.state.name,
+                    'location':tlbr_expr, 'frame_index':self.frame_index, 'ts': self.ts}
+        if self.world_coord is not None:
+            serialized['world_coord'] = [round(v, 3) for v in self.world_coord.to_tuple()]
+        if self.distance is not None:
+            serialized['distance'] = round(self.distance,2)
+
+        return json.dumps(serialized, separators=(',', ':'))
+
     def serialize(self) -> str:
         tlbr_expr = [round(v, 2) for v in self.location.to_tlbr().tolist()]
         serialized = {'node':self.node_id, 'luid':self.luid, 'state':self.state.name,
@@ -68,7 +79,7 @@ class TrackEvent(KafkaEvent):
         if self.distance is not None:
             serialized['distance'] = round(self.distance,2)
 
-        return json.dumps(serialized, separators=(',', ':')).encode('utf-8')
+        return self.to_json().encode('utf-8')
 
     def updated(self, **kwargs) -> TrackEvent:
         fields = asdict(self)

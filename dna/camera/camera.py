@@ -11,29 +11,29 @@ import dna
 from dna import Size2d, Frame
 
 
+@dataclass(frozen=True, eq=True, slots=True)
+class Parameters:
+    uri: str|int = field(default=None)
+    size: Optional[Size2d] = field(default=None)
+    sync: bool = field(default=False)
+    begin_frame: int = field(default=1)
+    end_frame: Optional[int] = field(default=None)
+    threaded: bool = field(default=False)
+
+    @classmethod
+    def from_conf(cls, conf:OmegaConf):
+        uri = conf.uri
+        size = conf.get('size', None)
+        size = Size2d.from_conf(size) if size is not None else size
+        sync = conf.get("sync", False)
+        begin_frame = conf.get("begin_frame", 1)
+        end_frame = conf.get("end_frame", None)
+        threaded = conf.get("threaded", False)
+        
+        return cls(uri=uri, size=size, sync=sync, begin_frame=begin_frame, end_frame=end_frame,
+                    threaded=threaded)
+
 class Camera(metaclass=ABCMeta):
-    @dataclass(frozen=True, eq=True, slots=True)
-    class Parameters:
-        uri: str|int = field(default=None)
-        size: Optional[Size2d] = field(default=None)
-        sync: bool = field(default=False)
-        begin_frame: int = field(default=1)
-        end_frame: Optional[int] = field(default=None)
-        threaded: bool = field(default=False)
-
-        @classmethod
-        def from_conf(cls, conf:OmegaConf):
-            uri = conf.uri
-            size = conf.get('size', None)
-            size = Size2d.from_conf(size) if size is not None else size
-            sync = conf.get("sync", False)
-            begin_frame = conf.get("begin_frame", 1)
-            end_frame = conf.get("end_frame", None)
-            threaded = conf.get("threaded", False)
-            
-            return cls(uri=uri, size=size, sync=sync, begin_frame=begin_frame, end_frame=end_frame,
-                        threaded=threaded)      
-
     @abstractmethod
     def open(self) -> ImageCapture:
         """Opens a camera
@@ -42,11 +42,21 @@ class Camera(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def parameters(self) -> Parameters:
-        """Returns the parameters for this Camera.
+    def uri(self) -> str:
+        """Returns the URI of this Camera.
 
         Returns:
-            Parameters: camera parameter
+            Parameters: camera URI
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def size(self) -> Optional[Size2d]:
+        """Returns the image size captured from this Camera.
+
+        Returns:
+            Parameters: the image size captured from this Camera
         """
         pass
 

@@ -37,7 +37,7 @@ def filter_by_blind_zones(detector:ObjectDetector, blind_zones:List[Box]) -> Obj
     return BlindZoneObjectDetector(detector, blind_zones)
 
 from .detecting_callback import DetectingCallback
-def load_object_detecting_callback(detector_uri:str, output_video: Optional[Path]=None,
-                                    draw_detection: bool=False) -> DetectingCallback:
+def load_object_detecting_callback(detector_uri:str, output: Optional[Path]=None,
+                                    draw_detections: bool=False) -> DetectingCallback:
     detector = load_object_detector(detector_uri)
-    return DetectingCallback(detector, output_video, draw_detection)
+    return DetectingCallback(detector=detector, output=output, draw_detections=draw_detections)

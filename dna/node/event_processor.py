@@ -1,62 +1,82 @@
-from typing import Optional, Any
+from typing import List
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 
-from pubsub import PubSub, Queue
 from dna.node.track_event import TrackEvent
-from .utils import EventPublisher
 
 
-class EventProcessor(metaclass=ABCMeta):
-    def __init__(self, in_queue: Queue, publisher: Optional[EventPublisher]=None) -> None:
-        self.in_queue = in_queue
-        self.publisher = publisher
-
-    def subscribe(self) -> Queue:
-        if self.publisher:
-            return self.publisher.subscribe()
-        else:
-            raise AssertionError(f"Processor cannot publish events: {self}")
+class EventSubscriber(metaclass=ABCMeta):
+    @abstractmethod
+    def handle_event(self, ev: object) -> None:
+        pass
 
     @abstractmethod
-    def handle_event(self, ev: TrackEvent) -> None:
-        pass
-
     def close(self) -> None:
         pass
 
-    def publish_event(self, ev) -> None:
-        if self.publisher:
-            self.publisher.publish(ev)
-        else:
-            raise AssertionError(f"Processor cannot publish events: {self}")
+class EventQueue:
+    def __init__(self) -> None:
+        self.subscribers:List[EventSubscriber] = []
 
-    def run(self) -> None:
-        for entry in self.in_queue.listen():
-            event = entry['data']
-            if event.luid is None:
-                break
-            self.handle_event(event)
+    def subscribe(self, sub:EventSubscriber) -> None:
+        self.subscribers.append(sub)
 
-        if self.publisher:
-            self.publish_event(event)
-        self.close()
+    def close(self) -> None:
+        for sub in self.subscribers:
+            sub.close()
 
+    def publish_event(self, ev:object) -> None:
+        for sub in self.subscribers:
+            sub.handle_event(ev)
+
+
+class EventProcessor(EventSubscriber):
+    def __init__(self) -> None:
+        EventSubscriber.__init__(self)
+        
+        self.queue = EventQueue()
+
+    def subscribe(self, sub:EventSubscriber) -> None:
+        self.queue.subscribe(sub)
+
+    def publish_event(self, ev:object) -> None:
+        self.queue.publish_event(ev)
+
+    def close(self) -> None:
+        self.queue.close()
+
+
+from dna import Frame
+from dna.track import Track, TrackerCallback
+from .track_event import TrackEvent, EOT
+class TrackEventSource(TrackerCallback, EventQueue):
+    def __init__(self, node_id:str) -> None:
+        TrackerCallback.__init__()
+        EventQueue.__init__()
+
+        self.node_id = node_id
+
+    def track_started(self, tracker) -> None: pass
+    def track_stopped(self, tracker) -> None:
+        self.publisher.publish(EOT)
+
+    def tracked(self, tracker, frame: Frame, tracks: List[Track]) -> None:
+        for track in tracks:
+            self.publish_event(TrackEvent.from_track(self.node_id, track))
 
 import sys
-class PrintTrackEvent(EventProcessor):
-    def __init__(self, queue, file: str) -> None:
-        super().__init__(queue)
+class PrintTrackEvent(EventSubscriber):
+    def __init__(self, file: str) -> None:
+        super().__init__()
 
         self.file = file
-        self.fp = sys.stdout if self.file == '-' else open(self.file, 'w')
+
+        Path(self.file).parent.mkdir(exist_ok=True)
+        self.fp = open(self.file, 'w')
 
     def close(self) -> None:
-        if self.file != '-':
-            self.fp.close()
+        self.fp.close()
         self.fp = None
 
-    def subscribe(self): pass
-
-    def handle_event(self, ev: TrackEvent) -> None:
-        self.fp.write(ev.to_csv() + '\n')
+    def handle_event(self, ev: object) -> None:
+        self.fp.write(ev.to_json() + '\n')

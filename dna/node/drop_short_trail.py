@@ -3,26 +3,23 @@ from __future__ import annotations
 from typing import List, Dict, Set
 from collections import defaultdict
 
-from pubsub import Queue
-
-from dna.track import TrackState, Track
+from dna.track import TrackState
 from .track_event import TrackEvent
 from .event_processor import EventProcessor
-from .utils import EventPublisher
-
 
 
 class DropShortTrail(EventProcessor):
     __slots__ = 'min_track_count', 'long_trails', 'pendings'
 
-    def __init__(self, in_queue: Queue, publisher: EventPublisher, min_trail_length:int) -> None:
-        super().__init__(in_queue, publisher)
+    def __init__(self, min_trail_length:int) -> None:
+        EventProcessor.__init__(self)
 
         self.min_trail_length = min_trail_length
         self.long_trails: Set[str] = set()
         self.pending_dict: Dict[str, List[TrackEvent]] = defaultdict(list)
 
     def close(self) -> None:
+        super().close()
         for pendings in self.pending_dict.values():
             self.__publish_pendings(pendings)
 

@@ -11,16 +11,15 @@ import cv2
 from dna import Point
 from dna.node.track_event import TrackEvent
 from dna.node.event_processor import EventProcessor
-from dna.node.utils import EventPublisher
 
 
 CameraGeometry = namedtuple('CameraGeometry', 'K,distort,ori,pos')
 
 class WorldTransform(EventProcessor):
-    def __init__(self, in_queue: Queue, publisher: EventPublisher, conf:OmegaConf) -> None:
-        super().__init__(in_queue, publisher)
+    def __init__(self, conf:OmegaConf) -> None:
+        EventProcessor.__init__(self)
 
-        with open(conf.file, 'rb') as f:
+        with open(conf.camera_geometry, 'rb') as f:
             self.geometry = pickle.load(f)
 
     def handle_event(self, ev:TrackEvent) -> None:

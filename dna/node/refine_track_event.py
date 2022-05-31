@@ -3,12 +3,9 @@ from __future__ import annotations
 from typing import List, Dict
 from dataclasses import dataclass, field
 
-from pubsub import PubSub, Queue
-
-from dna.track import TrackState, Track
+from dna.track import TrackState
 from .track_event import TrackEvent
 from .event_processor import EventProcessor
-from .utils import EventPublisher
 
 
 @dataclass(eq=True, slots=True)
@@ -21,8 +18,8 @@ class Session:
 class RefineTrackEvent(EventProcessor):
     __slots__ = ('sessions', )
 
-    def __init__(self, in_queue: Queue, publisher: EventPublisher) -> None:
-        super().__init__(in_queue, publisher)
+    def __init__(self) -> None:
+        EventProcessor.__init__(self)
 
         self.sessions: Dict[str, Session] = {}
 

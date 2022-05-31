@@ -31,7 +31,7 @@ def main():
         while True:
             line = fp.readline().rstrip()
             if len(line) > 0:
-                te = TrackEvent.from_csv(line)
+                te = TrackEvent.from_json(line)
                 heapq.heappush(heap, te)
             elif len(heap) == 0:
                 break
