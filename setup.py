@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup( 
     name = 'dna.node',
-    version = '0.0.1',
+    version = '0.0.2',
     description = 'DNA framework',
     author = 'Kang-Woo Lee',
     author_email = 'kwlee@etri.re.kr',
@@ -13,6 +13,7 @@ setup(
 			'dna_node_detect = scripts.dna_node_detect:main',
 			'dna_node_track = scripts.dna_node_track:main',
 			'dna_node = scripts.dna_node:main',
+			'dna_publish_events = scripts.dna_publish_events:main',
 		],
 	},
     install_requires = [
