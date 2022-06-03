@@ -15,13 +15,26 @@ from .camera import Camera, ImageCapture
 
 
 class OpenCvCamera(Camera):
-    def __init__(self, conf:OmegaConf):
+    # def __init__(self, conf:OmegaConf):
+    #     Camera.__init__(self)
+
+    #     self.__uri = conf.uri
+
+    #     size_conf = conf.get('size', None)
+    #     self.__size = Size2d.from_conf(size_conf) if size_conf is not None else None
+    def __init__(self, uri:str, size:Optional[Size2d]=None):
         Camera.__init__(self)
 
-        self.__uri = conf.uri
+        self.__uri = uri
+        self.__size = size
 
+    @classmethod
+    def from_conf(cls, conf:OmegaConf):
+        uri = conf.uri
         size_conf = conf.get('size', None)
-        self.__size = Size2d.from_conf(size_conf) if size_conf is not None else None
+        size = Size2d.from_conf(size_conf) if size_conf is not None else None
+
+        return cls(uri, size)
 
     @staticmethod
     def is_local_camera(uri: str):
@@ -93,12 +106,32 @@ class OpenCvCamera(Camera):
 
 
 class OpenCvVideFile(OpenCvCamera):
-    def __init__(self, conf:OmegaConf):
-        OpenCvCamera.__init__(self, conf)
+    # def __init__(self, conf:OmegaConf):
+    #     OpenCvCamera.__init__(self, conf)
 
-        self.sync = conf.get('sync', True)
-        self.begin_frame = conf.get('begin_frame', 1)
-        self.end_frame = conf.get('end_frame', None)
+    #     self.sync = conf.get('sync', True)
+    #     self.begin_frame = conf.get('begin_frame', 1)
+    #     self.end_frame = conf.get('end_frame', None)
+
+    def __init__(self, uri:str, size:Optional[Size2d]=None, sync:bool=True,
+                begin_frame:int=1, end_frame:Optional[int]=None):
+        OpenCvCamera.__init__(self, uri, size)
+
+        self.sync = sync
+        self.begin_frame = begin_frame
+        self.end_frame = end_frame
+
+    @classmethod
+    def from_conf(cls, conf:OmegaConf):
+        uri = conf.uri
+        size_conf = conf.get('size', None)
+        size = Size2d.from_conf(size_conf) if size_conf is not None else None
+
+        sync = conf.get('sync', True)
+        begin_frame = conf.get('begin_frame', 1)
+        end_frame = conf.get('end_frame', None)
+
+        return cls(uri, size, sync, begin_frame, end_frame)
 
     def __repr__(self) -> str:
         size_str = f', size={self.size}' if self.size is not None else ''

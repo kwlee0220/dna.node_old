@@ -11,7 +11,8 @@ from .image_processor import ImageProcessor, ImageProcessorCallback
 def create_camera(conf: OmegaConf):
     from .opencv_camera import OpenCvCamera, OpenCvVideFile
 
-    camera = OpenCvVideFile(conf) if OpenCvCamera.is_video_file(conf.uri) else OpenCvCamera(conf)
+    camera = OpenCvVideFile.from_conf(conf) if OpenCvCamera.is_video_file(conf.uri) \
+                                            else OpenCvCamera.from_conf(conf)
     if dna.conf.get_config(conf, 'threaded', False):
         from .threaded_camera import ThreadedCamera
         camera = ThreadedCamera(camera)
