@@ -28,7 +28,7 @@ class TrackState(Enum):
     Deleted = 4
 
 
-@dataclass(frozen=True, eq=True, slots=True, order=True)
+@dataclass(frozen=True, eq=True, order=True)    # slots=True
 class Track:
     id: int = field(compare=False)
     state: TrackState = field(compare=False)

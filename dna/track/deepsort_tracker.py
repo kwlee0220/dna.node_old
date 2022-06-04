@@ -33,7 +33,7 @@ DEFAULT_N_INIT = 3
 DEFAULT_MAX_OVERLAP_RATIO=0.75
 DEFAULT_MIN_SIZE=[30, 20]
 
-@dataclass(frozen=True, eq=True, slots=True)
+@dataclass(frozen=True, eq=True)    # slots=True
 class DeepSORTParams:
     metric_threshold: float
     max_iou_distance: float

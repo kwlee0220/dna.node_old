@@ -12,7 +12,7 @@ from dna.track.tracker import TrackState
 from .kafka_event import KafkaEvent
 
 
-@dataclass(frozen=True, eq=True, order=False, repr=False, slots=True)
+@dataclass(frozen=True, eq=True, order=False, repr=False)    # slots=True
 class TrackEvent(KafkaEvent):
     node_id: str
     luid: int

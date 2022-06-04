@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, NewType, Tuple, Optional
+from typing import List, NewType, Tuple, Optional, Union
 import math
 
 import numpy as np
@@ -13,22 +13,22 @@ from .color import BGR
 class Point:
     __slots__ = ('__xy', )
 
-    def __init__(self, x: int|float, y: int|float) -> None:
+    def __init__(self, x: Union[int, float], y: Union[int, float]) -> None:
         self.__xy = np.array([x, y])
 
     @property
-    def x(self) -> int|float:
+    def x(self) -> Union[int, float]:
         return self.__xy[0]
 
     @property
-    def y(self) -> int|float:
+    def y(self) -> Union[int, float]:
         return self.__xy[1]
 
     @property
     def xy(self):
         return self.__xy
 
-    def to_tuple(self) -> Tuple[int|float, int|float]:
+    def to_tuple(self) -> Tuple[Union[int, float], Union[int, float]]:
         return tuple(self.__xy)
 
     @classmethod
@@ -73,7 +73,7 @@ class Point:
         else:
             raise ValueError(f"invalid rhs: rhs={rhs}")
 
-    def __sub__(self, rhs) -> Point|Size2d:
+    def __sub__(self, rhs) -> Union[Point,Size2d]:
         if isinstance(rhs, Point):
             return Size2d.from_np(self.xy - rhs.xy)
         elif isinstance(rhs, Size2d):
@@ -112,7 +112,7 @@ class Point:
 class Size2d:
     __slots__ = ('__wh',)
 
-    def __init__(self, width: int|float, height: int|float) -> None:
+    def __init__(self, width: Union[int, float], height: Union[int, float]) -> None:
         self.__wh = np.array([width, height])
 
     @classmethod
@@ -137,7 +137,7 @@ class Size2d:
         else:
             raise ValueError(f'invalid Size2d expression: {expr}')
 
-    def to_tuple(self) -> Tuple[int|float,int|float]:
+    def to_tuple(self) -> Tuple[Union[int, float],Union[int, float]]:
         return tuple(np.rint(self.wh).astype(int))
         # return tuple(self.__wh)
 
@@ -149,11 +149,11 @@ class Size2d:
         return self.__wh
 
     @property
-    def width(self) -> int|float:
+    def width(self) -> Union[int, float]:
         return self.__wh[0]
     
     @property
-    def height(self) -> int|float:
+    def height(self) -> Union[int, float]:
         return self.__wh[1]
 
     def aspect_ratio(self) -> float:
@@ -275,11 +275,11 @@ class Box:
         return self.br - self.tl
 
     @property
-    def width(self) -> float|int:
+    def width(self) -> Union[float,int]:
         return self.wh[0]
 
     @property
-    def height(self) -> float|int:
+    def height(self) -> Union[float,int]:
         return self.wh[1]
 
     def top_left(self) -> Point:
@@ -355,7 +355,7 @@ EMPTY_BOX:Box = Box(np.array([-1,-1,0,0]))
 
 
 Image = NewType('Image', np.ndarray)
-@dataclass(frozen=True, eq=True, slots=True)
+@dataclass(frozen=True, eq=True)    # slots=True
 class Frame:
     image: Image = field(repr=False)
     index: int

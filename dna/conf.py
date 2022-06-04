@@ -15,7 +15,7 @@ DEBUG_START_FRAME = 32
 DEBUG_TARGET_TRACKS = None
 
 
-def load_config(config_path: str|Path, conf_id: Optional[str]=None) -> OmegaConf:
+def load_config(config_path: Union[str,Path], conf_id: Optional[str]=None) -> OmegaConf:
     config_path = Path(config_path) if isinstance(config_path, str) else config_path
     conf = OmegaConf.load(config_path)
     return conf[conf_id] if conf_id else conf

@@ -11,7 +11,7 @@ from dna import BGR, Box, Size2d, Image, Frame
 from dna.utils import plot_utils
 
 
-@dataclass(frozen=True, eq=True, slots=True)
+@dataclass(frozen=True, eq=True)    # slots=True
 class Detection:
     bbox: Box
     label: Optional[str] = field(default=None)

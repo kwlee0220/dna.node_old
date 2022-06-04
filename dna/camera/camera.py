@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, NewType
+from typing import Optional, NewType, Union
 from dataclasses import dataclass, field
 from abc import ABCMeta, abstractmethod
 
@@ -11,9 +11,9 @@ import dna
 from dna import Size2d, Frame
 
 
-@dataclass(frozen=True, eq=True, slots=True)
+@dataclass(frozen=True, eq=True)    # slots=True
 class Parameters:
-    uri: str|int = field(default=None)
+    uri: Union[str,int] = field(default=None)
     size: Optional[Size2d] = field(default=None)
     sync: bool = field(default=False)
     begin_frame: int = field(default=1)

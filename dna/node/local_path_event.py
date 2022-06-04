@@ -4,7 +4,7 @@ import json
 from .kafka_event import KafkaEvent
 
 
-@dataclass(frozen=True, eq=True, order=True, slots=True)
+@dataclass(frozen=True, eq=True, order=True)    # slots=True
 class LocalPathEvent(KafkaEvent):
     node_id: str
     luid: int

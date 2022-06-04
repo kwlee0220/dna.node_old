@@ -8,7 +8,7 @@ from .track_event import TrackEvent
 from .event_processor import EventProcessor
 
 
-@dataclass(eq=True, slots=True)
+@dataclass(eq=True)    # slots=True
 class Session:
     id: str = field(hash=True)
     state: TrackState = field(hash=False, compare=False)
