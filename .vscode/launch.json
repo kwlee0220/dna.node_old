@@ -7,6 +7,7 @@
         { "name": "Node",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_node.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "conf/etri_051.yaml",
                 "--output", "output/etri/etri_051_event.csv",   // -o <file>
@@ -19,12 +20,13 @@
         { "name": "Track Video",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_node_track.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "conf/etri_051.yaml",
                 // "--output", "output/etri/etri_051_track.csv",   // -o <file>
                 // "--output_video", "${env:HOME}/dna_output/etri_051_track.mp4",   // -v <file>
-                // "--show",   // -s
-                "--show_progress",  // -p
+                "--show",   // -s
+                // "--show_progress",  // -p
                 // "--pause_on_eos",    // -k
             ],
             "justMyCode": true
@@ -32,16 +34,17 @@
         { "name": "Detect Video",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_node_detect.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "conf/etri_051.yaml",
                 // "--detector", "dna.detect.yolov4",
                 // "--detector", "dna.detect.rcnn50_fpn",
                 "--detector", "dna.detect.yolov5:model=l&score=0.4",
                 // "--detector", "file:${env:HOME}/Dropbox/data/etri/etri_051_det.txt",
-                "--output", "output/etri/etri_051_det.csv",   // -o <file>
-                "--output_video", "${env:HOME}/dna_output/etri_051_det.mp4",   // -v <file>
-                // "--show",    // -s
-                "--show_progress",   // -p
+                // "--output", "output/etri/etri_051_det.csv",   // -o <file>
+                // "--output_video", "${env:HOME}/dna_output/etri_051_det.mp4",   // -v <file>
+                "--show",    // -s
+                // "--show_progress",   // -p
                 // "--pause_on_eos",    // -k
             ],
             "justMyCode": true
@@ -49,6 +52,7 @@
         { "name": "Show Video",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_node_show.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "conf/etri_051.yaml",
                 "--show",
@@ -60,6 +64,7 @@
         { "name": "Test",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/test.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "${workspaceFolder}/conf/etri_051.yaml:camera",
                 "${workspaceFolder}/conf/cross_01.yaml:camera",
@@ -70,6 +75,7 @@
         { "name": "Publish",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_publish_events.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "output/etri/etri_051_event.csv",
             ],
