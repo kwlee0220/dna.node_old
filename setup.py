@@ -1,8 +1,9 @@
 from setuptools import setup, find_packages
+import dna
 
 setup( 
     name = 'dna.node',
-    version = '0.0.3',
+    version = dna.__version__,
     description = 'DNA framework',
     author = 'Kang-Woo Lee',
     author_email = 'kwlee@etri.re.kr',
