@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import List
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
@@ -5,10 +6,13 @@ from pathlib import Path
 from dna.node.track_event import TrackEvent
 
 
-class EventSubscriber(metaclass=ABCMeta):
+class EventListener(metaclass=ABCMeta):
     @abstractmethod
     def handle_event(self, ev: object) -> None:
         pass
+
+    def listen(self, queue: EventQueue) -> None:
+        queue.add_listener(self)
 
     @abstractmethod
     def close(self) -> None:
@@ -16,34 +20,27 @@ class EventSubscriber(metaclass=ABCMeta):
 
 class EventQueue:
     def __init__(self) -> None:
-        self.subscribers:List[EventSubscriber] = []
+        self.listeners:List[EventListener] = []
 
-    def subscribe(self, sub:EventSubscriber) -> None:
-        self.subscribers.append(sub)
+    def add_listener(self, listener:EventListener) -> None:
+        self.listeners.append(listener)
 
     def close(self) -> None:
-        for sub in self.subscribers:
+        for sub in self.listeners:
             sub.close()
 
     def publish_event(self, ev:object) -> None:
-        for sub in self.subscribers:
+        for sub in self.listeners:
             sub.handle_event(ev)
 
-
-class EventProcessor(EventSubscriber):
+class EventProcessor(EventListener, EventQueue):
     def __init__(self) -> None:
-        EventSubscriber.__init__(self)
-        
-        self.queue = EventQueue()
-
-    def subscribe(self, sub:EventSubscriber) -> None:
-        self.queue.subscribe(sub)
-
-    def publish_event(self, ev:object) -> None:
-        self.queue.publish_event(ev)
+        EventListener.__init__(self)
+        EventQueue.__init__(self)
 
     def close(self) -> None:
-        self.queue.close()
+        EventQueue.close()
+        EventListener.close()
 
 
 from dna import Frame
@@ -65,7 +62,7 @@ class TrackEventSource(TrackerCallback, EventQueue):
             self.publish_event(TrackEvent.from_track(self.node_id, track))
 
 import sys
-class PrintTrackEvent(EventSubscriber):
+class PrintTrackEvent(EventListener):
     def __init__(self, file: str) -> None:
         super().__init__()
 

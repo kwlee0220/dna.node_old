@@ -15,48 +15,41 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description="Detect Objects in a video file")
     parser.add_argument("conf_path", help="configuration file path")
-    # parser.add_argument("--track_file", help="Object track log file.", default=None)
     parser.add_argument("--output", "-o", metavar="json file", help="track event file.", default=None)
     parser.add_argument("--output_video", "-v", metavar="mp4 file", help="output video file.", default=None)
     parser.add_argument("--show", "-s", action='store_true')
     parser.add_argument("--show_progress", "-p", help="display progress bar.", action='store_true')
     return parser.parse_known_args()
 
-def build_pipeline(in_queue: EventQueue, pipe_conf: OmegaConf) -> EventQueue:
-    queue0 = in_queue
+def build_pipeline(queue: EventQueue, pipe_conf: OmegaConf) -> EventQueue:
+    # drop unnecessary tracks (eg. trailing 'TemporarilyLost' tracks)
+    refine = RefineTrackEvent()
+    queue.add_listener(refine)
+    queue = refine
 
-    if pipe_conf.get('refine_track_events', False):
-        refine = RefineTrackEvent()
-        queue0.subscribe(refine)
-        queue0 = refine
+    # drop too-short tracks of an object
+    min_path_length = pipe_conf.get('min_path_length', 0)
+    if min_path_length > 0:
+        drop_short_path = DropShortTrail(min_path_length)
+        queue.add_listener(drop_short_path)
+        queue = drop_short_path
 
-    if pipe_conf.get('drop_short_trails', None) is not None:
-        min_trail_length = pipe_conf.drop_short_trails.get('min_length', 0)
-        if min_trail_length > 0:
-            drop_short_trail = DropShortTrail(min_trail_length)
-            queue0.subscribe(drop_short_trail)
-            queue0 = drop_short_trail
-
-    if pipe_conf.get('attach_world_coordinates', None) is not None:
+    # attach world-coordinates to each track
+    if pipe_conf.get('attach_world_coordinates') is not None:
         world_coords = WorldTransform(pipe_conf.attach_world_coordinates)
-        queue0.subscribe(world_coords)
-        queue0 = world_coords
+        queue.add_listener(world_coords)
+        queue = world_coords
 
-    if pipe_conf.get('publish_to_kafka', None) is not None:
-        tk_pub = KafkaEventPublisher(pipe_conf.publish_to_kafka)
-        queue0.subscribe(tk_pub)
-        top1 = tk_pub
+    # if dna.conf.get_config(pipe_conf, 'generate_local_paths.kafka', None) is not None:
+    #     gen_lp = GenerateLocalPath(pipe_conf.generate_local_paths)
+    #     queue0.add_listener(gen_lp)
+    #     queue2 = gen_lp
 
-    if dna.conf.get_config(pipe_conf, 'generate_local_paths.kafka', None) is not None:
-        gen_lp = GenerateLocalPath(pipe_conf.generate_local_paths)
-        queue0.subscribe(gen_lp)
-        queue2 = gen_lp
+    #     lp_pub = KafkaEventPublisher(pipe_conf.generate_local_paths.kafka)
+    #     queue2.add_listener(lp_pub)
+    #     queue2 = lp_pub
 
-        lp_pub = KafkaEventPublisher(pipe_conf.generate_local_paths.kafka)
-        queue2.subscribe(lp_pub)
-        queue2 = lp_pub
-
-    return queue0
+    return queue
 
 def main():
     args, unknown = parse_args()
@@ -66,10 +59,12 @@ def main():
     proc:ImageProcessor = dna.camera.create_image_processor(camera, OmegaConf.create(vars(args)))
 
     source = TrackEventSource(conf.id)
-    if conf.get('pipeline', None) is not None:
-        queue = build_pipeline(source, conf.pipeline)
-        if args.output is not None:
-            queue.subscribe(PrintTrackEvent(args.output))
+    queue = build_pipeline(source, conf.pipeline)
+    if conf.get('kafka_publisher', None) is not None:
+        queue.add_listener(KafkaEventPublisher(conf.kafka_publisher))
+    if args.output is not None:
+        queue.add_listener(PrintTrackEvent(args.output))
+
     proc.callback = load_object_tracking_callback(camera, proc, conf.tracker, tracker_callbacks=[source])
 
     elapsed, frame_count, fps_measured = proc.run()
