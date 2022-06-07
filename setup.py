@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup( 
     name = 'dna.node',
-    version = '0.0.2',
+    version = '0.0.3',
     description = 'DNA framework',
     author = 'Kang-Woo Lee',
     author_email = 'kwlee@etri.re.kr',
