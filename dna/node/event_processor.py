@@ -39,8 +39,8 @@ class EventProcessor(EventListener, EventQueue):
         EventQueue.__init__(self)
 
     def close(self) -> None:
-        EventQueue.close()
-        EventListener.close()
+        EventQueue.close(self)
+        EventListener.close(self)
 
 
 from dna import Frame
