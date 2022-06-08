@@ -133,4 +133,8 @@ data/
 output/
 models/
 *.pt
+*.whl
 track_output*
+docker/share/
+docker/Dockerfile.0
+docker/Dockerfile.1
