@@ -7,8 +7,8 @@ import json
 import numpy as np
 
 from dna import Box, Point
-from dna.track import Track
-from dna.track.tracker import TrackState
+from dna.tracker import Track
+from dna.tracker.tracker import TrackState
 from .kafka_event import KafkaEvent
 
 

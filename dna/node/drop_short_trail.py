@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List, Dict, Set
 from collections import defaultdict
 
-from dna.track import TrackState
+from dna.tracker import TrackState
 from .track_event import TrackEvent
 from .event_processor import EventProcessor
 

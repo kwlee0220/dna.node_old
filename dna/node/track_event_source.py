@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List
 
 from dna import Frame
-from dna.track import Track, TrackerCallback
+from dna.tracker import Track, TrackerCallback
 from .track_event import TrackEvent
 from .event_processor import EventQueue
 

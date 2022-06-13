@@ -7,7 +7,7 @@ from omegaconf import OmegaConf
 
 import dna
 from dna.camera import Camera, ImageProcessor, create_image_processor
-from dna.track.utils import load_object_tracking_callback
+from dna.tracker.utils import load_object_tracking_callback
 
 
 def parse_args():

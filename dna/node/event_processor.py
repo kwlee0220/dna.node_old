@@ -44,7 +44,7 @@ class EventProcessor(EventListener, EventQueue):
 
 
 from dna import Frame
-from dna.track import Track, TrackerCallback
+from dna.tracker import Track, TrackerCallback
 from .track_event import TrackEvent, EOT
 class TrackEventSource(TrackerCallback, EventQueue):
     def __init__(self, node_id:str) -> None:

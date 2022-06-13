@@ -10,7 +10,7 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "conf/etri_051.yaml",
-                "--output", "output/etri/etri_051_event.csv",   // -o <file>
+                // "--output", "output/etri/etri_051_event.csv",   // -o <file>
                 // "--output_video", "${env:HOME}/dna_output/etri_051_track.mp4",   // -v <file>
                 "--show",   // -s
                 // "--show_progress",  // -p
@@ -22,7 +22,7 @@
             "program": "${workspaceFolder}/scripts/dna_node_track.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "conf/etri_051.yaml",
+                "conf/etri_041.yaml",
                 // "--output", "output/etri/etri_051_track.csv",   // -o <file>
                 // "--output_video", "${env:HOME}/dna_output/etri_051_track.mp4",   // -v <file>
                 "--show",   // -s

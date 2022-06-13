@@ -6,7 +6,7 @@ import numpy as np
 from kafka import KafkaProducer, KafkaConsumer
 
 from dna import Box
-from dna.track import TrackState, Track
+from dna.tracker import TrackState, Track
 from dna.node import TrackEvent
 
 

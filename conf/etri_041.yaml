@@ -7,43 +7,40 @@ camera:
   threaded: false
 
 tracker:
-  # detector: dna.detect.yolov4
-  detector: dna.detect.yolov5:model=l&score=0.35
-  # detector: dna.detect.rcnn50_fpn
-  # detector: file:C:/Temp/data/etri/etri_041_det.txt
-  min_detection_score: 0
-  n_init: 3
-  metric_threshold: 0.55
-  max_iou_distance: 0.85
-  max_overlap_ratio: 0.75
-  max_age: 30
-  min_size: [30, 20]
-  det_mapping:
-    car: car
-    bus: car
-    truck: car
-  blind_zones:
-    - [-3,212,636,536]
-    - [532, 129, 995, 394]
-    - [-3, 789, 1243, 1083]
-    - [1317, 371, 1925, 1085]
-    - [1170, 84, 1510, 384]
-  dim_zones:
-    - [805, 129, 996, 395]
-  draw_zones: true
+  uri: dna.tracker.dna_deepsort
+  draw_zones: false
   # output: C:/Temp/data/track_output.csv
 
+  dna_deepsort:
+    # detector: dna.detect.yolov4
+    detector: dna.detect.yolov5:model=l&score=0.35
+    # detector: dna.detect.rcnn50_fpn
+    # detector: file:C:/Temp/data/etri/etri_041_det.txt
+    min_detection_score: 0
+    n_init: 3
+    metric_threshold: 0.55
+    max_iou_distance: 0.85
+    max_overlap_ratio: 0.75
+    max_age: 30
+    min_size: [30, 20]
+    det_mapping:
+      car: car
+      bus: car
+      truck: car
+    blind_zones:
+      - [-3,212,636,536]
+      - [532, 129, 995, 394]
+      - [-3, 789, 1243, 1083]
+      - [1317, 371, 1925, 1085]
+      - [1170, 84, 1510, 384]
+    dim_zones:
+      - [805, 129, 996, 395]
+
 pipeline:
-  refine_track_events: true
-  drop_short_trails:
-    min_length: 10
+  min_path_length: 10
   attach_world_coordinates:
     camera_geometry: data/camera_geoms/etri_04.pickle
-  publish_to_kafka:
-    bootstrap_servers: [localhost:9092]
-    topic: 'node.tracks'
-  generate_local_paths:
-    max_path_length: 100
-    kafka:
-      bootstrap_servers: [localhost:9092]
-      topic: node.local_paths
+
+kafka_publisher:
+  bootstrap_servers: [localhost:9092]
+  topic: 'node.tracks'

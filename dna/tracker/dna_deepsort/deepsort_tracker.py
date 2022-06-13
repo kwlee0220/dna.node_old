@@ -20,7 +20,7 @@ if not DEEPSORT_DIR in sys.path:
 import dna
 from dna import Box, Size2d, utils, get_logger, gdown_file
 from dna.detect import ObjectDetector, Detection
-from . import Track, TrackState, DetectionBasedObjectTracker
+from ..tracker import Track, TrackState, DetectionBasedObjectTracker
 from .deepsort.deepsort import deepsort_rbc
 from .deepsort.track import Track as DSTrack
 from .deepsort.track import TrackState as DSTrackState

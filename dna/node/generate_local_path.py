@@ -1,7 +1,7 @@
 from typing import List
 
 from omegaconf import OmegaConf
-from dna.track.tracker import TrackState
+from dna.tracker.tracker import TrackState
 from shapely.geometry import LineString
 
 from dna import Point

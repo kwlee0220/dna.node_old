@@ -7,7 +7,7 @@ import logging
 
 from numpy.linalg import det
 
-from dna.track.deepsort.detection import Detection
+from .detection import Detection
 from . import matcher, utils
 from .utils import all_indices, intersection, subtract, project, overlap_ratios, overlaps_threshold
 import dna

@@ -8,7 +8,7 @@ from dna.camera import Camera, ImageProcessor, create_image_processor
 from dna.node import TrackEventSource, RefineTrackEvent, DropShortTrail, KafkaEventPublisher, \
                     GenerateLocalPath, PrintTrackEvent, EventQueue
 from dna.enhancer.world_transform import WorldTransform
-from dna.track.utils import load_object_tracking_callback
+from dna.tracker.utils import load_object_tracking_callback
 
 
 import argparse
