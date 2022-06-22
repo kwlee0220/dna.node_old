@@ -36,8 +36,10 @@ DEFAULT_DETECTION_SCORE_THRESH = 0.8
 DEFAULT_TRACK_POOLER_SCALES = (0.125,)
 DEFAULT_MAX_DORMANT_FRAMES = 10
 
+_CONFIG_CENTERNET_URI = 'https://drive.google.com/u/0/uc?id=10hIrYUW0XvuWtj197Q1xXJp4ca8-1KDf'
+
 class SiamMOT():
-    def __init__(self, models=None, config_path="configs/CenterNet_siammot.yaml", device="cuda:0"):
+    def __init__(self, models, config_path, device="cuda:0"):
         super(SiamMOT).__init__()
         cfg = self.setup_detectron_config(config_path, device)
         cfg.MODEL.WEIGHTS = models

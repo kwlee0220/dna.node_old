@@ -14,7 +14,7 @@ tracker:
 
   cnu_siammot:
     model: models/person_vehicle/models.pth
-    detectron2_conf: configs/CenterNet_siammot.yaml
+    # detector: configs/CenterNet_siammot.yaml
 
   dna_deepsort:
     # detector: dna.detect.yolov4
