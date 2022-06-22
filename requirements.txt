@@ -15,3 +15,7 @@ Shapely
 easydict
 pyyaml
 gdown
+# siammot
+gluoncv
+mxnet
+imgaug
