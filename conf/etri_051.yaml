@@ -7,8 +7,8 @@ camera:
   threaded: false
 
 tracker:
-  # uri: dna.tracker.dna_deepsort
-  uri: dna.tracker.cnu_siammot
+  uri: dna.tracker.dna_deepsort
+  # uri: dna.tracker.cnu_siammot
   draw_zones: false
   # output: C:/Temp/data/track_output.csv
 
@@ -48,5 +48,6 @@ pipeline:
     camera_geometry: data/camera_geoms/etri_05.pickle
 
 kafka_publisher:
-  bootstrap_servers: [localhost:9092]
+  # bootstrap_servers: [localhost:9092]
+  bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
   topic: 'node.tracks'
