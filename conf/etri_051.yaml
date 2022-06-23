@@ -7,14 +7,14 @@ camera:
   threaded: false
 
 tracker:
-  uri: dna.tracker.dna_deepsort
-  # uri: dna.tracker.cnu_siammot
-  draw_zones: false
+  # uri: dna.tracker.dna_deepsort
+  uri: dna.tracker.cnu_siammot
+  # draw_zones: false
   # output: C:/Temp/data/track_output.csv
 
-  cnu_siammot:
-    model: models/person_vehicle/models.pth
-    # detector: configs/CenterNet_siammot.yaml
+  # cnu_siammot:
+  #   model: models/person_vehicle/models.pth
+  #   detector: configs/CenterNet_siammot.yaml
 
   dna_deepsort:
     # detector: dna.detect.yolov4

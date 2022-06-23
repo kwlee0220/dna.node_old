@@ -36,6 +36,7 @@ setup(
 
         # yolov5
         'ipython',
+        'psutil',
 
         # siammot
         'gluoncv',
@@ -43,7 +44,7 @@ setup(
         'imgaug',
     ],
     packages = find_packages(),
-    package_data = {'conf': ['etri_051.yaml']},
+    # package_data = {'conf': ['etri_051.yaml']},
     python_requires = '>=3.8',
     zip_safe = False
 )
