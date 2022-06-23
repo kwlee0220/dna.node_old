@@ -21,6 +21,8 @@ def parse_args():
     parser.add_argument("--show_progress", "-p", help="display progress bar.", action='store_true')
     return parser.parse_known_args()
 
+_DEFAULT_MIN_PATH_LENGTH=10
+
 def build_pipeline(queue: EventQueue, pipe_conf: OmegaConf) -> EventQueue:
     # drop unnecessary tracks (eg. trailing 'TemporarilyLost' tracks)
     refine = RefineTrackEvent()
@@ -28,7 +30,7 @@ def build_pipeline(queue: EventQueue, pipe_conf: OmegaConf) -> EventQueue:
     queue = refine
 
     # drop too-short tracks of an object
-    min_path_length = pipe_conf.get('min_path_length', 0)
+    min_path_length = pipe_conf.get('min_path_length', _DEFAULT_MIN_PATH_LENGTH)
     if min_path_length > 0:
         drop_short_path = DropShortTrail(min_path_length)
         queue.add_listener(drop_short_path)
@@ -40,15 +42,6 @@ def build_pipeline(queue: EventQueue, pipe_conf: OmegaConf) -> EventQueue:
         queue.add_listener(world_coords)
         queue = world_coords
 
-    # if dna.conf.get_config(pipe_conf, 'generate_local_paths.kafka', None) is not None:
-    #     gen_lp = GenerateLocalPath(pipe_conf.generate_local_paths)
-    #     queue0.add_listener(gen_lp)
-    #     queue2 = gen_lp
-
-    #     lp_pub = KafkaEventPublisher(pipe_conf.generate_local_paths.kafka)
-    #     queue2.add_listener(lp_pub)
-    #     queue2 = lp_pub
-
     return queue
 
 def main():
@@ -59,13 +52,16 @@ def main():
     proc:ImageProcessor = dna.camera.create_image_processor(camera, OmegaConf.create(vars(args)))
 
     source = TrackEventSource(conf.id)
-    queue = build_pipeline(source, conf.pipeline)
+    pipeline_conf = conf.get('pipeline', OmegaConf.create())
+    queue = build_pipeline(source, pipeline_conf)
     if conf.get('kafka_publisher', None) is not None:
         queue.add_listener(KafkaEventPublisher(conf.kafka_publisher))
     if args.output is not None:
         queue.add_listener(PrintTrackEvent(args.output))
-
-    proc.callback = load_object_tracking_callback(camera, proc, conf.tracker, tracker_callbacks=[source])
+        
+    tracker_conf = conf.get('tracker', OmegaConf.create())
+    tracker_conf.output = args.output
+    proc.callback = load_object_tracking_callback(camera, proc, tracker_conf, tracker_callbacks=[source])
 
     elapsed, frame_count, fps_measured = proc.run()
     print(f"elapsed_time={timedelta(seconds=elapsed)}, frame_count={frame_count}, fps={fps_measured:.1f}" )

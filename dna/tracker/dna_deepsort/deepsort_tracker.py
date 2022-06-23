@@ -32,6 +32,7 @@ DEFAULT_MAX_AGE = 10
 DEFAULT_N_INIT = 3
 DEFAULT_MAX_OVERLAP_RATIO=0.75
 DEFAULT_MIN_SIZE=[30, 20]
+DEFAULT_DET_MAPPING = {'car':'car', 'bus':'car', 'truck':'car'}
 
 @dataclass(frozen=True, eq=True)    # slots=True
 class DeepSORTParams:
@@ -49,7 +50,7 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
         super().__init__()
 
         self.__detector = detector
-        self.det_dict = tracker_conf.det_mapping
+        self.det_dict = tracker_conf.get('det_mapping', DEFAULT_DET_MAPPING)
         self.min_detection_score = tracker_conf.get('min_detection_score', DEFAULT_METRIC_THRESHOLD)
 
         model_file = tracker_conf.get('model_file', 'models/deepsort/model640.pt')

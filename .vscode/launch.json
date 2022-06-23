@@ -10,6 +10,7 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "conf/etri_051.yaml",
+                // "conf/simple.yaml",
                 // "--output", "output/etri/etri_051_event.csv",   // -o <file>
                 // "--output_video", "${env:HOME}/dna_output/etri_051_track.mp4",   // -v <file>
                 "--show",   // -s
@@ -23,6 +24,7 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "conf/etri_051.yaml",
+                // "conf/simple.yaml",
                 // "--output", "output/etri/etri_051_track.csv",   // -o <file>
                 // "--output_video", "${env:HOME}/dna_output/etri_051_track.mp4",   // -v <file>
                 "--show",   // -s
@@ -37,9 +39,10 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "conf/etri_051.yaml",
+                // "conf/simple.yaml",
                 // "--detector", "dna.detect.yolov4",
                 // "--detector", "dna.detect.rcnn50_fpn",
-                "--detector", "dna.detect.yolov5:model=l&score=0.4",
+                // "--detector", "dna.detect.yolov5:model=l&score=0.4",
                 // "--detector", "file:${env:HOME}/Dropbox/data/etri/etri_051_det.txt",
                 // "--output", "output/etri/etri_051_det.csv",   // -o <file>
                 // "--output_video", "${env:HOME}/dna_output/etri_051_det.mp4",   // -v <file>

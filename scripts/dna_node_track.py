@@ -25,9 +25,10 @@ def main():
 
     camera:Camera = dna.camera.create_camera(conf.camera)
     proc:ImageProcessor = dna.camera.create_image_processor(camera, OmegaConf.create(vars(args)))
-
-    conf.tracker.output = args.output
-    proc.callback = load_object_tracking_callback(camera, proc, conf.tracker)
+    
+    tracker_conf = conf.get('tracker', OmegaConf.create())
+    tracker_conf.output = args.output
+    proc.callback = load_object_tracking_callback(camera, proc, tracker_conf)
 
     elapsed, frame_count, fps_measured = proc.run()
     print(f"elapsed_time={timedelta(seconds=elapsed)}, frame_count={frame_count}, fps={fps_measured:.1f}" )
