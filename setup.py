@@ -28,11 +28,19 @@ setup(
         'kafka-python',
 
         'omegaconf>=2.1.2',
-        'tqdm',
+        'tqdm>=4.41.0',
         'Shapely',
         'easydict',
         'pyyaml',
         'gdown',
+
+        # yolov5
+        'ipython',
+
+        # siammot
+        'gluoncv',
+        'mxnet',
+        'imgaug',
     ],
     packages = find_packages(),
     package_data = {'conf': ['etri_051.yaml']},

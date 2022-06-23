@@ -15,6 +15,10 @@ Shapely
 easydict
 pyyaml
 gdown
+
+# yolov5
+ipython
+
 # siammot
 gluoncv
 mxnet
