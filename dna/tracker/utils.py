@@ -14,8 +14,8 @@ def load_object_tracking_callback(camera: Camera, proc: ImageProcessor, tracker_
     from dna.detect.utils import load_object_detector
     from .track_callbacks import TrackWriter, ObjectTrackingCallback
 
-    domain = Box.from_size(camera.size)
-    tracker_uri = tracker_conf.get("uri", "dna.track.dna_deepsort")
+    domain = Box.from_size(camera.size())
+    tracker_uri = tracker_conf.get("uri", "dna.tracker.dna_deepsort")
     tracker = load_tracker(tracker_uri, domain, tracker_conf)
 
     draw_tracks = proc.is_drawing() and tracker_conf.get("draw_tracks", proc.is_drawing())

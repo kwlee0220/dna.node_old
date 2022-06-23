@@ -50,9 +50,8 @@ class Camera(metaclass=ABCMeta):
         """
         pass
 
-    @property
     @abstractmethod
-    def size(self) -> Optional[Size2d]:
+    def size(self) -> Size2d:
         """Returns the image size captured from this Camera.
 
         Returns:
