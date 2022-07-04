@@ -221,7 +221,7 @@ class Box:
     __slots__ = ('__tlbr', )
 
     def __init__(self, tlbr: np.ndarray) -> None:
-        self.__tlbr = tlbr
+        self.__tlbr = np.array(tlbr)
 
     @classmethod
     def from_points(self, tl: Point, br: Point) -> Box:
