@@ -24,7 +24,7 @@ def main():
     args, unknown = parse_args()
     conf:OmegaConf = dna.load_config(args.conf_path)
 
-    camera:Camera = dna.camera.create_camera(conf.camera)
+    camera:Camera = dna.camera.create_camera_from_conf(conf.camera)
     proc:ImageProcessor = dna.camera.create_image_processor(camera, OmegaConf.create(vars(args)))
 
     proc.callback = load_object_detecting_callback(detector_uri=args.detector, output=args.output,
