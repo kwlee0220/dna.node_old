@@ -107,3 +107,37 @@ def gdown_file(url:str, file: Path, force: bool=False):
 
         import gdown
         gdown.download(url, str(file.resolve().absolute()), quiet=False)
+
+class RectangleDrawer:
+    def __init__(self, image: np.ndarray) -> None:
+        self.image = image
+        self.drawing = False
+        self.bx, self.by, self.ex, self.ey = 0, 0, 0, 0
+
+    def run(self) -> Tuple[np.ndarray, Box]:
+        cv2.namedWindow('image')
+        cv2.setMouseCallback('image', self.draw)
+
+        self.convas = self.image.copy()
+        while ( True ):
+            cv2.imshow('image', self.convas)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                break
+        cv2.destroyWindow('image')
+
+        return self.convas, Box([self.bx, self.by, self.ex, self.ey])
+
+    def draw(self, event, x, y, flags, param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            self.drawing = True
+            self.bx, self.by = x, y
+        elif event == cv2.EVENT_MOUSEMOVE:
+            print(f'({x}),({y})')
+            if self.drawing == True:
+                self.convas = self.image.copy()
+                cv2.rectangle(self.convas, (self.bx, self.by), (x,y), (0,255,0), 1)
+        elif event == cv2.EVENT_LBUTTONUP:
+            self.drawing = False
+            self.ex, self.ey = x, y
+            cv2.rectangle(self.convas, (self.bx, self.by), (x,y), (0,255,0), 2)
