@@ -19,8 +19,3 @@ gdown
 # yolov5
 ipython
 psutil
-
-# siammot
-gluoncv
-mxnet
-imgaug
