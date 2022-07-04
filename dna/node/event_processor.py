@@ -67,8 +67,7 @@ class PrintTrackEvent(EventListener):
         super().__init__()
 
         self.file = file
-
-        Path(self.file).parent.mkdir(exist_ok=True)
+        Path(self.file).parent.mkdir(parents=True, exist_ok=True)
         self.fp = open(self.file, 'w')
 
     def close(self) -> None:
