@@ -11,10 +11,10 @@
             "args": [
                 "conf/etri_051.yaml",
                 // "conf/simple.yaml",
-                // "--output", "output/etri/etri_051_event.csv",   // -o <file>
+                "--output", "output/etri/etri_051_event.json",   // -o <file>
                 // "--output_video", "${env:HOME}/dna_output/etri_051_track.mp4",   // -v <file>
-                "--show",   // -s
-                // "--show_progress",  // -p
+                // "--show",   // -s
+                "--show_progress",  // -p
             ],
             "justMyCode": true
         },
@@ -80,7 +80,7 @@
             "program": "${workspaceFolder}/scripts/dna_publish_events.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "output/etri/etri_051_event.csv",
+                "output/etri/etri_051_event.json",
             ],
             "justMyCode": true
         },

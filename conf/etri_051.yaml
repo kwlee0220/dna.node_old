@@ -3,12 +3,12 @@ id: etri:051
 camera:
   uri: data/etri/etri_051.mp4
   size: [1920, 1080]
-  sync: true
-  threaded: false
+  # sync: true
+  # threaded: false
 
 tracker:
-  # uri: dna.tracker.dna_deepsort
-  uri: dna.tracker.cnu_siammot
+  uri: dna.tracker.dna_deepsort
+  # uri: dna.tracker.cnu_siammot
   # draw_zones: false
   # output: C:/Temp/data/track_output.csv
 
@@ -28,10 +28,10 @@ tracker:
     # max_overlap_ratio: 0.75
     # max_age: 10
     # min_size: [30, 20]
-    det_mapping:
-      car: car
-      bus: car
-      truck: car
+    # det_mapping:
+    #   car: car
+    #   bus: car
+    #   truck: car
     blind_zones:
       - [719,29,1904,249]
       - [1307,232,1915,398]
@@ -48,6 +48,6 @@ pipeline:
     camera_geometry: data/camera_geoms/etri_05.pickle
 
 kafka_publisher:
-  # bootstrap_servers: [localhost:9092]
-  bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
+  bootstrap_servers: [localhost:9092]
+  # bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
   topic: 'node.tracks'
