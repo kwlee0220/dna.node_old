@@ -16,7 +16,7 @@ class KafkaEventPublisher(EventProcessor):
 
     def close(self) -> None:
         super().close()
-        self.producer.flush()
+        self.producer.close(1)
 
     def handle_event(self, ev: KafkaEvent) -> None:
         key = ev.key()
