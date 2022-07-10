@@ -9,35 +9,37 @@ from .event_processor import EventProcessor
 
 
 class DropShortTrail(EventProcessor):
-    __slots__ = 'min_track_count', 'long_trails', 'pendings'
+    __slots__ = 'min_trail_length', 'long_trails', 'pending_dict'
 
     def __init__(self, min_trail_length:int) -> None:
         EventProcessor.__init__(self)
 
         self.min_trail_length = min_trail_length
-        self.long_trails: Set[str] = set()
+        self.long_trails: Set[str] = set()  # 'long trail' 여부
         self.pending_dict: Dict[str, List[TrackEvent]] = defaultdict(list)
 
     def close(self) -> None:
         super().close()
-        for pendings in self.pending_dict.values():
-            self.__publish_pendings(pendings)
+        self.pending_dict.clear()
+        self.long_trails.clear()
 
     def handle_event(self, ev) -> None:
+        is_long_trail = ev.luid in self.long_trails
         if ev.state == TrackState.Deleted:   # tracking이 종료된 경우
-            pendings = self.pending_dict.pop(ev.luid, [])
-            if len(pendings) > self.min_trail_length:
-                self.__publish_pendings(pendings)
-            elif len(pendings) > 0:
+            if is_long_trail:
+                self.long_trails.discard(ev.luid)
+                self.publish_event(ev)
+            else:
+                self.pending_dict.pop(ev.luid, [])
                 print(f"drop short track events: luid={ev.luid}, length={len(pendings)}")
-                pass
-            self.long_trails.discard(ev.luid)
-            self.publish_event(ev)
-        elif ev.luid in self.long_trails:
+        elif is_long_trail:
             self.publish_event(ev)
         else:
-            pendings:List[TrackEvent] = self.pending_dict[ev.luid]
+            pendings = self.pending_dict[ev.luid]
             pendings.append(ev)
+
+            # pending된 event의 수가 threshold (min_trail_length) 이상이면 long-trail으로 설정하고,
+            # 더 이상 pending하지 않고, 바로 publish 시킨다.
             if len(pendings) >= self.min_trail_length:
                 self.pending_dict.pop(ev.luid, None)
                 self.__publish_pendings(pendings)
