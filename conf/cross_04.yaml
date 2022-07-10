@@ -8,7 +8,7 @@ node:
   kafka:
     bootstrap_servers: [localhost:9092]
     topics:
-      # track_events: node.tracks
+      # track_events: node-tracks
       # local_path_events: node.local_paths
   # output: track_output.csv
 

@@ -42,4 +42,4 @@ pipeline:
 
 kafka_publisher:
   bootstrap_servers: [localhost:9092]
-  topic: 'node.tracks'
+  topic: 'node-tracks'

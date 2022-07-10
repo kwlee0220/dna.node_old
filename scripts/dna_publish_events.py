@@ -15,7 +15,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Detect Objects in a video file")
     parser.add_argument("log_path", help="configuration file path")
     parser.add_argument("--server", help="bootstrap-servers", default='localhost:9092')
-    parser.add_argument("--topic", help="topic name", default='node.tracks')
+    parser.add_argument("--topic", help="topic name", default='node-tracks')
     return parser.parse_known_args()
 
 def main():
