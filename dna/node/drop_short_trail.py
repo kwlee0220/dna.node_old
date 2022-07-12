@@ -30,7 +30,7 @@ class DropShortTrail(EventProcessor):
                 self.long_trails.discard(ev.luid)
                 self.publish_event(ev)
             else:
-                self.pending_dict.pop(ev.luid, [])
+                pendings = self.pending_dict.pop(ev.luid, [])
                 print(f"drop short track events: luid={ev.luid}, length={len(pendings)}")
         elif is_long_trail:
             self.publish_event(ev)
