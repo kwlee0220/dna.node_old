@@ -34,6 +34,9 @@ setup(
         'pyyaml',
         'gdown',
 
+				# geodesic transformation
+				'pyproj',
+
         # yolov5
         'ipython',
         'psutil',
