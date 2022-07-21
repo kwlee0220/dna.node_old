@@ -38,7 +38,8 @@ def get_gaussian_mask():
 
 	return mask
 
-
+import logging
+LOGGER = logging.getLogger("dna.track.deepsort")
 class deepsort_rbc():
 	def __init__(self, domain: Box, wt_path, params):
 		self.domain = domain
@@ -48,7 +49,7 @@ class deepsort_rbc():
 			
 		self.encoder = self.encoder.cuda()
 		self.encoder = self.encoder.eval()
-		print("Deep sort model loaded from path: ", wt_path)
+		LOGGER.info(f"Deep sort model loaded from path: {wt_path}")
 
 		self.metric = nn_matching.NearestNeighborDistanceMetric("cosine", params.metric_threshold , 100)
 		self.tracker = Tracker(domain, self.metric, params=params)

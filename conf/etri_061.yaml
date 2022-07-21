@@ -1,31 +1,14 @@
-id: etri:061
+id: etri:06
 
 camera:
   uri: data/etri/etri_061.mp4
-  size: [1920, 1080]
-  sync: true
-  threaded: false
 
 tracker:
   uri: dna.tracker.dna_deepsort
-  draw_zones: false
-  # output: C:/Temp/data/track_output.csv
-
   dna_deepsort:
-    # detector: dna.detect.yolov4
-    detector: dna.detect.yolov5:model=m&score=0.45
-    # detector: file:videos/etri/etri_061_det.txt
-    min_detection_score: 0
+    detector: dna.detect.yolov4
     n_init: 5
-    metric_threshold: 0.55
-    max_iou_distance: 0.85
-    max_overlap_ratio: 0.75
     max_age: 30
-    min_size: [30, 20]
-    det_mapping:
-      car: car
-      bus: car
-      truck: car
     blind_zones:
       - [1309,223,1908,488]
       - [-3,634,387,1083]
@@ -38,7 +21,9 @@ tracker:
 pipeline:
   min_path_length: 10
   attach_world_coordinates:
-    camera_geometry: data/camera_geoms/etri_06.pickle
+    camera_geometry: conf/etri_camera_geom.json
+    camera_index: 2
+    epsg_code: "EPSG:3857"
 
 kafka_publisher:
   bootstrap_servers: [localhost:9092]

@@ -1,15 +1,13 @@
 from typing import List
 
 from omegaconf import OmegaConf
-from dna.tracker.tracker import TrackState
 from shapely.geometry import LineString
 
 from dna import Point
+from dna.tracker.tracker import TrackState
 from .local_path_event import LocalPathEvent
 from .track_event import TrackEvent
 from .event_processor import EventProcessor
-
-# _logger = get_logger('dna.enhancer')
 
 class Session:
     def __init__(self, node_id:str, luid:str) -> None:

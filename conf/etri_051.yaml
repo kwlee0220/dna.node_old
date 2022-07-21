@@ -1,4 +1,4 @@
-id: etri:051
+id: etri:05
 
 camera:
   uri: data/etri/etri_051.mp4
@@ -17,8 +17,8 @@ tracker:
   #   detector: configs/CenterNet_siammot.yaml
 
   dna_deepsort:
-    # detector: dna.detect.yolov4
-    detector: dna.detect.yolov5:model=m&score=0.45
+    detector: dna.detect.yolov4
+    # detector: dna.detect.yolov5:model=m&score=0.45
     # detector: dna.detect.rcnn50_fpn
     # detector: file:videos/etri/etri_051_det.txt
     # min_detection_score: 0
@@ -45,7 +45,9 @@ tracker:
 pipeline:
   min_path_length: 10
   attach_world_coordinates:
-    camera_geometry: data/camera_geoms/etri_05.pickle
+    camera_geometry: conf/etri_camera_geom.json
+    camera_index: 1
+    epsg_code: "EPSG:3857"
 
 kafka_publisher:
   bootstrap_servers: [localhost:9092]

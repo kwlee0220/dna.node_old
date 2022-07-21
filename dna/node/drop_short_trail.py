@@ -6,6 +6,7 @@ from collections import defaultdict
 from dna.tracker import TrackState
 from .track_event import TrackEvent
 from .event_processor import EventProcessor
+from .__logger import LOGGER
 
 
 class DropShortTrail(EventProcessor):
@@ -31,7 +32,7 @@ class DropShortTrail(EventProcessor):
                 self.publish_event(ev)
             else:
                 pendings = self.pending_dict.pop(ev.luid, [])
-                print(f"drop short track events: luid={ev.luid}, length={len(pendings)}")
+                LOGGER.info(f"drop short track events: luid={ev.luid}, length={len(pendings)}")
         elif is_long_trail:
             self.publish_event(ev)
         else:

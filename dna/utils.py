@@ -37,25 +37,6 @@ def get_first_param(args: Dict[str,Any], key: str, def_value=None):
     return value[0] if value else def_value
 
 
-import logging
-_LOGGERS = dict()
-_LOG_FORMATTER = logging.Formatter("%(levelname)s: %(message)s (%(filename)s)")
-
-def get_logger(name: str=None):
-    logger = _LOGGERS.get(name)
-    if not logger:
-        logger = logging.getLogger(name)
-        _LOGGERS[name] = logger
-        
-        logger.setLevel(logging.DEBUG)
-
-        console = logging.StreamHandler()
-        # console.setLevel(logging.INFO)
-        console.setFormatter(_LOG_FORMATTER)
-        logger.addHandler(console)
-        
-    return logger
-
 from dna import color, plot_utils
 import cv2
 import numpy as np

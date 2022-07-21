@@ -11,15 +11,13 @@ from .detection import Detection
 from . import matcher, utils
 from .utils import all_indices, intersection, subtract, project, overlap_ratios, overlaps_threshold
 import dna
-from dna import get_logger
 import numpy as np
 from dna.types import Box, Size2d
 import kalman_filter
 import linear_assignment
 import iou_matching
 from track import Track
-
-_logger = get_logger("dna.track.deep_sort")
+from ..__logger import LOGGER
 
 _HOT_DIST_THRESHOLD = 21
 _COST_THRESHOLD = 0.5
@@ -70,7 +68,7 @@ class Tracker:
         #     if track.is_confirmed() and track.time_since_update > 1:
         #         size = t_boxes[tidx].size().to_int()
         #         if size.width < _OBSOLTE_TRACK_SIZE or size.height < _OBSOLTE_TRACK_SIZE:
-        #             _logger.debug((f"delete too small temp-lost track[{track.track_id}:{track.time_since_update}], "
+        #             LOGGER.debug((f"delete too small temp-lost track[{track.track_id}:{track.time_since_update}], "
         #                             f"size={size}, frame={dna.DEBUG_FRAME_IDX}"))
         #             track.mark_deleted()
 
@@ -104,14 +102,14 @@ class Tracker:
                 # Exit 영역에 포함되는 detection들은 무시한다
                 if any(region.contains(box) for region in self.params.dim_zones):
                     non_overlapped.remove(didx)
-                    # _logger.debug((f"remove an unmatched detection contained in a blind region: "
+                    # LOGGER.debug((f"remove an unmatched detection contained in a blind region: "
                     #                 f"removed={didx}, frame={dna.DEBUG_FRAME_IDX}"))
                     continue
 
                 confi = detections[didx].confidence
                 for idx, ov in overlaps_threshold(box, d_boxes, self.new_track_overlap_threshold):
                     if idx != didx and (idx not in unmatched_detections or d_boxes[idx].area() >= box.area()):
-                        _logger.debug((f"remove an unmatched detection that overlaps with better one: "
+                        LOGGER.debug((f"remove an unmatched detection that overlaps with better one: "
                                         f"removed={didx}, better={idx}, ratios={max(ov):.2f}, "
                                         f"frame={dna.DEBUG_FRAME_IDX}"))
                         non_overlapped.remove(didx)
@@ -178,9 +176,9 @@ class Tracker:
                 overlaps = matcher.overlap_detections(d_boxes, detections, self.params.max_overlap_ratio,
                                                         project(matches_hot, 1), unmatched_detections)
                 if len(overlaps) > 0:
-                    if _logger.isEnabledFor(logging.DEBUG):
+                    if LOGGER.isEnabledFor(logging.DEBUG):
                         str = ','.join([f"({i2}->{i1}:{s:.2f})" for i1, i2, s in overlaps])
-                        _logger.debug((f"remove hot-track's overlaps: {str}, frame={dna.DEBUG_FRAME_IDX}"))
+                        LOGGER.debug((f"remove hot-track's overlaps: {str}, frame={dna.DEBUG_FRAME_IDX}"))
                     unmatched_detections = subtract(unmatched_detections, overlaps)
         else:
             unmatched_hot = hot_tracks

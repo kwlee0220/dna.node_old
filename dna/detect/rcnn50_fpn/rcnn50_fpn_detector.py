@@ -6,11 +6,11 @@ from detectron2 import model_zoo
 from dna import get_logger, Box, Frame
 from dna.detect import ObjectDetector, Detection
 from dna.utils import parse_query
+from dna.detect import LOGGER
 from detectron2.engine import DefaultPredictor
 from detectron2.config import get_cfg
 
 
-_LOGGER = get_logger("dna.det")
 MODEL_FILE = "COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"
 
 def load(query: str):
@@ -22,7 +22,7 @@ def load(query: str):
     else:
         score = 0.5
 
-    _LOGGER.info(f'Loading Rcnn50FpnDetector: query={query}')
+    LOGGER.info(f'Loading Rcnn50FpnDetector: query={query}')
     return Rcnn50FpnDetector(score)
 
 class Rcnn50FpnDetector(ObjectDetector):

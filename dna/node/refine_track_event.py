@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from dna.tracker import TrackState
 from .track_event import TrackEvent
 from .event_processor import EventProcessor
+from .__logger import LOGGER
 
 
 @dataclass(eq=True)    # slots=True
@@ -28,6 +29,9 @@ class RefineTrackEvent(EventProcessor):
         if ev.state == TrackState.Deleted:   # tracking이 종료된 경우
             self.sessions.pop(ev.luid, None)
             if session.state != TrackState.Tentative:
+                import logging
+                if len(session.pendings) > 0 and LOGGER.isEnabledFor(logging.INFO):
+                    LOGGER.info(f"discard trailing Tentative track events: luid={ev.luid}, count={len(session.pendings)}")
                 self.publish_event(ev)
         else:
             if session is None: # TrackState.Null or TrackState.Deleted

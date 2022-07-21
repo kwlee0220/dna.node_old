@@ -1,19 +1,26 @@
+id: etri:07
 
 camera:
-  id: etri:073
-  uri: videos/etri/etri_073.mp4
-  size: [1920, 1080]
-  fps: 10
-  blind_regions:
-    - [1616, 514, 1929, 1084]
-    - [-4, -2, 934, 531]
-    - [-15, 50, 1038, 404]
-    - [-3, 312, 155, 624]
-    - [891, 115, 1921, 276]
+  uri: data/etri/etri_073.mp4
 
 tracker:
-  # detector: yolov4
-  detector: file:videos/etri/etri_073_det.txt
+  uri: dna.tracker.dna_deepsort
+  dna_deepsort:
+    detector: dna.detect.yolov4
+    blind_zones:
+      - [1616, 514, 1929, 1084]
+      - [-4, -2, 934, 531]
+      - [-15, 50, 1038, 404]
+      - [-3, 312, 155, 624]
+      - [891, 115, 1921, 276]
 
-camera_geometry:
-  file: data/camera_geoms/etri_07.pickle
+pipeline:
+  min_path_length: 10
+  attach_world_coordinates:
+    camera_geometry: conf/etri_camera_geom.json
+    camera_index: 3
+    epsg_code: "EPSG:3857"
+
+kafka_publisher:
+  bootstrap_servers: [localhost:9092]
+  topic: 'node-tracks'

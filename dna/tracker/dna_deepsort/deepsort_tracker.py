@@ -18,7 +18,7 @@ if not DEEPSORT_DIR in sys.path:
     sys.path.append(DEEPSORT_DIR)
 
 import dna
-from dna import Box, Size2d, utils, get_logger, gdown_file
+from dna import Box, Size2d, utils, gdown_file
 from dna.detect import ObjectDetector, Detection
 from ..tracker import Track, TrackState, DetectionBasedObjectTracker
 from .deepsort.deepsort import deepsort_rbc
@@ -90,10 +90,10 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
                                     params=self.params)
         self.__last_frame_detections = []
 
-        level_name = tracker_conf.get("log_level", "info").upper()
-        level = logging.getLevelName(level_name)
-        logger = get_logger("dna.track.deep_sort")
-        logger.setLevel(level)
+        # level_name = tracker_conf.get("log_level", "info").upper()
+        # level = logging.getLevelName(level_name)
+        # logger = get_logger("dna.track.deep_sort")
+        # logger.setLevel(level)
         
     @property
     def detector(self) -> ObjectDetector:

@@ -1,13 +1,14 @@
 from threading import Thread
 from datetime import timedelta
 
+import yaml
 from omegaconf import OmegaConf
 
 import dna
 from dna.camera import Camera, ImageProcessor, create_image_processor
 from dna.node import TrackEventSource, RefineTrackEvent, DropShortTrail, KafkaEventPublisher, \
                     GenerateLocalPath, PrintTrackEvent, EventQueue
-from dna.enhancer.world_transform import WorldTransform
+from dna.node.world_transform import WorldTransform
 from dna.tracker.utils import load_object_tracking_callback
 
 
@@ -45,6 +46,11 @@ def build_pipeline(queue: EventQueue, pipe_conf: OmegaConf) -> EventQueue:
     return queue
 
 def main():
+    with open('dna/logger.yaml', 'rt') as f:
+        import logging.config
+        config = yaml.safe_load(f.read())
+        logging.config.dictConfig(config)
+
     args, unknown = parse_args()
     conf:OmegaConf = dna.load_config(args.conf_path)
 

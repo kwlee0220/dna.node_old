@@ -11,10 +11,9 @@ import torch.backends.cudnn as cudnn
 
 from dna import get_logger, Box, Frame
 from dna.utils import parse_query
-from dna.detect import ObjectDetector, Detection
+from dna.detect import ObjectDetector, Detection, LOGGER
 
 
-_LOGGER = get_logger("dna.det")
 def load(query: str):
     args = parse_query(query)
     model_id = 'yolov5' + args.get('model', 's')
@@ -25,7 +24,7 @@ def load(query: str):
     if score is not None:
         model.conf = float(score)
 
-    _LOGGER.info(f'Loading Yolov5Detector: model={model_id}')
+    LOGGER.info(f'Loading Yolov5Detector: model={model_id}')
     return Yolov5Detector(model)
 
 

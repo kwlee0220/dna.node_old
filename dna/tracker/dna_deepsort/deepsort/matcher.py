@@ -6,12 +6,11 @@ from numpy.linalg import det
 from scipy.optimize import linear_sum_assignment
 
 import dna
-from dna import Box, get_logger
+from dna import Box
 from . import utils
 from .utils import overlaps_threshold, overlap_ratios
+from ..__logger import LOGGER
 
-
-_logger = get_logger("dna.track.deep_sort")
 
 _HUGE = 300
 _LARGE = 150
@@ -233,11 +232,11 @@ def delete_overlapped_tentative_tracks(tracks, threshold):
             ovs = overlaps_threshold(track_boxes[uc_idx], track_boxes, threshold, confirmed_tracks)
             if len(ovs) > 0:
                 tracks[uc_idx].mark_deleted()
-                if _logger.isEnabledFor(logging.DEBUG):
+                if LOGGER.isEnabledFor(logging.DEBUG):
                     uc_track_id = tracks[uc_idx].track_id
                     ov_track_id = tracks[ovs[0][0]].track_id
                     ov_ratio = max(ovs[0][1])
-                    _logger.debug((f"delete tentative track[{uc_track_id}] because it is too close to track[{ov_track_id}], "
+                    LOGGER.debug((f"delete tentative track[{uc_track_id}] because it is too close to track[{ov_track_id}], "
                                     f"ratio={ov_ratio:.2f}, frame={dna.DEBUG_FRAME_IDX}"))
             else:
                 suriveds.append(uc_idx)

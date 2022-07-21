@@ -4,6 +4,7 @@ from dna import Box
 from dna.detect.utils import load_object_detector
 from .deepsort_tracker import DeepSORTTracker
 
+
 _DEFAULT_DETECTOR = "dna.detect.yolov5:model=m&score=0.45"
 
 def load(domain:Box, tracker_conf: OmegaConf):

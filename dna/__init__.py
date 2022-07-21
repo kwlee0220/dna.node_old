@@ -1,6 +1,6 @@
 from .color import BGR, WHITE, RED
 from .types import Box, Size2d, Point, Image, Frame
-from .utils import get_logger, gdown_file
+from .utils import gdown_file
 from .conf import *
 
 __version__ = '0.0.5'

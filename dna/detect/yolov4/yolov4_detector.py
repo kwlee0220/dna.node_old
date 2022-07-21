@@ -16,9 +16,9 @@ import gdown
 # if not _YOLOV4_DIR in sys.path:
 #     sys.path.append(_YOLOV4_DIR)
 
-from dna import Box, get_logger, gdown_file, Frame
+from dna import Box, gdown_file, Frame
 from dna.utils import parse_query, get_first_param
-from dna.detect import Detection, ObjectDetector
+from dna.detect import Detection, ObjectDetector, LOGGER
 
 from .tool.utils import load_class_names
 from .tool.torch_utils import do_detect
@@ -66,7 +66,6 @@ def _download_model_descriptor(model_id: str, top_dir: Path) -> YoloV4ModelDesc:
     return YoloV4ModelDesc(class_names=class_names, cfg_file_path=cfg_file_path,
                             weights_file_path=weights_file_path)
 
-_LOGGER = get_logger("dna.det")
 def load(query: str):
     args = parse_query(query)
     tag = args.get('model', '')
@@ -77,8 +76,8 @@ def load(query: str):
 
     desc = _download_model_descriptor(model_id, top_dir)
 
-    _LOGGER.info((f'Loading Yolov4TorchDetector: cfg={desc.cfg_file_path}, '
-                    f'weights={desc.weights_file_path}, class_names={desc.class_names}'))
+    LOGGER.info((f'Loading Yolov4TorchDetector: cfg={desc.cfg_file_path}, '
+                f'weights={desc.weights_file_path}, class_names={desc.class_names}'))
     return Yolov4TorchDetector(desc)
 
 class Yolov4TorchDetector(ObjectDetector):
