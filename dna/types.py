@@ -66,7 +66,7 @@ class Point:
             return Point.from_np(self.xy + rhs.xy)
         elif isinstance(rhs, Size2d):
             return Point.from_np(self.xy + rhs.wh)
-        elif isinstance(rhs, tuple) and len(rhs) >= 2:
+        elif (isinstance(rhs, np.ndarray) or isinstance(rhs, tuple) or isinstance(rhs, list)) and len(rhs) >= 2:
             return Point(self.x + rhs[0], self.y + rhs[1])
         elif isinstance(rhs, int) or isinstance(rhs, float):
             return Point(self.x + rhs, self.y + rhs)

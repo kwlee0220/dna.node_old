@@ -25,6 +25,7 @@ pipeline:
     camera_geometry: conf/etri_camera_geom.json
     camera_index: 1
     epsg_code: "EPSG:3857"
+    world_coords_offset: [-1.5,3]
 
 kafka_publisher:
   bootstrap_servers: [localhost:9092]

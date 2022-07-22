@@ -29,10 +29,15 @@ class WorldTransform(EventProcessor):
             from pyproj import Transformer
             transformer = Transformer.from_crs('EPSG:4326', epsg_code)
             self.utm_origin = transformer.transform(*self.satellite['origin_latlon'])
+        self.utm_offset = conf.get('world_coords_offset')
+        if self.utm_offset:
+            self.utm_offset = np.array(self.utm_offset)
 
     def handle_event(self, ev:TrackEvent) -> None:
         wcoord, dist = self.to_world_coord(ev)
         wcoord = Point.from_np(wcoord) if wcoord is not None else None
+        if wcoord is not None and self.utm_offset is not None:
+            wcoord = wcoord + self.utm_offset
         updated = ev.updated(world_coord=wcoord, distance=dist)
         self.publish_event(updated)
 
@@ -40,6 +45,7 @@ class WorldTransform(EventProcessor):
         # 물체의 boundingbox에서 point를 선택
         tl_x, tl_y, br_x, br_y = ev.location.to_tlbr()
         pt = [(tl_x + br_x) / 2, br_y]
+        # pt = [(tl_x + br_x) / 2, (br_y + tl_y) / 2]
 
         pt_m, dist = self._localize_point(pt)
         if pt_m is None and LOGGER.isEnabledFor(logging.INFO):
