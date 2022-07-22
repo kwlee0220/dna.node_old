@@ -18,7 +18,7 @@ def main():
     args, unknown = parse_args()
     conf:OmegaConf = dna.load_config(args.conf_path)
 
-    camera:Camera = dna.camera.create_camera(conf.camera)
+    camera:Camera = dna.camera.create_camera_from_conf(conf.camera)
     proc:ImageProcessor = dna.camera.create_image_processor(camera, OmegaConf.create(vars(args)))
 
     elapsed, frame_count, fps_measured = proc.run()
