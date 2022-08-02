@@ -1,9 +1,9 @@
-from datetime import timedelta
 
 from omegaconf import OmegaConf
 
 import dna
 from dna.camera import Camera, ImageProcessor
+from dna.camera.utils import create_camera_from_conf
 
 
 import argparse
@@ -15,14 +15,19 @@ def parse_args():
     return parser.parse_known_args()
 
 def main():
-    args, unknown = parse_args()
-    conf:OmegaConf = dna.load_config(args.conf_path)
+    args, _ = parse_args()
 
-    camera:Camera = dna.camera.create_camera_from_conf(conf.camera)
-    proc:ImageProcessor = dna.camera.create_image_processor(camera, OmegaConf.create(vars(args)))
+    dna.initialize_logger()
+    conf = dna.load_config(args.conf_path)
+    dna.conf.update(conf, vars(args), ['show', 'show_progress'])
 
-    elapsed, frame_count, fps_measured = proc.run()
-    print(f"elapsed_time={timedelta(seconds=elapsed)}, frame_count={frame_count}, fps={fps_measured:.1f}" )
+    if conf.get('show', False) and conf.get('window_name', None) is None:
+        conf.window_name = f'camera={conf.camera.uri}'
+
+    camera:Camera = create_camera_from_conf(conf.camera)
+    img_proc = ImageProcessor(camera.open(), conf)
+    result = img_proc.run()
+    print(result)
 
 if __name__ == '__main__':
 	main()

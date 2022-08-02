@@ -19,6 +19,9 @@ gdown
 # geodesic transformation
 pyproj
 
+# rabbitmq
+pika
+
 # yolov5
 ipython
 psutil

@@ -6,7 +6,7 @@ from collections import defaultdict
 from dna.tracker import TrackState
 from .track_event import TrackEvent
 from .event_processor import EventProcessor
-from .__logger import LOGGER
+from .logger import LOGGER
 
 
 class DropShortTrail(EventProcessor):

@@ -1,5 +1,5 @@
 import os
-from typing import Union, Optional, TypeVar
+from typing import Union, Optional, List
 from pathlib import Path
 
 from omegaconf import OmegaConf
@@ -69,3 +69,8 @@ def get_config(conf:OmegaConf, key_path:str, def_value: Optional[object]=None) -
         else:
             return def_value
     return conf
+
+def update(conf:OmegaConf, conf2: dict, conf_keys: Optional[List[str]]=None) -> None:
+    for key in conf_keys:
+        if key in conf_keys:
+            OmegaConf.update(conf, key, conf2[key], merge=False)

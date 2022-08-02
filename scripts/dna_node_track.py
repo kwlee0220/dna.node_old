@@ -1,3 +1,4 @@
+from contextlib import closing
 from datetime import timedelta
 import warnings
 warnings.filterwarnings("ignore")
@@ -6,8 +7,9 @@ import argparse
 from omegaconf import OmegaConf
 
 import dna
-from dna.camera import Camera, ImageProcessor, create_image_processor
-from dna.tracker.utils import load_object_tracking_callback
+from dna.camera import Camera, ImageProcessor
+from dna.camera.utils import create_camera_from_conf
+from dna.tracker.utils import build_track_pipeline
 
 
 def parse_args():
@@ -20,18 +22,24 @@ def parse_args():
     return parser.parse_known_args()
 
 def main():
-    args, unknown = parse_args()
-    conf:OmegaConf = dna.load_config(args.conf_path)
-
-    camera:Camera = dna.camera.create_camera_from_conf(conf.camera)
-    proc:ImageProcessor = dna.camera.create_image_processor(camera, OmegaConf.create(vars(args)))
+    dna.initialize_logger()
     
-    tracker_conf = conf.get('tracker', OmegaConf.create())
-    tracker_conf.output = args.output
-    proc.callback = load_object_tracking_callback(camera, proc, tracker_conf)
+    args, _ = parse_args()
+    conf = dna.load_config(args.conf_path)
+    dna.conf.update(conf, vars(args), ['show', 'show_progress', 'output_video'])
 
-    elapsed, frame_count, fps_measured = proc.run()
-    print(f"elapsed_time={timedelta(seconds=elapsed)}, frame_count={frame_count}, fps={fps_measured:.1f}" )
+    if conf.get('show', False) and conf.get('window_name', None) is None:
+        conf.window_name = f'camera={conf.camera.uri}'
+
+    camera:Camera = create_camera_from_conf(conf.camera)
+    img_proc = ImageProcessor(camera.open(), conf)
+
+    tracker_conf = conf.get('tracker', OmegaConf.create())
+    dna.conf.update(tracker_conf, vars(args), ['output'])
+    img_proc.callback = build_track_pipeline(img_proc, tracker_conf)
+    
+    result = img_proc.run()
+    print(result)
 
 if __name__ == '__main__':
 	main()

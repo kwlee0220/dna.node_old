@@ -1,9 +1,8 @@
 from __future__ import annotations
 from typing import List
 from abc import ABCMeta, abstractmethod
-from pathlib import Path
 
-from dna.node.track_event import TrackEvent
+from pathlib import Path
 
 
 class EventListener(metaclass=ABCMeta):
@@ -42,26 +41,6 @@ class EventProcessor(EventListener, EventQueue):
         EventQueue.close(self)
         EventListener.close(self)
 
-
-from dna import Frame
-from dna.tracker import Track, TrackerCallback
-from .track_event import TrackEvent, EOT
-class TrackEventSource(TrackerCallback, EventQueue):
-    def __init__(self, node_id:str) -> None:
-        TrackerCallback.__init__()
-        EventQueue.__init__()
-
-        self.node_id = node_id
-
-    def track_started(self, tracker) -> None: pass
-    def track_stopped(self, tracker) -> None:
-        self.publisher.publish(EOT)
-
-    def tracked(self, tracker, frame: Frame, tracks: List[Track]) -> None:
-        for track in tracks:
-            self.publish_event(TrackEvent.from_track(self.node_id, track))
-
-import sys
 class PrintTrackEvent(EventListener):
     def __init__(self, file: str) -> None:
         super().__init__()

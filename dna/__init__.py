@@ -1,9 +1,10 @@
 from .color import BGR, WHITE, RED
 from .types import Box, Size2d, Point, Image, Frame
-from .utils import gdown_file
+from .utils import gdown_file, initialize_logger
+from .pika_execution import PikaConnectionParameters, PikaExecutionServer
 from .conf import *
 
-__version__ = '0.0.6'
+__version__ = '0.0.7'
 
 # DEBUG_FRAME_IDX = -1
 # DEBUG_SHOW_IMAGE = False

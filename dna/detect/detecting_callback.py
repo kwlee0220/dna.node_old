@@ -36,7 +36,7 @@ class DetectingCallback(ImageProcessorCallback):
             self.out_handle.close()
             self.out_handle = None
 
-    def process_image(self, frame:Frame) -> Optional[Frame]:
+    def process_frame(self, frame:Frame) -> Optional[Frame]:
         img = frame.image
         frame_idx = frame.index
 

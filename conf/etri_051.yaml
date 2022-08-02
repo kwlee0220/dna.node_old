@@ -42,15 +42,14 @@ tracker:
       - [-5,828,1235,1082]
       - [1776, -4, 2017, 669]
 
-pipeline:
+publishing:
   min_path_length: 10
   attach_world_coordinates:
     camera_geometry: conf/etri_camera_geom.json
     camera_index: 1
     epsg_code: "EPSG:3857"
     world_coords_offset: [-1.5,3]
-
-kafka_publisher:
-  bootstrap_servers: [localhost:9092]
-  # bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
-  topic: 'node-tracks'
+  kafka:
+    bootstrap_servers: [localhost:9092]
+#   bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
+    topic: 'node-tracks'

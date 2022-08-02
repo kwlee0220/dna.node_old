@@ -18,7 +18,7 @@ def datetime2str(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S.%f")
 
 def utc_now() -> int:
-    return int(time() * 1000)
+    return round(time() * 1000)
 
 def _parse_keyvalue(kv) -> Tuple[str,str]:
     pair = kv.split('=')
@@ -122,3 +122,11 @@ class RectangleDrawer:
             self.drawing = False
             self.ex, self.ey = x, y
             cv2.rectangle(self.convas, (self.bx, self.by), (x,y), (0,255,0), 2)
+
+def initialize_logger(conf_file_path: str='dna/logger.yaml'):
+    with open(conf_file_path, 'rt') as f:
+        import yaml
+        import logging.config
+
+        config = yaml.safe_load(f.read())
+        logging.config.dictConfig(config)

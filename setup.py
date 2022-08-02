@@ -14,7 +14,10 @@ setup(
 			'dna_node_detect = scripts.dna_node_detect:main',
 			'dna_node_track = scripts.dna_node_track:main',
 			'dna_node = scripts.dna_node:main',
+			'dna_node_processor = scripts.dna_node_processor:main',
+			'dna_node_processor_client = scripts.dna_node_processor_client:main',
 			'dna_publish_events = scripts.dna_publish_events:main',
+			'dna_publish_event_server = scripts.dna_publish_event_server:main',
 		],
 	},
     install_requires = [
@@ -36,6 +39,9 @@ setup(
 
 				# geodesic transformation
 				'pyproj',
+
+        # rabbitmq
+        'pika',
 
         # yolov5
         'ipython',

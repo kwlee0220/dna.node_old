@@ -10,7 +10,7 @@ import cv2
 from dna import Point
 from dna.node.track_event import TrackEvent
 from dna.node.event_processor import EventProcessor
-from .__logger import LOGGER
+from .logger import LOGGER
 
 CameraGeometry = namedtuple('CameraGeometry', 'K,distort,ori,pos')
 class WorldTransform(EventProcessor):

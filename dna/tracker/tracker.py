@@ -90,7 +90,7 @@ class ObjectTracker(metaclass=ABCMeta):
     def track(self, frame: Frame) -> List[Track]: pass
 
 
-class TrackerCallback(metaclass=ABCMeta):
+class TrackProcessor(metaclass=ABCMeta):
     @abstractmethod
     def track_started(self, tracker:ObjectTracker) -> None: pass
 
@@ -98,7 +98,7 @@ class TrackerCallback(metaclass=ABCMeta):
     def track_stopped(self, tracker:ObjectTracker) -> None: pass
 
     @abstractmethod
-    def tracked(self, tracker: ObjectTracker, frame: Frame, tracks: List[Track]) -> None: pass
+    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[Track]) -> None: pass
 
 
 class DetectionBasedObjectTracker(ObjectTracker):

@@ -1,3 +1,4 @@
+from contextlib import closing
 from datetime import timedelta
 
 import argparse
@@ -5,6 +6,7 @@ from omegaconf import OmegaConf
 
 import dna
 from dna.camera import Camera, ImageProcessor
+from dna.camera.utils import create_camera_from_conf
 from dna.detect.utils import load_object_detecting_callback
 
 __DEFAULT_DETECTOR_URI = 'dna.detect.yolov5:model=l&score=0.4'
@@ -21,17 +23,21 @@ def parse_args():
     return parser.parse_known_args()
 
 def main():
-    args, unknown = parse_args()
-    conf:OmegaConf = dna.load_config(args.conf_path)
+    dna.initialize_logger()
+    
+    args, _ = parse_args()
+    conf = dna.load_config(args.conf_path)
+    dna.conf.update(conf, vars(args), ['show', 'show_progress', 'output_video'])
 
-    camera:Camera = dna.camera.create_camera_from_conf(conf.camera)
-    proc:ImageProcessor = dna.camera.create_image_processor(camera, OmegaConf.create(vars(args)))
+    if conf.get('show', False) and conf.get('window_name', None) is None:
+        conf.window_name = f'camera={conf.camera.uri}'
 
-    proc.callback = load_object_detecting_callback(detector_uri=args.detector, output=args.output,
-                                                    draw_detections=proc.is_drawing())
-
-    elapsed, frame_count, fps_measured = proc.run()
-    print(f"elapsed_time={timedelta(seconds=elapsed)}, frame_count={frame_count}, fps={fps_measured:.1f}" )
+    camera:Camera = create_camera_from_conf(conf.camera)
+    img_proc = ImageProcessor(camera.open(), conf)
+    img_proc.callback = load_object_detecting_callback(detector_uri=args.detector, output=args.output,
+                                                        draw_detections=img_proc.is_drawing())
+    result = img_proc.run()
+    print(result)
 
 if __name__ == '__main__':
 	main()

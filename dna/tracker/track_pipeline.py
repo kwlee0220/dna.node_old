@@ -8,10 +8,10 @@ import collections
 import numpy as np
 
 from dna import plot_utils, color, Point, BGR, Image, Frame
-from .tracker import Track, TrackState, ObjectTracker, TrackerCallback, DetectionBasedObjectTracker
+from .tracker import Track, TrackState, ObjectTracker, TrackProcessor, DetectionBasedObjectTracker
 
 
-class TrackWriter(TrackerCallback):
+class TrackWriter(TrackProcessor):
     def __init__(self, track_file: str) -> None:
         super().__init__()
 
@@ -30,7 +30,7 @@ class TrackWriter(TrackerCallback):
 
         super().track_stopped(tracker)
 
-    def tracked(self, tracker: ObjectTracker, frame: Frame, tracks: List[Track]) -> None:
+    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[Track]) -> None:
         for track in tracks:
             self.out_handle.write(track.to_string() + '\n')
 
@@ -53,7 +53,7 @@ class Trail:
         return plot_utils.draw_line_string(convas, track_centers, color, line_thickness)
     
 
-class TrailCollector(TrackerCallback):
+class TrailCollector(TrackProcessor):
     __slots__ = ('trails', )
 
     def __init__(self) -> None:
@@ -66,7 +66,7 @@ class TrailCollector(TrackerCallback):
     def track_started(self, tracker: ObjectTracker) -> None: pass
     def track_stopped(self, tracker: ObjectTracker) -> None: pass
 
-    def tracked(self, tracker: ObjectTracker, frame: Frame, tracks: List[Track]) -> None:      
+    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[Track]) -> None:      
         for track in tracks:
             if track.state == TrackState.Confirmed  \
                 or track.state == TrackState.TemporarilyLost    \
@@ -78,38 +78,39 @@ class TrailCollector(TrackerCallback):
 
 
 from dna.camera import ImageProcessorCallback
-class ObjectTrackingCallback(ImageProcessorCallback):
-    __slots__ = 'tracker', 'is_detection_based', 'trail_collector', 'callbacks', 'draw_tracks', 'show_zones'
+class ObjectTrackPipeline(ImageProcessorCallback):
+    __slots__ = ( 'tracker', 'is_detection_based', 'trail_collector', 'track_processors',
+                  'draw_tracks', 'show_zones' )
 
-    def __init__(self, tracker: ObjectTracker, callbacks: List[TrackerCallback]=[], draw_tracks: bool=False,
+    def __init__(self, tracker: ObjectTracker, processors: List[TrackProcessor]=[], draw_tracks: bool=False,
                 show_zones=False) -> None:
         super().__init__()
 
         self.tracker = tracker
         self.is_detection_based = isinstance(self.tracker, DetectionBasedObjectTracker)
         self.trail_collector = TrailCollector()
-        self.callbacks = callbacks + [self.trail_collector]
+        self.track_processors = processors + [self.trail_collector]
         self.draw_tracks = draw_tracks
         self.show_zones = show_zones
 
     def on_started(self, capture) -> None:
-        for cb in self.callbacks:
-            cb.track_started(self.tracker)
+        for processor in self.track_processors:
+            processor.track_started(self.tracker)
 
     def on_stopped(self) -> None:
-        for cb in self.callbacks:
-            cb.track_stopped(self.tracker)
+        for processor in self.track_processors:
+            processor.track_stopped(self.tracker)
 
     def set_control(self, key: int) -> int:
         if key == ord('r'):
             self.show_zones = not self.show_zones
         return key
 
-    def process_image(self, frame: Frame) -> Frame:
+    def process_frame(self, frame: Frame) -> Frame:
         tracks = self.tracker.track(frame)
 
-        for cb in self.callbacks:
-            cb.tracked(self.tracker, frame, tracks)
+        for processor in self.track_processors:
+            processor.process_tracks(self.tracker, frame, tracks)
 
         if self.draw_tracks:
             convas = frame.image

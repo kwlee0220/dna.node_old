@@ -6,11 +6,13 @@ import cv2
 import numpy as np
 
 from dna import Box
-from dna.camera import create_camera
+from dna.camera.opencv_camera import OpenCvCamera, OpenCvVideFile
 from dna.utils import RectangleDrawer
 
+
 img = None
-camera = create_camera("data/etri/etri_053.mp4")
+uri = "data/etri/etri_053.mp4"
+camera = OpenCvVideFile(uri) if OpenCvCamera.is_video_file(uri) else OpenCvCamera(uri)
 with closing(camera.open()) as cap:
     img = cap().image
 

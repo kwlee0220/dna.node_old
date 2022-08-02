@@ -7,8 +7,8 @@ from pathlib import Path
 from matplotlib.pyplot import show
 
 from dna import Size2d
-from .camera import Camera, ImageCapture, Image
-from .image_processor import ImageProcessor, ImageProcessorCallback
+from .camera import Camera, ImageCapture
+from .image_processor_old import ImageProcessor, ImageProcessorCallback
 
 class State(Enum):
     STOPPED = 1

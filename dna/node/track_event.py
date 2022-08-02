@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, ClassVar
+from typing import Optional, List
 from dataclasses import dataclass, field, asdict
 import json
 
@@ -125,3 +125,22 @@ class TrackEvent(KafkaEvent):
 
 EOT:TrackEvent = TrackEvent(node_id=None, luid=None, state=None, location=None,
                             world_coord=None, distance=None, frame_index=-1, ts=-1)
+
+
+from dna import Frame
+from dna.tracker import Track, TrackProcessor
+from .event_processor import EventQueue
+class TrackEventSource(TrackProcessor, EventQueue):
+    def __init__(self, node_id:str) -> None:
+        TrackProcessor.__init__(self)
+        EventQueue.__init__(self)
+
+        self.node_id = node_id
+
+    def track_started(self, tracker) -> None: pass
+    def track_stopped(self, tracker) -> None:
+        self.close()
+
+    def process_tracks(self, tracker, frame: Frame, tracks: List[Track]) -> None:
+        for track in tracks:
+            self.publish_event(TrackEvent.from_track(self.node_id, track))

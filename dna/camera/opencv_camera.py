@@ -12,8 +12,6 @@ import dna
 from dna import Size2d, Image, Frame
 from .camera import Camera, ImageCapture
 
-
-
 class OpenCvCamera(Camera):
     def __init__(self, uri:str, target_size:Optional[Size2d]=None):
         Camera.__init__(self)
