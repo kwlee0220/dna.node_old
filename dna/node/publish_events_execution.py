@@ -39,6 +39,7 @@ class TrackEventPublishingExecution(AbstractExecution):
                 last_ts = 0
                 while True:
                     line = fp.readline().rstrip()
+                    print(line)
                     if len(line) > 0:
                         te = TrackEvent.from_json(line)
                         heapq.heappush(heap, te)

@@ -3,8 +3,6 @@ from __future__ import absolute_import
 from typing import List, Union, Tuple
 import enum
 
-import logging
-
 from numpy.linalg import det
 
 from .detection import Detection
@@ -17,7 +15,10 @@ import kalman_filter
 import linear_assignment
 import iou_matching
 from track import Track
-from ..__logger import LOGGER
+
+import logging
+LOGGER = logging.getLogger('dna.tracker.deepsort')
+
 
 _HOT_DIST_THRESHOLD = 21
 _COST_THRESHOLD = 0.5

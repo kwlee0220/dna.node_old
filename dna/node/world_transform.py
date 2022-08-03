@@ -1,7 +1,6 @@
 # from typing import List, Union
 from typing import Tuple
 from collections import namedtuple
-import logging
 
 from omegaconf import OmegaConf
 import numpy as np
@@ -10,7 +9,10 @@ import cv2
 from dna import Point
 from dna.node.track_event import TrackEvent
 from dna.node.event_processor import EventProcessor
-from .logger import LOGGER
+
+import logging
+LOGGER = logging.getLogger("dna.node.pipeline")
+
 
 CameraGeometry = namedtuple('CameraGeometry', 'K,distort,ori,pos')
 class WorldTransform(EventProcessor):

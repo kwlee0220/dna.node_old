@@ -7,9 +7,8 @@ import argparse
 from omegaconf import OmegaConf
 
 import dna
-from dna.camera import Camera, ImageProcessor
-from dna.camera.utils import create_camera_from_conf
-from dna.tracker.utils import build_track_pipeline
+from dna.camera import Camera, ImageProcessor, create_camera_from_conf
+from dna.tracker import TrackingPipeline
 
 
 def parse_args():
@@ -36,7 +35,9 @@ def main():
 
     tracker_conf = conf.get('tracker', OmegaConf.create())
     dna.conf.update(tracker_conf, vars(args), ['output'])
-    img_proc.callback = build_track_pipeline(img_proc, tracker_conf)
+
+    track_pipeline = TrackingPipeline.load(img_proc, tracker_conf)
+    img_proc.add_frame_processor(track_pipeline)
     
     result = img_proc.run()
     print(result)

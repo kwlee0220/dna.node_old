@@ -1,29 +1,7 @@
-from typing import Any, Optional
 
 from omegaconf import OmegaConf
 
 from dna.tracker import TrackProcessor
-from .event_processor import EventQueue
-
-
-# class EventPublisher:
-#     __slots__ = 'pubsub', 'channel', 'nsubscribers'
-
-#     def __init__(self, pubsub: PubSub, channel: str) -> None:
-#         self.pubsub = pubsub
-#         self.channel = channel
-#         self.nsubscribers = 0
-
-#     def publish(self, ev: Any) -> None:
-#         if self.nsubscribers > 0:
-#             self.pubsub.publish(self.channel, ev)
-
-#     def subscribe(self) -> Queue:
-#         self.nsubscribers += 1
-#         return self.pubsub.subscribe(self.channel)
-
-#     def __repr__(self) -> str:
-#         return f'EventPublisher[channel={self.channel}]'
 
 
 _DEFAULT_MIN_PATH_LENGTH=10
@@ -59,6 +37,11 @@ def load_publishing_pipeline(node_id: str, publishing_conf: OmegaConf) -> TrackP
 
     if publishing_conf.get('kafka', None) is not None:
         queue.add_listener(KafkaEventPublisher(publishing_conf.kafka))
+    else:
+        import logging
+        logger = logging.getLogger('dna.node.kafka')
+        logger.warning(f'Kafka publishing is not specified')
+
     if publishing_conf.get('output', None) is not None:
         queue.add_listener(PrintTrackEvent(publishing_conf.output))
         

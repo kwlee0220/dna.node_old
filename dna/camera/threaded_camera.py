@@ -8,7 +8,7 @@ from matplotlib.pyplot import show
 
 from dna import Size2d
 from .camera import Camera, ImageCapture
-from .image_processor_old import ImageProcessor, ImageProcessorCallback
+from .image_processor import ImageProcessor, FrameProcessor
 
 class State(Enum):
     STOPPED = 1
@@ -16,8 +16,7 @@ class State(Enum):
     RUNNING = 3
     STOPPING = 4
 
-
-class ImageHolder(ImageProcessorCallback):
+class ImageHolder(FrameProcessor):
     def __init__(self) -> None:
         self.cond = Condition()
         self.__state = State.STARTING

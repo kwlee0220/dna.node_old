@@ -6,9 +6,7 @@ import yaml
 from omegaconf import OmegaConf
 
 import dna
-from dna.camera import ImageProcessor
-from dna.camera.utils import create_camera_from_conf
-from dna.tracker.utils import build_track_pipeline
+from dna.camera import ImageProcessor,  create_camera_from_conf
 from dna.node.node_processor import build_node_processor
 
 
@@ -35,9 +33,9 @@ def main():
         publishing_conf = conf.get('publishing', OmegaConf.create())
         publishing_conf.output = args.output
         conf.publishing = publishing_conf
-        # OmegaConf.update(conf, 'publishing', publishing_conf, merge=False)
 
-    img_proc = build_node_processor(conf)
+    camera = create_camera_from_conf(conf.camera)
+    img_proc = build_node_processor(camera.open(), conf)
     result = img_proc.run()
     print(result)
 

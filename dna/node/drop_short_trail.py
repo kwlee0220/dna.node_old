@@ -6,7 +6,9 @@ from collections import defaultdict
 from dna.tracker import TrackState
 from .track_event import TrackEvent
 from .event_processor import EventProcessor
-from .logger import LOGGER
+
+import logging
+LOGGER = logging.getLogger('dna.node.pipeline')
 
 
 class DropShortTrail(EventProcessor):

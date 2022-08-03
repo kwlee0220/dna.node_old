@@ -1,10 +1,8 @@
 from __future__ import annotations
 from typing import List, Optional
-from abc import ABCMeta, abstractmethod
-from contextlib import suppress
-from pathlib import Path
 import collections
 
+from omegaconf import OmegaConf
 import numpy as np
 
 from dna import plot_utils, color, Point, BGR, Image, Frame
@@ -76,14 +74,35 @@ class TrailCollector(TrackProcessor):
                 self.trails.pop(track.id, None)
 
 
+from dna.camera import ImageProcessor, FrameProcessor
+class TrackingPipeline(FrameProcessor):
+    __slots__ = ( 'tracker', 'is_detection_based', 'trail_collector', 'track_processors', 'draw_tracks', 'show_zones' )
 
-from dna.camera import ImageProcessorCallback
-class ObjectTrackPipeline(ImageProcessorCallback):
-    __slots__ = ( 'tracker', 'is_detection_based', 'trail_collector', 'track_processors',
-                  'draw_tracks', 'show_zones' )
+    @classmethod
+    def load(cls, img_proc: ImageProcessor, tracker_conf: OmegaConf,
+                            track_processors: List[TrackProcessor]=[]) -> TrackingPipeline:
+        tracker_uri = tracker_conf.get("uri", "dna.tracker.dna_deepsort")
+        parts = tracker_uri.split(':', 1)
+        id, query = tuple(parts) if len(parts) > 1 else (tracker_uri, "")
+
+        from dna import Box
+        domain = Box.from_size(img_proc.capture.size)
+        
+        import importlib
+        tracker_module = importlib.import_module(id)
+        tracker = tracker_module.load(domain, tracker_conf)
+
+        draw_tracks = img_proc.is_drawing() and tracker_conf.get("draw_tracks", True)
+        draw_zones = img_proc.is_drawing() and tracker_conf.get("draw_zones", False)
+
+        output = tracker_conf.get("output", None)
+        if output is not None:
+            track_processors = [TrackWriter(output)] + track_processors
+            
+        return cls(tracker=tracker, processors=track_processors, draw_tracks=draw_tracks, draw_zones=draw_zones)
 
     def __init__(self, tracker: ObjectTracker, processors: List[TrackProcessor]=[], draw_tracks: bool=False,
-                show_zones=False) -> None:
+                draw_zones=False) -> None:
         super().__init__()
 
         self.tracker = tracker
@@ -91,7 +110,7 @@ class ObjectTrackPipeline(ImageProcessorCallback):
         self.trail_collector = TrailCollector()
         self.track_processors = processors + [self.trail_collector]
         self.draw_tracks = draw_tracks
-        self.show_zones = show_zones
+        self.draw_zones = draw_zones
 
     def on_started(self, capture) -> None:
         for processor in self.track_processors:
@@ -103,7 +122,7 @@ class ObjectTrackPipeline(ImageProcessorCallback):
 
     def set_control(self, key: int) -> int:
         if key == ord('r'):
-            self.show_zones = not self.show_zones
+            self.draw_zones = not self.draw_zones
         return key
 
     def process_frame(self, frame: Frame) -> Frame:
@@ -112,14 +131,14 @@ class ObjectTrackPipeline(ImageProcessorCallback):
         for processor in self.track_processors:
             processor.process_tracks(self.tracker, frame, tracks)
 
-        if self.draw_tracks:
-            convas = frame.image
-            if self.show_zones:
-                for region in self.tracker.params.blind_zones:
-                    convas = region.draw(convas, color.MAGENTA, 2)
-                for region in self.tracker.params.dim_zones:
-                    convas = region.draw(convas, color.RED, 2)
+        convas = frame.image
+        if self.draw_zones:
+            for region in self.tracker.params.blind_zones:
+                convas = region.draw(convas, color.MAGENTA, 2)
+            for region in self.tracker.params.dim_zones:
+                convas = region.draw(convas, color.RED, 2)
 
+        if self.draw_tracks:
             if self.is_detection_based:
                 for det in self.tracker.last_frame_detections():
                     convas = det.draw(convas, color.WHITE, line_thickness=2)

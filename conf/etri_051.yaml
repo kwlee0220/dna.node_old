@@ -9,6 +9,7 @@ camera:
 tracker:
   uri: dna.tracker.dna_deepsort
   # uri: dna.tracker.cnu_siammot
+  # draw_tracks: true
   # draw_zones: false
   # output: C:/Temp/data/track_output.csv
 

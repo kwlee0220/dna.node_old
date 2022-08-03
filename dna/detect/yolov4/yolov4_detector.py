@@ -3,7 +3,6 @@ from re import L
 from typing import List, Optional, Any
 from pathlib import Path
 from urllib.parse import parse_qs
-import logging
 
 import yaml
 import numpy as np
@@ -18,11 +17,14 @@ import gdown
 
 from dna import Box, gdown_file, Frame
 from dna.utils import parse_query, get_first_param
-from dna.detect import Detection, ObjectDetector, LOGGER
+from dna.detect import Detection, ObjectDetector
 
 from .tool.utils import load_class_names
 from .tool.torch_utils import do_detect
 from .tool.darknet2pytorch import Darknet
+
+import logging
+LOGGER = logging.getLogger('dna.detector.yolov4')
 
 
 # def _download_file(url:str, file: str):

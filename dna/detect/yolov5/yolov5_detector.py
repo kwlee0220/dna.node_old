@@ -1,7 +1,6 @@
 from typing import List, Optional
 from pathlib import Path
 from urllib.parse import parse_qs
-import logging
 
 import yaml
 import numpy as np
@@ -11,7 +10,10 @@ import torch.backends.cudnn as cudnn
 
 from dna import Box, Frame
 from dna.utils import parse_query
-from dna.detect import ObjectDetector, Detection, LOGGER
+from dna.detect import ObjectDetector, Detection
+
+import logging
+LOGGER = logging.getLogger("dna.detector.yolov5")
 
 
 def load(query: str):

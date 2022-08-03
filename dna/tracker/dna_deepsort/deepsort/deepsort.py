@@ -20,6 +20,9 @@ import torchvision
 from scipy.stats import multivariate_normal
 
 from dna import Box, color
+import logging
+LOGGER = logging.getLogger('dna.tracker.deepsort')
+
 
 def get_gaussian_mask():
 	#128 is image size
@@ -38,8 +41,6 @@ def get_gaussian_mask():
 
 	return mask
 
-import logging
-LOGGER = logging.getLogger("dna.track.deepsort")
 class deepsort_rbc():
 	def __init__(self, domain: Box, wt_path, params):
 		self.domain = domain

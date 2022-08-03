@@ -1,6 +1,4 @@
 
-import logging
-
 import numpy as np
 from numpy.linalg import det
 from scipy.optimize import linear_sum_assignment
@@ -9,7 +7,9 @@ import dna
 from dna import Box
 from . import utils
 from .utils import overlaps_threshold, overlap_ratios
-from ..__logger import LOGGER
+
+import logging
+LOGGER = logging.getLogger('dna.tracker.deepsort')
 
 
 _HUGE = 300

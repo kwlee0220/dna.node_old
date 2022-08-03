@@ -8,7 +8,6 @@ from enum import Enum
 import numpy as np
 import cv2
 from omegaconf.omegaconf import OmegaConf
-import logging
 
 from dna import Frame
 

@@ -5,12 +5,12 @@ from typing import Optional, List
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 
-from dna import color, BGR, Image, Frame
-from dna.camera import ImageProcessor, ImageProcessorCallback
+from dna import color, Frame
+from dna.camera import ImageProcessor, FrameProcessor
 from .object_detector import ObjectDetector, Detection
 
 
-class DetectingCallback(ImageProcessorCallback):
+class DetectingProcessor(FrameProcessor):
     __slots__ = 'detector', 'draw_detections', 'box_color', 'label_color', 'show_score', 'output', 'out_handle'
     
     def __init__(self,
@@ -23,26 +23,45 @@ class DetectingCallback(ImageProcessorCallback):
         self.label_color = color.WHITE
         self.show_score = True
         self.output = output
-        self.out_handle = None
+        self.out_fp = None
+
+    @classmethod
+    def load(cls, detector_uri:str, output: Optional[Path]=None, draw_detections: bool=False) -> DetectingProcessor:
+        if not detector_uri:
+            raise ValueError(f"detector id is None")
+
+        parts = detector_uri.split(':', 1)
+        id, query = tuple(parts) if len(parts) > 1 else (detector_uri, "")
+        if id == 'file':
+            from pathlib import Path
+            from .object_detector import LogReadingDetector
+            det_file = Path(query)
+            detector = LogReadingDetector(det_file)
+        else:
+            import importlib
+            loader_module = importlib.import_module(id)
+            detector = loader_module.load(query)
+
+        return cls(detector=detector, output=output, draw_detections=draw_detections)
 
     def on_started(self, proc: ImageProcessor) -> None:
         if self.output:
             Path(self.output).parent.mkdir(exist_ok=True)
-            self.out_handle = open(self.output, "w")
+            self.out_fp = open(self.output, "w")
         return self
 
     def on_stopped(self) -> None:
-        if self.out_handle:
-            self.out_handle.close()
-            self.out_handle = None
+        if self.out_fp:
+            self.out_fp.close()
+            self.out_fp = None
 
     def process_frame(self, frame:Frame) -> Optional[Frame]:
         img = frame.image
         frame_idx = frame.index
 
         for det in self.detector.detect(frame):
-            if self.out_handle:
-                self.out_handle.write(self._to_string(frame_idx, det) + '\n')
+            if self.out_fp:
+                self.out_fp.write(self._to_string(frame_idx, det) + '\n')
             if self.draw_detections:
                 img = det.draw(img, color=self.box_color, label_color=self.label_color, show_score=self.show_score)
 

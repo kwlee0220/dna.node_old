@@ -3,7 +3,6 @@ from typing import List, Optional
 from pathlib import Path
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
-import logging
 
 import numpy as np
 
@@ -39,9 +38,6 @@ class Detection:
 
 
 class ObjectDetector(metaclass=ABCMeta):
-    logger = logging.getLogger("dna.detect")
-    logger.setLevel(logging.INFO)
-
     @abstractmethod
     def detect(self, frame: Frame) -> List[Detection]:
         """Detect objects from the image and returns their locations

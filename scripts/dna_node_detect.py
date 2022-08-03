@@ -7,7 +7,7 @@ from omegaconf import OmegaConf
 import dna
 from dna.camera import Camera, ImageProcessor
 from dna.camera.utils import create_camera_from_conf
-from dna.detect.utils import load_object_detecting_callback
+from dna.detect.detecting_processor import DetectingProcessor
 
 __DEFAULT_DETECTOR_URI = 'dna.detect.yolov5:model=l&score=0.4'
 
@@ -34,8 +34,10 @@ def main():
 
     camera:Camera = create_camera_from_conf(conf.camera)
     img_proc = ImageProcessor(camera.open(), conf)
-    img_proc.callback = load_object_detecting_callback(detector_uri=args.detector, output=args.output,
-                                                        draw_detections=img_proc.is_drawing())
+
+    detector = DetectingProcessor.load(detector_uri=args.detector, output=args.output, draw_detections=img_proc.is_drawing())
+    img_proc.add_frame_processor(detector)
+
     result = img_proc.run()
     print(result)
 

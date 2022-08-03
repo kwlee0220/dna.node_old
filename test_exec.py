@@ -16,7 +16,6 @@ from dna.camera import create_camera_from_conf
 from dna.camera.image_processor import ImageProcessor
 from dna.execution import LoggingExecutionContext
 from dna.utils import RectangleDrawer
-from dna.detect.utils import load_object_detecting_callback
 
 dna.utils.initialize_logger()
 logger = logging.getLogger("dna.test")

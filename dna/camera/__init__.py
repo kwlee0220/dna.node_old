@@ -1,6 +1,4 @@
 
 from .camera import Camera, ImageCapture
-from .image_processor import ImageProcessor, ImageProcessorCallback
-
-import logging
-LOGGER = logging.getLogger(__package__)
+from .utils import create_camera_from_conf
+from .image_processor import ImageProcessor, FrameProcessor

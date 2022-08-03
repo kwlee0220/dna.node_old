@@ -6,7 +6,6 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
 from contextlib import suppress
 from pathlib import Path
-import logging
 
 import numpy as np
 import cv2
@@ -83,9 +82,6 @@ class Track:
 
 
 class ObjectTracker(metaclass=ABCMeta):
-    logger = logging.getLogger("dna.track.tracker")
-    logger.setLevel(logging.INFO)
-
     @abstractmethod
     def track(self, frame: Frame) -> List[Track]: pass
 

@@ -11,17 +11,18 @@ _DEFAULT_EXEC_CONTEXT = NoOpExecutionContext()
 
 def build_node_processor(capture: ImageCapture, conf: OmegaConf,
                          context: ExecutionContext=_DEFAULT_EXEC_CONTEXT) -> ImageProcessor:
-    from dna.camera.utils import create_camera_from_conf
+    from dna.camera import create_camera_from_conf
     from dna.node.utils import load_publishing_pipeline
-    from dna.tracker.utils import build_track_pipeline
 
     img_proc = ImageProcessor(capture, conf, context=context)
 
     publishing_conf = conf.get('publishing', OmegaConf.create())
     publish_pipeline:TrackProcessor = load_publishing_pipeline(conf.id, publishing_conf)
     
+    from dna.tracker.track_pipeline import TrackingPipeline
     tracker_conf = conf.get('tracker', OmegaConf.create())
-    img_proc.callback = build_track_pipeline(img_proc, tracker_conf, [publish_pipeline])
+    frame_proc = TrackingPipeline.load(img_proc, tracker_conf, [publish_pipeline])
+    img_proc.add_frame_processor(frame_proc)
     
     return img_proc
     

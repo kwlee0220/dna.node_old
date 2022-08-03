@@ -2,7 +2,6 @@ from typing import Callable
 from abc import ABCMeta, abstractmethod
 
 from datetime import timedelta, datetime, time
-import logging
 from omegaconf import OmegaConf
 import pika
 import uuid
@@ -10,6 +9,9 @@ import uuid
 import dna
 from .execution import ExecutionContext, ExecutionState, CancellationError, Execution, AsyncExecution
 from .pika_rpc import Serde, RpcCallError, JSON_SERDE
+
+import logging
+LOGGER = logging.getLogger('dna.pika_execution')
 
 class PikaExecutionContext(ExecutionContext):
     def __init__(self, request:object, channel, method, reply_to:str, properties:pika.BasicProperties) -> None:
@@ -95,7 +97,7 @@ class PikaExecutionServer:
         self.req_qname = request_qname
         self.exec_factory = execution_factory
         self.serde = JSON_SERDE
-        self.logger = logging.getLogger(__name__)
+        self.logger = LOGGER
 
     def run(self) -> None:
         self.conn = pika.BlockingConnection(self.conn_params)

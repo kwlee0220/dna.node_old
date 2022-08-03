@@ -1,9 +1,10 @@
 from __future__ import annotations
+from typing import Optional, Tuple, List
+from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 from contextlib import suppress
-from typing import Optional, Tuple, NamedTuple
-from abc import ABCMeta, abstractmethod
 
+import logging
 from pathlib import Path
 import time
 from datetime import timedelta
@@ -17,10 +18,8 @@ from .camera import ImageCapture
 from dna.execution import AbstractExecution, ExecutionContext, NoOpExecutionContext
 
 import logging
-LOGGER = logging.getLogger(__name__)
 
-
-class ImageProcessorCallback(metaclass=ABCMeta):
+class FrameProcessor(metaclass=ABCMeta):
     @abstractmethod
     def on_started(self, proc:ImageProcessor) -> None:
         pass
@@ -36,67 +35,9 @@ class ImageProcessorCallback(metaclass=ABCMeta):
     def set_control(self, key:int) -> int:
         return key
 
-class DefaultCallback(ImageProcessorCallback):
-    def on_started(self, proc:ImageProcessor) -> None: pass
-    def on_stopped(self) -> None: pass
-    def process_frame(self, image:Frame) -> Optional[Frame]: return image
-
-
-class ImageProcessContext(ExecutionContext):
-    def __init__(self, parent_context: ExecutionContext=NoOpExecutionContext()) -> None:
-        super().__init__()
-
-        self.parent = parent_context
-        self.started_time:time = None
-        self.report_interval:int = None
-
-    def started(self) -> None:
-        self.next_report_time = None
-        
-        # report interval이 설정된 경우, 다음 report 시각을 설정함.
-        if self.report_interval is not None:
-            self.next_report_time = time.time() + self.report_interval
-            
-        if self.parent is not None:
-            self.parent.started()
-        LOGGER.info(f'started')
-
-    def report_progress(self, frame_index:int) -> None:
-        if self.parent is not None and self.next_report_time is not None:
-            now = time.time()
-            if now >= self.next_report_time:
-                progress = {
-                    'frame_index': frame_index
-                }
-                self.parent.report_progress(progress)
-                LOGGER.info(f'report: progress={progress}')
-                self.next_report_time += self.report_interval
-
-    def completed(self, result: Tuple[int, int, float]) -> None:
-        if self.parent is not None:
-            result = {
-                'elapsed_millis': result[0],
-                'image_count': result[1],
-                'fps_measured': result[2]
-            }
-            self.parent.completed(result)
-            LOGGER.info(f'completed: result={result}')
-
-    def stopped(self, details:str) -> None:
-        if self.parent is not None:
-            self.parent.stopped(details)
-            LOGGER.info(f'stopped: details={details}')
-
-    def failed(self, cause:str) -> None:
-        if self.parent is not None:
-            self.parent.failed(cause)
-            LOGGER.info(f'failed: cause={cause}')
-
 class ImageProcessor(AbstractExecution):
     __ALPHA = 0.2
-    __DEFAULT_CALLBACK = DefaultCallback()
-    __slots__ = ('capture', 'conf', 'callback', 'window_name', 'output_video', 'pause_on_eos',
-                 'started', 'capture_count', 'video_writer', 'tqdm', 'last_frame_index', 'fps_measured')
+    __slots__ = ('capture', 'conf', 'frame_processors', 'suffix_processors', '_is_drawing', 'pause_on_eos', 'fps_measured')
 
     from dataclasses import dataclass
     @dataclass(frozen=True)    # slots=True
@@ -115,63 +56,54 @@ class ImageProcessor(AbstractExecution):
         
         self.capture = cap
         self.conf = conf
-        self.callback = ImageProcessor.__DEFAULT_CALLBACK
+        self.frame_processors: List[FrameProcessor] = []
+        self.suffix_processors: List[FrameProcessor] = []
 
-        self.window_name:str = conf.get("window_name", None)
-        self.output_video:str = conf.get("output_video", None)
+        output_video:str = conf.get("output_video", None)
+        window_name:str = conf.get("window_name", None)
+
+        self._is_drawing:bool = output_video is not None or window_name is not None
+        if self._is_drawing:
+            self.suffix_processors.append(DrawText())
+
+        if output_video is not None:
+            self.suffix_processors.append(VideoWriter(output_video))
+
+        if window_name is not None:
+            self.suffix_processors.append(ShowFrame(window_name))
+
+        if not isinstance(context, NoOpExecutionContext):
+            import dna
+            interval = int(dna.conf.get_config(context.request, "progress_report.interval_seconds", 60))
+            self.suffix_processors.append(ExecutionProgressReporter(context, interval_secs=interval))
+
+        show_progress:bool = self.conf.get("show_progress", False)
+        if show_progress:
+            self.suffix_processors.append(ShowProgress(self.capture.total_frame_count))
+
         self.pause_on_eos = self.conf.get("pause_on_eos", False)
+        self.logger = logging.getLogger('dna.image_processor')
         
     def close(self) -> None:
-        self.finalize_loop()
+        self.stop("close requested", nowait=True)
 
     def is_drawing(self) -> None:
-        return self.window_name is not None or self.output_video is not None
-    
-    def initialize_loop(self) -> None:
-        if self.window_name:
-            cv2.namedWindow(self.window_name)
-            win_size = self.capture.size
-            cv2.resizeWindow(winname=self.window_name, width=win_size.width, height=win_size.height)
-        
-        self.tqdm = tqdm(total=self.capture.total_frame_count) if self.conf.get("show_progress", False) else None
-        
-        self.video_writer = None
-        if self.output_video:
-            path = Path(self.output_video)
-            fourcc = None
-            ext = path.suffix.lower()
-            if ext == '.mp4':
-                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            elif ext == '.avi':
-                fourcc = cv2.VideoWriter_fourcc(*'DIVX')
-            else:
-                raise IOError("unknown output video file extension: 'f{ext}'")
+        return self._is_drawing
 
-            path = path.resolve()
-            path.parent.mkdir(exist_ok=True)
-            self.video_writer = cv2.VideoWriter(str(path), fourcc, self.capture.fps, self.capture.size.to_tuple())
-            
-        self.capture_count = 0
-        self.last_frame_index = 0
-        self.fps_measured = 0.
-        
-    def finalize_loop(self) -> None:
-        if self.video_writer is not None:
-            with suppress(Exception): self.video_writer.release()
-        if self.tqdm is not None:
-            with suppress(Exception): self.tqdm.close()
-        if self.window_name is not None:
-            with suppress(Exception): cv2.destroyWindow(self.window_name)
-        with suppress(Exception): self.capture.close()
+    def add_frame_processor(self, frame_proc: FrameProcessor) -> None:
+        self.frame_processors.append(frame_proc)
         
     def run_work(self) -> Result:
-        self.started = time.time()
-        self.next_report_time = self.started + self.report_interval
-        self.initialize_loop()
+        started = time.time()
+
+        processors = self.frame_processors + self.suffix_processors
+        for fproc in processors:
+            fproc.on_started(self)
+
+        capture_count = 0
+        self.fps_measured = 0.
         try:
-            self.callback.on_started(self)
-            
-            LOGGER.info(f'start: ImageProcess[cap={self.capture}]')
+            self.logger.info(f'start: ImageProcess[cap={self.capture}]')
             while self.capture.is_open():
                 # 사용자에 의해 동작 멈춤이 요청된 경우 CallationError 예외를 발생시킴
                 self.check_stopped()
@@ -179,61 +111,136 @@ class ImageProcessor(AbstractExecution):
                 # ImageCapture에서 처리할 이미지를 읽어 옴.
                 frame: Frame = self.capture()
                 if frame is None: break
-                
-                if not self.process_frame(frame): break
+                capture_count += 1
 
-                now = time.time()
-                if now >= self.next_report_time:
-                    progress = {
-                        'frame_index': frame.index
-                    }
-                    self.context().report_progress(progress)
-                    self.next_report_time += self.report_interval
+                for fproc in processors:
+                    frame = fproc.process_frame(frame)
+                    if frame is None: break
+                if frame is None: break
+
+                elapsed = time.time() - started
+                fps = 1 / (elapsed / capture_count)
+                weight = ImageProcessor.__ALPHA if capture_count > 10 else 0.5
+                self.fps_measured = weight*fps + (1-weight)*self.fps_measured
+        except Exception as e:
+            self.logger.error(e, exc_info=True)
         finally:
-            with suppress(Exception): self.callback.on_stopped()
-            self.finalize_loop()
+            for fproc in reversed(processors):
+                try:
+                    fproc.on_stopped()
+                except Exception as e:
+                    self.logger.error(e, exc_info=True)
 
-        return ImageProcessor.Result(time.time()-self.started, self.capture_count, self.fps_measured)
-        
-    def process_frame(self, frame: Frame) -> bool:
-        self.capture_count += 1
+        return ImageProcessor.Result(time.time()-started, capture_count, self.fps_measured)
 
-        frame = self.callback.process_frame(frame)
-        if frame is None:
-            return False
-        
-        if self.window_name or self.video_writer:
-            # 처리된 이미지를 화면에 출력하거나, 출력 video로 출력하는 경우
-            # 처리 과정 정보를 이미지를 write함.
-            convas = cv2.putText(frame.image, f'frames={frame.index}, fps={self.fps_measured:.2f}',
-                                (10, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, color.RED, 2)
-            if self.video_writer:
-                self.video_writer.write(convas)
-                    
-            if self.window_name:
-                cv2.imshow(self.window_name, convas)
-                key = cv2.waitKey(int(1)) & 0xFF
-                if key == ord('q'):
-                    LOGGER.info(f'interrupted by a key-stroke')
-                    return False
-                elif key == ord(' '):
-                    LOGGER.info(f'paused by a key-stroke')
-                    while True:
-                        key = cv2.waitKey(1000 * 60 * 60) & 0xFF
-                        if key == ord(' '):
-                            LOGGER.info(f'resumed by a key-stroke')
-                            return False
-                else:
-                    key = self.callback.set_control(key)
-        
-        if self.tqdm is not None:
-            self.tqdm.update(frame.index - self.last_frame_index)
-            self.tqdm.refresh()
+class ExecutionProgressReporter(FrameProcessor):
+    def __init__(self, context: ExecutionContext, interval_secs: int) -> None:
+        super().__init__()
+        self.ctx = context
+        self.report_interval = interval_secs
+
+    def on_started(self, proc:ImageProcessor) -> None:
+        self.next_report_time = time.time() + self.report_interval
+
+    def on_stopped(self) -> None: pass
+
+    def process_frame(self, frame:Frame) -> Optional[Frame]:
+        now = time.time()
+        if now >= self.next_report_time:
+            progress = {
+                'frame_index': frame.index
+            }
+            self.ctx.report_progress(progress)
+            self.next_report_time += self.report_interval
+        return frame
+
+class DrawText(FrameProcessor):
+    def on_started(self, proc:ImageProcessor) -> None:
+        self.proc = proc
+    def on_stopped(self) -> None: pass
+
+    def process_frame(self, frame:Frame) -> Optional[Frame]:
+        convas = cv2.putText(frame.image, f'frames={frame.index}, fps={self.proc.fps_measured:.2f}',
+                            (10, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, color.RED, 2)
+        return Frame(image=convas, index=frame.index, ts=frame.ts)
+
+class ShowFrame(FrameProcessor):
+    _PAUSE_MILLIS = timedelta(hours=1).total_seconds() * 1000
+
+    def __init__(self, window_name: str) -> None:
+        super().__init__()
+        self.window_name = window_name
+        self.logger = logging.getLogger('dna.node.frame_processor.show_frame')
+
+    def on_started(self, proc:ImageProcessor) -> None:
+        self.logger.info(f'create window: {self.window_name}')
+        cv2.namedWindow(self.window_name)
+        win_size = proc.capture.size
+        cv2.resizeWindow(winname=self.window_name, width=win_size.width, height=win_size.height)
+
+    def on_stopped(self) -> None:
+        self.logger.info(f'destroy window: {self.window_name}')
+        with suppress(Exception): cv2.destroyWindow(self.window_name)
+
+    def process_frame(self, frame:Frame) -> Optional[Frame]:
+        cv2.imshow(self.window_name, frame.image)
+        key = cv2.waitKey(int(1)) & 0xFF
+        if key == ord('q'):
+            self.logger.info(f'interrupted by a key-stroke')
+            return None
+        elif key == ord(' '):
+            self.logger.info(f'paused by a key-stroke')
+            while True:
+                key = cv2.waitKey(ShowFrame._PAUSE_MILLIS) & 0xFF
+                if key == ord(' '):
+                    self.logger.info(f'resumed by a key-stroke')
+                    return frame
+        else:
+            return frame
+
+class ShowProgress(FrameProcessor):
+    def __init__(self, total_frame_count: int) -> None:
+        super().__init__()
+        self.total_frame_count = total_frame_count
+
+    def on_started(self, proc:ImageProcessor) -> None:
+        self.last_frame_index = 0
+        self.tqdm = tqdm(total=self.total_frame_count)
+
+    def on_stopped(self) -> None:
+        with suppress(Exception): self.tqdm.close()
+
+    def process_frame(self, frame:Frame) -> Optional[Frame]:
+        self.tqdm.update(frame.index - self.last_frame_index)
+        self.tqdm.refresh()
         self.last_frame_index = frame.index
-        
-        elapsed = time.time() - self.started
-        fps = 1 / (elapsed / self.capture_count)
-        weight = ImageProcessor.__ALPHA if self.capture_count > 10 else 0.5
-        self.fps_measured = weight*fps + (1-weight)*self.fps_measured
-        
-        return True
+        return frame
+
+class VideoWriter(FrameProcessor):
+    def __init__(self, path: Path) -> None:
+        super().__init__()
+
+        self.fourcc = None
+        ext = path.suffix.lower()
+        if ext == '.mp4':
+            self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        elif ext == '.avi':
+            self.fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+        else:
+            raise IOError("unknown output video file extension: 'f{ext}'")
+        self.path = path.resolve()
+        self.logger = logging.getLogger('dna.node.frame_processor.video_writer')
+
+    def on_started(self, proc:ImageProcessor) -> None:
+        self.logger.info(f'opening video file: {self.path}')
+
+        self.path.parent.mkdir(exist_ok=True)
+        self.video_writer = cv2.VideoWriter(str(self.path), self.fourcc, self.capture.fps, self.capture.size.to_tuple())
+
+    def on_stopped(self) -> None:
+        self.logger.info(f'closing video file: {self.path}')
+        with suppress(Exception): self.video_writer.release()
+
+    def process_frame(self, frame:Frame) -> Optional[Frame]:
+        self.video_writer.write(frame.image)
+        return frame

@@ -1,5 +1,4 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import logging
 from typing import Dict, List, Tuple, Union
 import torch
 from fvcore.nn import giou_loss, smooth_l1_loss
