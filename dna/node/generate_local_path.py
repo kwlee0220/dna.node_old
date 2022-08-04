@@ -37,9 +37,9 @@ class Session:
         self.world_coords = self.world_coords[length:]
 
         return LocalPathEvent(node_id=self.node_id, luid=self.luid,
-                            camera_path=camera_path, world_path = world_path,
-                            first_frame=self.first_frame, last_frame=self.last_frame,
-                            continuation=cont)
+                              camera_path=camera_path, world_path = world_path,
+                              first_frame=self.first_frame, last_frame=self.last_frame,
+                              continuation=cont)
 
 
 class GenerateLocalPath(EventProcessor):
