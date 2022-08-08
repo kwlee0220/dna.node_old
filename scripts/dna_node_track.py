@@ -22,10 +22,10 @@ def parse_args():
 
 def main():
     dna.initialize_logger()
-    
+
     args, _ = parse_args()
-    conf = dna.load_config(args.conf_path)
-    dna.conf.update(conf, vars(args), ['show', 'show_progress', 'output_video'])
+    args_conf = dna.conf.filter(OmegaConf.create(vars(args)), ['show', 'show_progress', 'output_video'])
+    conf = OmegaConf.merge(dna.load_config(args.conf_path), args_conf)
 
     if conf.get('show', False) and conf.get('window_name', None) is None:
         conf.window_name = f'camera={conf.camera.uri}'

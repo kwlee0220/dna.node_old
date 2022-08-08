@@ -91,8 +91,8 @@ class PikaExecutionFactory(metaclass=ABCMeta):
     def create(pika_context: PikaExecutionContext) -> Execution: pass
     
 class PikaExecutionServer:
-    def __init__(self, conn_params: pika.ConnectionParameters, execution_factory: PikaExecutionFactory,
-                 request_qname:str=_REQ_QUEUE) -> None:
+    def __init__(self, conn_params: pika.ConnectionParameters,
+                 execution_factory: PikaExecutionFactory, request_qname:str=_REQ_QUEUE) -> None:
         self.conn_params = conn_params
         self.req_qname = request_qname
         self.exec_factory = execution_factory

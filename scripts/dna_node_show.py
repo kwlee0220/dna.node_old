@@ -1,4 +1,5 @@
 
+from cv2 import merge
 from omegaconf import OmegaConf
 
 import dna
@@ -15,12 +16,12 @@ def parse_args():
     return parser.parse_known_args()
 
 def main():
-    args, _ = parse_args()
-
     dna.initialize_logger()
-    conf = dna.load_config(args.conf_path)
-    dna.conf.update(conf, vars(args), ['show', 'show_progress'])
 
+    args, _ = parse_args()
+    args_conf = dna.conf.filter(OmegaConf.create(vars(args)), ['show', 'show_progress'])
+    conf = OmegaConf.merge(dna.load_config(args.conf_path), args_conf)
+    
     if conf.get('show', False) and conf.get('window_name', None) is None:
         conf.window_name = f'camera={conf.camera.uri}'
 

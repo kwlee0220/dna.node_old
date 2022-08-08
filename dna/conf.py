@@ -1,18 +1,55 @@
+from __future__ import annotations
+
 import os
 from typing import Union, Optional, List
 from pathlib import Path
 
 from omegaconf import OmegaConf
-from dna.func import Option
 
-DNA_HOME = Path(os.environ.get('DNA_HOME', '.'))
-DNA_CONIFIG_FILE = DNA_HOME / 'conf' / 'config.yaml'
 
-DEBUG_FRAME_IDX = -1
-DEBUG_SHOW_IMAGE = False
-DEBUG_PRINT_COST = DEBUG_SHOW_IMAGE
-DEBUG_START_FRAME = 32
-DEBUG_TARGET_TRACKS = None
+# class Config:
+#     def __init__(self, conf: OmegaConf) -> None:
+#         assert conf is not None
+#         self.conf = conf
+
+#     @classmethod
+#     def load_config_file(cls, config_path: Union[str,Path]) -> None:
+#         config_path = Path(config_path) if isinstance(config_path, str) else config_path
+#         conf = OmegaConf.load(config_path)
+#         return cls(conf)
+
+#     @classmethod
+#     def load_sub_config(cls, root_dir:Path, key_path:str) -> Optional[Config]:
+#         suffix = key_path.replace('.', '/') + ".yaml"
+#         full_path = root_dir / suffix
+#         if full_path.is_file():
+#             return Config.load_config_file(full_path)
+#         else:
+#             raise ValueError(f"configuration file is not found: '{full_path}'")
+
+#     def exists(self, key_path:str) -> bool:
+#         conf = self.conf
+#         parts = key_path.split('.')
+#         for name in parts:
+#             if hasattr(conf, name):
+#                 conf = conf.get(name)
+#             else:
+#                 return False
+#         return True
+
+#     def get(self, key_path:str, def_value: Optional[object]=None) -> object:
+#         parts = key_path.split('.')
+#         conf = self.conf
+#         for name in parts:
+#             if hasattr(conf, name):
+#                 conf = conf.get(name)
+#             else:
+#                 return def_value
+#         return conf
+
+#     def filter(self, keys: Optional[List[str]]=None) -> None:
+#         filtered = { k:self.get(k) for k in keys if self.exists(k) }
+#         return Config(OmegaConf.create(filtered))
 
 
 def load_config(config_path: Union[str,Path], conf_id: Optional[str]=None) -> OmegaConf:
@@ -70,7 +107,6 @@ def get_config(conf:OmegaConf, key_path:str, def_value: Optional[object]=None) -
             return def_value
     return conf
 
-def update(conf:OmegaConf, conf2: dict, conf_keys: Optional[List[str]]=None) -> None:
-    for key in conf_keys:
-        if key in conf_keys:
-            OmegaConf.update(conf, key, conf2[key], merge=False)
+def filter(conf: OmegaConf, keys: Optional[List[str]]=None) -> None:
+    filtered = {k:get_config(conf, k) for k in keys if exists_config(conf, k)}
+    return OmegaConf.create(filtered)
