@@ -30,19 +30,8 @@ def main():
     dna.initialize_logger()
     
     args, _ = parse_args()
-    args_conf = OmegaConf.create(vars(args))
-
-    if args_conf.get('node', None) is not None:
-        db_conf = dna.conf.filter(args_conf, ['db_host', 'db_port', 'db_name', 'db_user', 'db_password'])
-        conf = read_node_config(db_conf, node_id=args_conf.node)
-        if conf is None:
-            raise ValueError(f"unknown node: id='{args_conf.node}'")
-    elif args_conf.get('conf', None) is not None:
-        conf = dna.load_config(args_conf.conf)
-    else:
-        raise ValueError('node configuration is not specified')
-    conf = OmegaConf.merge(conf, dna.conf.filter(args_conf, ['show', 'show_progress']))
-
+    conf:OmegaConf = dna.load_conf_from_args(args)
+    
     if conf.get('show', False) and conf.get('window_name', None) is None:
         conf.window_name = f'camera={conf.camera.uri}'
 

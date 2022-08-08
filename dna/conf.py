@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 import os
-from typing import Union, Optional, List
+from typing import Union, Optional, List, Tuple
 from pathlib import Path
 
 from omegaconf import OmegaConf
 
+DNA_HOME = Path(os.environ.get('DNA_HOME', '.'))
+DNA_CONIFIG_FILE = DNA_HOME / 'conf' / 'config.yaml'
+
+DEBUG_FRAME_IDX = -1
+DEBUG_SHOW_IMAGE = False
+DEBUG_PRINT_COST = DEBUG_SHOW_IMAGE
+DEBUG_START_FRAME = 32
+DEBUG_TARGET_TRACKS = None
 
 # class Config:
 #     def __init__(self, conf: OmegaConf) -> None:
@@ -98,6 +106,16 @@ def exists_config(conf:OmegaConf, key_path:str) -> bool:
             return False
     return True
 
+def get_terminal_config(conf: OmegaConf, key_path: str) -> Optional[Tuple[OmegaConf,str]]:
+    parts = key_path.split('.')
+    ancester = parts[:-1]
+    for key in ancester:
+        if hasattr(conf, key):
+            conf = conf.get(key)
+        else:
+            return None
+    return (conf, parts[-1])
+
 def get_config(conf:OmegaConf, key_path:str, def_value: Optional[object]=None) -> object:
     parts = key_path.split('.')
     for name in parts:
@@ -107,6 +125,38 @@ def get_config(conf:OmegaConf, key_path:str, def_value: Optional[object]=None) -
             return def_value
     return conf
 
-def filter(conf: OmegaConf, keys: Optional[List[str]]=None) -> None:
+def filter(conf: OmegaConf, keys: Optional[List[str]]=None) -> OmegaConf:
     filtered = {k:get_config(conf, k) for k in keys if exists_config(conf, k)}
     return OmegaConf.create(filtered)
+
+def remove_config(conf: OmegaConf, key_path:str) -> OmegaConf:
+    leaf, key = get_terminal_config(conf, key_path)
+    leaf_dict = OmegaConf.to_container(leaf)
+    leaf_dict.pop(key)
+    conf = OmegaConf.create(leaf_dict)
+    return conf
+
+def exclude_configs(conf: OmegaConf, keys: Optional[List[str]]=None) -> OmegaConf:
+    for key in keys:
+        conf = remove_config(conf, key)
+    return conf
+
+from argparse import Namespace
+from dna.node.utils import read_node_config
+def load_conf_from_args(args: Union[Namespace,OmegaConf]) -> OmegaConf:
+    args_conf = OmegaConf.create(vars(args)) if isinstance(args, Namespace) else args
+
+    if args_conf.get('node', None) is not None:
+        db_conf = filter(args_conf, ['db_host', 'db_port', 'db_name', 'db_user', 'db_password'])
+        args_conf = exclude_configs(args_conf, ['db_host', 'db_port', 'db_name', 'db_user', 'db_password'])
+        conf = read_node_config(db_conf, node_id=args_conf.node)
+        if conf is None:
+            raise ValueError(f"unknown node: id='{args_conf.node}'")
+    elif args_conf.get('conf', None) is not None:
+        conf = load_config(args_conf.conf)
+    else:
+        raise ValueError('node configuration is not specified')
+    conf = OmegaConf.merge(conf, filter(args_conf, ['show', 'show_progress']))
+    args_conf = exclude_configs(args_conf, ['show', 'show_progress'])
+
+    return conf

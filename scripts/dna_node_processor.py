@@ -27,8 +27,9 @@ def main():
     dna.initialize_logger()
 
     args, _ = parse_args()
+    args_conf = OmegaConf.create(vars(args))
 
-    db_conf = dna.conf.filter(OmegaConf.create(vars(args)), ['db_host', 'db_port', 'db_name', 'db_user', 'db_password'])
+    db_conf = dna.conf.filter(args_conf, ['db_host', 'db_port', 'db_name', 'db_user', 'db_password'])
     conn_params = dna.PikaConnectionParameters(host=args.host, port=args.port,
                                                user_id=args.user, password=args.password)
     server = dna.PikaExecutionServer(conn_params=conn_params,
