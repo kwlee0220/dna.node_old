@@ -36,9 +36,9 @@ class PikaNodeExecutionFactory(PikaExecutionFactory):
     def create(self, pika_ctx: PikaExecutionContext) -> Execution:
         request = OmegaConf.create(pika_ctx.request)
 
-        if exists_config(request, 'node_id'):
+        if exists_config(request, 'node'):
             from .utils import read_node_config
-            conf = read_node_config(self.db_conf, request.node_id)
+            conf = read_node_config(self.db_conf, request.node)
         elif exists_config(request, 'parameters'):
             conf = request.parameters
             conf.id = request.id
