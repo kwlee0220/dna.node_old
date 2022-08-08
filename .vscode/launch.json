@@ -22,10 +22,11 @@
             "program": "${workspaceFolder}/scripts/dna_node.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "conf/etri_073.yaml",
-                "--output", "output/etri/etri_073_event.json",   // -o <file>
-                // "--show",   // -s
-                "--show_progress",  // -p
+                // "--node", "etri:051",
+                "--conf", "conf/etri_051.yaml",
+                // "--output", "output/etri/etri_051_event.json",   // -o <file>
+                "--show",   // -s
+                // "--show_progress",  // -p
             ],
             "justMyCode": true
         },
@@ -34,7 +35,8 @@
             "program": "${workspaceFolder}/scripts/dna_node_track.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "conf/etri_051.yaml",
+                // "--conf", "conf/etri_051.yaml",
+                "--node", "etri:051",
                 // "--output", "output/etri/etri_051_track.csv",   // -o <file>
                 // "--output_video", "output/etri/etri_051_track.mp4",   // -v <file>
                 "--show",   // -s
@@ -48,7 +50,7 @@
             "program": "${workspaceFolder}/scripts/dna_node_detect.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "conf/etri_051.yaml",
+                // "--node", "etri:051",
                 // "--detector", "dna.detect.yolov4",
                 // "--detector", "dna.detect.rcnn50_fpn",
                 // "--detector", "dna.detect.yolov5:model=l&score=0.4",
@@ -66,7 +68,7 @@
             "program": "${workspaceFolder}/scripts/dna_node_show.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "conf/etri_051.yaml",
+                "--node", "etri:051",
                 "--show",
                 // "--show_progress",  // -p
             ],
@@ -102,8 +104,8 @@
             "program": "${workspaceFolder}/scripts/dna_node_processor_client.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [ 
-                // "data/on-demand-requests/req01_etri_05.json",
-                "data/event_publisher/test_etri_051.json",
+                "data/on-demand-requests/req01_etri_05.json",
+                // "data/event_publisher/test_etri_051.json",
             ],
             "justMyCode": true
         },
