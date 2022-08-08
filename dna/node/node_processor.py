@@ -1,6 +1,7 @@
 
 from omegaconf import OmegaConf
 
+from dna.conf import exists_config
 from dna.camera import ImageProcessor, ImageCapture
 from dna.execution import Execution, ExecutionContext, NoOpExecutionContext
 from dna.pika_execution import PikaExecutionContext, PikaExecutionFactory
@@ -27,14 +28,22 @@ def build_node_processor(capture: ImageCapture, conf: OmegaConf,
     return img_proc
     
 class PikaNodeExecutionFactory(PikaExecutionFactory):
-    def __init__(self, show: bool) -> None:
+    def __init__(self, db_conf: OmegaConf, show: bool) -> None:
         super().__init__()
+        self.db_conf = db_conf
         self.show = show
 
     def create(self, pika_ctx: PikaExecutionContext) -> Execution:
         request = OmegaConf.create(pika_ctx.request)
-        conf = request.parameters
-        conf.id = pika_ctx.request.id
+
+        if exists_config(request, 'node_id'):
+            from .utils import read_node_config
+            conf = read_node_config(self.db_conf, request.node_id)
+        elif exists_config(request, 'parameters'):
+            conf = request.parameters
+            conf.id = request.id
+        else:
+            raise ValueError(f'cannot get node configuration: request={request}')
         
         from dna.camera.utils import create_camera_from_conf
         camera = create_camera_from_conf(conf.camera)

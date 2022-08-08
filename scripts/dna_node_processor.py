@@ -16,16 +16,23 @@ def parse_args():
     parser.add_argument("--request_qname", "-q", metavar="json file", help="track event file.",
                         default="track_requests")
     parser.add_argument("--show", "-s", action='store_true')
+    parser.add_argument("--db_host", metavar="postgresql host", help="PostgreSQL host", default='localhost')
+    parser.add_argument("--db_port", metavar="postgresql port", help="PostgreSQL port", default=5432)
+    parser.add_argument("--db_name", metavar="dbname", help="PostgreSQL database name", default='dna')
+    parser.add_argument("--db_user", metavar="user_name", help="PostgreSQL user name", default='dna')
+    parser.add_argument("--db_password", metavar="password", help="PostgreSQL user password", default="urc2004")
     return parser.parse_known_args()
 
 def main():
     dna.initialize_logger()
 
     args, _ = parse_args()
+
+    db_conf = dna.conf.filter(OmegaConf.create(vars(args)), ['db_host', 'db_port', 'db_name', 'db_user', 'db_password'])
     conn_params = dna.PikaConnectionParameters(host=args.host, port=args.port,
                                                user_id=args.user, password=args.password)
     server = dna.PikaExecutionServer(conn_params=conn_params,
-                                     execution_factory=PikaNodeExecutionFactory(args.show),
+                                     execution_factory=PikaNodeExecutionFactory(db_conf=db_conf, show=args.show),
                                      request_qname=args.request_qname)
     server.run()
 

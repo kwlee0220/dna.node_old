@@ -46,3 +46,20 @@ def load_publishing_pipeline(node_id: str, publishing_conf: OmegaConf) -> TrackP
         queue.add_listener(PrintTrackEvent(publishing_conf.output))
         
     return source
+
+
+def read_node_config(db_conf: OmegaConf, node_id:str) -> OmegaConf:
+    from contextlib import closing
+    import psycopg2
+
+    with closing(psycopg2.connect(host=db_conf.db_host, dbname=db_conf.db_name,
+                            user=db_conf.db_user, password=db_conf.db_password)) as conn:
+        sql = f"select config from nodes where id='{node_id}'"
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(sql)
+            conf_str = cursor.fetchone()
+            if conf_str is not None:
+                import json
+                return OmegaConf.create(json.loads(conf_str[0]))
+            else:
+                return None
