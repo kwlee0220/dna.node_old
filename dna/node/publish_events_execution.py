@@ -17,7 +17,7 @@ class TrackEventPublishingExecution(AbstractExecution):
         super().__init__()
 
         self.ctx = context
-        self.log_path = context.request.parameters.camera.uri
+        self.log_path = context.request.rtsp_uri
         self.topic = topic
         self.bootstrap_servers = bootstrap_servers
         self.sync = sync
@@ -39,7 +39,6 @@ class TrackEventPublishingExecution(AbstractExecution):
                 last_ts = 0
                 while True:
                     line = fp.readline().rstrip()
-                    print(line)
                     if len(line) > 0:
                         te = TrackEvent.from_json(line)
                         heapq.heappush(heap, te)
@@ -75,8 +74,7 @@ class PikaEventPublisherFactory(PikaExecutionFactory):
         self.sync = sync
 
     def create(self, pika_ctx: PikaExecutionContext) -> TrackEventPublishingExecution:
-        conf = OmegaConf.create(pika_ctx.request.parameters)
-        conf.id = pika_ctx.request.id
+        conf = OmegaConf.create(pika_ctx.request)
         
         return TrackEventPublishingExecution(context=pika_ctx, topic=self.topic,
                                              bootstrap_servers=self.bootstrap_servers, sync=self.sync)

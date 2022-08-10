@@ -123,7 +123,12 @@ class RectangleDrawer:
             self.ex, self.ey = x, y
             cv2.rectangle(self.convas, (self.bx, self.by), (x,y), (0,255,0), 2)
 
-def initialize_logger(conf_file_path: str='dna/logger.yaml'):
+def initialize_logger(conf_file_path: Optional[str]=None):
+    if conf_file_path is None:
+        import os, sys
+        conf_dir = os.path.join(sys.prefix, 'conf')
+        conf_file_path = os.path.join(conf_dir, 'logger.yaml')
+        
     with open(conf_file_path, 'rt') as f:
         import yaml
         import logging.config

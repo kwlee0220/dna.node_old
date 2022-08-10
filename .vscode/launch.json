@@ -12,7 +12,7 @@
                 // "--host", "localhost",
                 // "--user", "dna",
                 // "--password", "urc2004",
-                "--request_queue", "track_requests",
+                "--request_qname", "track_requests",
                 "--show",   // -s
             ],
             "justMyCode": true
@@ -22,8 +22,8 @@
             "program": "${workspaceFolder}/scripts/dna_node.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                // "--node", "etri:051",
-                "--conf", "conf/etri_051.yaml",
+                "--node", "etri:051",
+                // "--conf", "conf/etri_051.yaml",
                 // "--output", "output/etri/etri_051_event.json",   // -o <file>
                 "--show",   // -s
                 // "--show_progress",  // -p
@@ -35,8 +35,8 @@
             "program": "${workspaceFolder}/scripts/dna_node_track.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                // "--conf", "conf/etri_051.yaml",
                 "--node", "etri:051",
+                // "--conf", "conf/etri_051.yaml",
                 // "--output", "output/etri/etri_051_track.csv",   // -o <file>
                 // "--output_video", "output/etri/etri_051_track.mp4",   // -v <file>
                 "--show",   // -s
@@ -50,7 +50,7 @@
             "program": "${workspaceFolder}/scripts/dna_node_detect.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                // "--node", "etri:051",
+                "--node", "etri:051",
                 // "--detector", "dna.detect.yolov4",
                 // "--detector", "dna.detect.rcnn50_fpn",
                 // "--detector", "dna.detect.yolov5:model=l&score=0.4",
@@ -104,8 +104,8 @@
             "program": "${workspaceFolder}/scripts/dna_node_processor_client.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [ 
-                "data/on-demand-requests/req01_etri_05.json",
-                // "data/event_publisher/test_etri_051.json",
+                // "data/on-demand-requests/req01_etri_05.json",
+                "data/event_publisher/test_etri_051.json",
             ],
             "justMyCode": true
         },

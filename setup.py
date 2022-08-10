@@ -37,8 +37,8 @@ setup(
         'pyyaml',
         'gdown',
 
-				# geodesic transformation
-				'pyproj',
+        # geodesic transformation
+        'pyproj',
 
         # rabbitmq
         'pika',
@@ -53,7 +53,9 @@ setup(
         'imgaug',
     ],
     packages = find_packages(),
-    # package_data = {'conf': ['etri_051.yaml']},
+    data_files=[
+        ('conf', ['conf/logger.yaml'])
+    ],
     python_requires = '>=3.8',
     zip_safe = False
 )

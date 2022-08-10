@@ -27,21 +27,21 @@ def parse_args():
     parser.add_argument("--db_name", metavar="dbname", help="PostgreSQL database name", default='dna')
     parser.add_argument("--db_user", metavar="user_name", help="PostgreSQL user name", default='dna')
     parser.add_argument("--db_password", metavar="password", help="PostgreSQL user password", default="urc2004")
+
+    parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
     return parser.parse_known_args()
 
 def main():
-    dna.initialize_logger()
-    
     args, _ = parse_args()
-    conf:OmegaConf = dna.load_conf_from_args(args)
 
-    if conf.get('show', False) and conf.get('window_name', None) is None:
-        conf.window_name = f'camera={conf.camera.uri}'
+    dna.initialize_logger(args.logger)
+    conf, _, args_conf = dna.load_node_conf(args, ['show', 'show_progress'])
 
     camera:Camera = create_camera_from_conf(conf.camera)
     img_proc = ImageProcessor(camera.open(), conf)
 
-    detector = DetectingProcessor.load(detector_uri=args.detector, output=args.output, draw_detections=img_proc.is_drawing())
+    detector = DetectingProcessor.load(detector_uri=args.detector, output=args.output,
+                                       draw_detections=img_proc.is_drawing())
     img_proc.add_frame_processor(detector)
 
     result = img_proc.run()

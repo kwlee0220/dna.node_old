@@ -44,11 +44,16 @@ class PikaNodeExecutionFactory(PikaExecutionFactory):
             conf.id = request.id
         else:
             raise ValueError(f'cannot get node configuration: request={request}')
+        conf.show = self.show
+
+        import json
+        rtsp_uri = request.get('rtsp_uri', None)
+        if rtsp_uri is None:
+            raise ValueError(f'RTSP stream is not specified')
+        rtsp_conf = OmegaConf.create({'uri': rtsp_uri})
         
         from dna.camera.utils import create_camera_from_conf
-        camera = create_camera_from_conf(conf.camera)
-        if self.show and conf.get('window_name', None) is None:
-            conf.window_name = f'camera={camera.uri}'
+        camera = create_camera_from_conf(rtsp_conf)
         
         import dna
         img_proc = build_node_processor(camera.open(), conf, context=pika_ctx)

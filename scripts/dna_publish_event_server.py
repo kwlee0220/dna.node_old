@@ -2,6 +2,7 @@
 import heapq
 import time
 
+import dna
 from dna import Box
 from dna.utils import initialize_logger
 from dna.node.publish_events_execution import PikaEventPublisherFactory
@@ -21,14 +22,18 @@ def parse_args():
     parser.add_argument("--servers", help="bootstrap-servers", default='localhost:9091,localhost:9092,localhost:9093')
     parser.add_argument("--topic", help="topic name", default='node-tracks')
     parser.add_argument("--sync", help="sync to publish events", action='store_true')
+
+    parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
     return parser.parse_known_args()
 
 def main():
-    initialize_logger()
-
     args, _ = parse_args()
+
+    dna.initialize_logger(args.logger)
+    conf, _, args_conf = dna.load_node_conf(args)
+    
     conn_params = PikaConnectionParameters(host=args.host, port=args.port,
-                                            user_id=args.user, password=args.password)
+                                           user_id=args.user, password=args.password)
     fact = PikaEventPublisherFactory(args.topic, args.servers.split(','), args.sync)
     server = PikaExecutionServer(conn_params=conn_params, execution_factory=fact,
                                  request_qname=args.request_qname)

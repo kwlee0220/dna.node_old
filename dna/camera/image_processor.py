@@ -37,7 +37,7 @@ class FrameProcessor(metaclass=ABCMeta):
 
 class ImageProcessor(AbstractExecution):
     __ALPHA = 0.2
-    __slots__ = ('capture', 'conf', 'frame_processors', 'suffix_processors', '_is_drawing', 'pause_on_eos', 'fps_measured')
+    __slots__ = ('capture', 'conf', 'frame_processors', 'suffix_processors', '_is_drawing', 'fps_measured')
 
     from dataclasses import dataclass
     @dataclass(frozen=True)    # slots=True
@@ -60,16 +60,17 @@ class ImageProcessor(AbstractExecution):
         self.suffix_processors: List[FrameProcessor] = []
 
         output_video:str = conf.get("output_video", None)
-        window_name:str = conf.get("window_name", None)
+        show:bool = conf.get("show", False)
 
-        self._is_drawing:bool = output_video is not None or window_name is not None
+        self._is_drawing:bool = show or output_video is not None
         if self._is_drawing:
             self.suffix_processors.append(DrawText())
 
         if output_video is not None:
             self.suffix_processors.append(VideoWriter(output_video))
 
-        if window_name is not None:
+        if show:
+            window_name = f'camera={conf.camera.uri}'
             self.suffix_processors.append(ShowFrame(window_name))
 
         if not isinstance(context, NoOpExecutionContext):
@@ -77,11 +78,10 @@ class ImageProcessor(AbstractExecution):
             interval = int(dna.conf.get_config(context.request, "progress_report.interval_seconds", 60))
             self.suffix_processors.append(ExecutionProgressReporter(context, interval_secs=interval))
 
-        show_progress:bool = self.conf.get("show_progress", False)
+        show_progress:bool = conf.get("show_progress", False)
         if show_progress:
             self.suffix_processors.append(ShowProgress(self.capture.total_frame_count))
 
-        self.pause_on_eos = self.conf.get("pause_on_eos", False)
         self.logger = logging.getLogger('dna.image_processor')
         
     def close(self) -> None:
