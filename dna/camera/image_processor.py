@@ -165,7 +165,7 @@ class DrawText(FrameProcessor):
         return Frame(image=convas, index=frame.index, ts=frame.ts)
 
 class ShowFrame(FrameProcessor):
-    _PAUSE_MILLIS = timedelta(hours=1).total_seconds() * 1000
+    _PAUSE_MILLIS = int(timedelta(hours=1).total_seconds() * 1000)
 
     def __init__(self, window_name: str) -> None:
         super().__init__()
@@ -185,18 +185,22 @@ class ShowFrame(FrameProcessor):
     def process_frame(self, frame:Frame) -> Optional[Frame]:
         cv2.imshow(self.window_name, frame.image)
         key = cv2.waitKey(int(1)) & 0xFF
-        if key == ord('q'):
-            self.logger.info(f'interrupted by a key-stroke')
-            return None
-        elif key == ord(' '):
-            self.logger.info(f'paused by a key-stroke')
-            while True:
-                key = cv2.waitKey(ShowFrame._PAUSE_MILLIS) & 0xFF
-                if key == ord(' '):
-                    self.logger.info(f'resumed by a key-stroke')
-                    return frame
-        else:
-            return frame
+        while True:
+            if key == ord('q'):
+                self.logger.info(f'interrupted by a key-stroke')
+                return None
+            elif key == ord(' '):
+                self.logger.info(f'paused by a key-stroke')
+                while True:
+                    key = cv2.waitKey(ShowFrame._PAUSE_MILLIS) & 0xFF
+                    if key == ord(' '):
+                        self.logger.info(f'resumed by a key-stroke')
+                        key = 1
+                        break
+                    elif key == ord('q'):
+                        break
+            else:
+                return frame
 
 class ShowProgress(FrameProcessor):
     def __init__(self, total_frame_count: int) -> None:

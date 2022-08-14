@@ -25,3 +25,6 @@ pika
 # yolov5
 ipython
 psutil
+
+# PostgreSQL
+psycopg2

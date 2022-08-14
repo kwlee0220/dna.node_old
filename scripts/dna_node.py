@@ -19,6 +19,8 @@ def parse_args():
     parser.add_argument("--output", metavar="json file", help="track event file.", default=None)
     parser.add_argument("--show", action='store_true')
     parser.add_argument("--show_progress", help="display progress bar.", action='store_true')
+    parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number", default=1)
+    parser.add_argument("--end_frame", type=int, metavar="number", help="the last frame number")
 
     parser.add_argument("--db_host", metavar="postgresql host", help="PostgreSQL host", default='localhost')
     parser.add_argument("--db_port", metavar="postgresql port", help="PostgreSQL port", default=5432)
@@ -34,6 +36,10 @@ def main():
 
     dna.initialize_logger(args.logger)
     conf, _, args_conf = dna.load_node_conf(args, ['show', 'show_progress'])
+    
+    # 카메라 설정 정보 추가
+    conf.camera.begin_frame = args.begin_frame
+    conf.camera.end_frame = args.end_frame
 
     if 'output' in args:
         publishing_conf = conf.get('publishing', OmegaConf.create())

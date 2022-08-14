@@ -202,6 +202,9 @@ class VideoFileCapture(OpenCvImageCapture):
 
         if self.camera.begin_frame > 1:
             self.set_frame_index(self.camera.begin_frame)
+            
+        import sys
+        self.__last_frame_index = sys.maxsize if self.camera.end_frame is None else self.camera.end_frame
 
     @property
     def total_frame_count(self) -> int:
@@ -213,6 +216,10 @@ class VideoFileCapture(OpenCvImageCapture):
         frame: Frame = super().__call__()
         if frame is None:
             return frame
+        
+        # 지정된 마지막 프레임 번호보다 큰 경우는 image capture를 종료시킨다.
+        if frame.index > self.__last_frame_index:
+            return None
 
         if self.__sync:
             remains = self.__interval - (frame.ts - started) - self.__overhead

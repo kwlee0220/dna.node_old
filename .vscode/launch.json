@@ -23,8 +23,10 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "--node", "etri:051",
-                // "--conf", "conf/etri_051.yaml",
+                // "--conf", "conf/etri_042.yaml",
                 // "--output", "output/etri/etri_051_event.json",   // -o <file>
+                // "--begin_frame", "1260",
+                // "--end_frame", "3260",
                 "--show",   // -s
                 // "--show_progress",  // -p
             ],
@@ -50,7 +52,8 @@
             "program": "${workspaceFolder}/scripts/dna_node_detect.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--node", "etri:051",
+                // "--node", "etri:051",
+                "--conf", "conf/etri_051.yaml",
                 // "--detector", "dna.detect.yolov4",
                 // "--detector", "dna.detect.rcnn50_fpn",
                 // "--detector", "dna.detect.yolov5:model=l&score=0.4",
@@ -69,6 +72,9 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "--node", "etri:051",
+                // "--conf", "conf/etri_041.yaml",
+                // "--begin_frame", "840",
+                // "--end_frame", "870",
                 "--show",
                 // "--show_progress",  // -p
             ],
