@@ -53,9 +53,10 @@ setup(
         'imgaug',
     ],
     packages = find_packages(),
-    data_files=[
-        ('conf', ['conf/logger.yaml'])
-    ],
+    package_dir={'conf': 'conf'},
+    package_data = {
+        'conf': ['logger.yaml']
+    },
     python_requires = '>=3.8',
     zip_safe = False
 )

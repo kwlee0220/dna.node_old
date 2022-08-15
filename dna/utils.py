@@ -125,9 +125,8 @@ class RectangleDrawer:
 
 def initialize_logger(conf_file_path: Optional[str]=None):
     if conf_file_path is None:
-        import os, sys
-        conf_dir = os.path.join(sys.prefix, 'conf')
-        conf_file_path = os.path.join(conf_dir, 'logger.yaml')
+        import pkg_resources
+        conf_file_path = pkg_resources.resource_filename('conf', 'logger.yaml')
         
     with open(conf_file_path, 'rt') as f:
         import yaml
