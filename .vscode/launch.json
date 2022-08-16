@@ -25,8 +25,8 @@
                 "--node", "etri:051",
                 // "--conf", "conf/etri_042.yaml",
                 // "--output", "output/etri/etri_051_event.json",   // -o <file>
-                // "--begin_frame", "1260",
-                // "--end_frame", "3260",
+                // "--begin_frame", "1000",
+                // "--end_frame", "1000",
                 "--show",   // -s
                 // "--show_progress",  // -p
             ],
