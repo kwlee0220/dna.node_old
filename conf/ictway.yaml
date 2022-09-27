@@ -1,7 +1,7 @@
 id: etri:04
 
 camera:
-  uri: rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/3/media.smp
+  uri: rtsp://admin:ictway2020!!@218.49.245.198:35005/LiveChannel/0/media.smp
   size: [1920, 1080]
 
 tracker:

@@ -154,7 +154,7 @@ def read_truths(lab_path):
 
 def load_class_names(namesfile):
     class_names = []
-    with open(namesfile, 'r', encoding='utf-8') as fp:
+    with open(namesfile, 'r') as fp:
         lines = fp.readlines()
     for line in lines:
         line = line.rstrip()

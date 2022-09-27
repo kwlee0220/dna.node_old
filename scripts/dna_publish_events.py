@@ -14,7 +14,7 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description="Detect Objects in a video file")
     parser.add_argument("log_paths", nargs='+', help="configuration file path")
-    parser.add_argument("--servers", help="bootstrap-servers", default='localhost:9091,localhost:9092,localhost:9093')
+    parser.add_argument("--servers", help="bootstrap-servers", default='kafka01:9092,kafka02:9092,kafka03:9092')
     parser.add_argument("--topic", help="topic name", default='node-tracks')
     parser.add_argument("--sync", help="sync to publish events", action='store_true')
     return parser.parse_known_args()

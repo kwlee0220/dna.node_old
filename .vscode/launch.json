@@ -22,8 +22,8 @@
             "program": "${workspaceFolder}/scripts/dna_node.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--node", "etri:051",
-                // "--conf", "conf/etri_042.yaml",
+                "--node", "etri:07",
+                // "--conf", "conf/etri_051.yaml",
                 // "--output", "output/etri/etri_051_event.json",   // -o <file>
                 // "--begin_frame", "1000",
                 // "--end_frame", "1000",
@@ -71,8 +71,9 @@
             "program": "${workspaceFolder}/scripts/dna_node_show.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--node", "etri:051",
-                // "--conf", "conf/etri_041.yaml",
+                // "--node", "etri:051",
+                "--conf", "conf/etri_live_07.yaml",
+                // "--conf", "conf/ictway.yaml",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",
                 "--show",
@@ -98,9 +99,10 @@
             "program": "${workspaceFolder}/scripts/dna_publish_events.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "output/etri/etri_051_event.json",
-                // "output/etri/etri_052_event.json",
-                // "output/etri/etri_053_event.json",
+                "output/etri/etri_041_event.json",
+                // "output/etri/etri_051_event.json",
+                // "output/etri/etri_061_event.json",
+                // "output/etri/etri_071_event.json",
                 "--sync"
             ],
             "justMyCode": true
@@ -110,8 +112,8 @@
             "program": "${workspaceFolder}/scripts/dna_node_processor_client.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [ 
-                // "data/on-demand-requests/req01_etri_05.json",
-                "data/event_publisher/test_etri_051.json",
+                "data/on-demand-requests/req01_etri_07.json",
+                // "data/event_publisher/test_etri_051.json",
             ],
             "justMyCode": true
         },
