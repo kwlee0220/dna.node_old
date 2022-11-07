@@ -96,6 +96,9 @@ class AbstractExecution(Execution):
         
     @abstractmethod
     def run_work(self) -> object: pass
+
+    @abstractmethod
+    def finalize(self) -> None: pass
     
     def check_stopped(self) -> None:
         with self.lock:
@@ -132,6 +135,8 @@ class AbstractExecution(Execution):
                 self.state = ExecutionState.FAILED
                 self.cond.notify_all()
             self.ctx.failed(str(e))
+        finally:
+            self.finalize()
         
     def stop(self, details: str='user requested', nowait=False) -> None:
         with self.lock:

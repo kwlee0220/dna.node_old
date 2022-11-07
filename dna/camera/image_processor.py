@@ -67,7 +67,7 @@ class ImageProcessor(AbstractExecution):
             self.suffix_processors.append(DrawText())
 
         if output_video is not None:
-            self.suffix_processors.append(VideoWriter(output_video))
+            self.suffix_processors.append(VideoWriter(Path(output_video)))
 
         if show:
             window_name = f'camera={conf.camera.uri}'
@@ -132,6 +132,9 @@ class ImageProcessor(AbstractExecution):
                     self.logger.error(e, exc_info=True)
 
         return ImageProcessor.Result(time.time()-started, capture_count, self.fps_measured)
+
+    def finalize(self) -> None:
+        self.capture.close()
 
 class ExecutionProgressReporter(FrameProcessor):
     def __init__(self, context: ExecutionContext, interval_secs: int) -> None:
@@ -239,7 +242,7 @@ class VideoWriter(FrameProcessor):
         self.logger.info(f'opening video file: {self.path}')
 
         self.path.parent.mkdir(exist_ok=True)
-        self.video_writer = cv2.VideoWriter(str(self.path), self.fourcc, self.capture.fps, self.capture.size.to_tuple())
+        self.video_writer = cv2.VideoWriter(str(self.path), self.fourcc, proc.capture.fps, proc.capture.size.to_tuple())
 
     def on_stopped(self) -> None:
         self.logger.info(f'closing video file: {self.path}')

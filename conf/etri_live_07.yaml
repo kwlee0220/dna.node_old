@@ -2,6 +2,7 @@
 camera:
   id: etri_live:07
   uri: rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/6/media.smp
+  # uri: rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000
   size: [1920, 1080]
   fps: 10
   blind_regions:
@@ -20,3 +21,4 @@ tracker:
 
 camera_geometry:
   file: data/camera_geoms/etri_07.pickle
+

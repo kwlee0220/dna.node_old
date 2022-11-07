@@ -35,9 +35,10 @@ def main():
     # 카메라 설정 정보 추가
     conf.camera.begin_frame = args.begin_frame
     conf.camera.end_frame = args.end_frame
-
     camera:Camera = create_camera_from_conf(conf.camera)
+
     img_proc = ImageProcessor(camera.open(), conf)
+
     result = img_proc.run()
     print(result)
 

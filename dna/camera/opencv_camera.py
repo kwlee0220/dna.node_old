@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Optional, Tuple
 import dataclasses
 import time
+import uuid
+from subprocess import CompletedProcess, Popen, STDOUT, DEVNULL
 
 import numpy as np
 import cv2
@@ -41,14 +43,14 @@ class OpenCvCamera(Camera):
         return uri.endswith('.mp4') or uri.endswith('.avi')
 
     def open(self) -> ImageCapture:
-        vid = OpenCvCamera.__open_video_capture(self.uri)
+        vid, proc = OpenCvCamera.__open_video_capture(self.uri)
         from_video = self.is_video_file(self.uri)
 
         if self.__target_size is not None:
             vid.set(cv2.CAP_PROP_FRAME_WIDTH, self.__target_size.width)
             vid.set(cv2.CAP_PROP_FRAME_HEIGHT, self.__target_size.height)
 
-        return VideoFileCapture(self, vid) if from_video else OpenCvImageCapture(self, vid)
+        return VideoFileCapture(self, vid) if from_video else OpenCvImageCapture(self, vid, proc)
 
     @property
     def uri(self) -> str:
@@ -67,16 +69,32 @@ class OpenCvCamera(Camera):
         return self.__size
 
     @staticmethod
-    def __open_video_capture(uri: str) -> cv2.VideoCapture:
+    def __open_video_capture(uri: str) -> Tuple[cv2.VideoCapture, CompletedProcess]:
         if uri.isnumeric():
-            return cv2.VideoCapture(int(uri))
+            return (cv2.VideoCapture(int(uri)), None)
         elif uri.startswith('rtsp://'):
-            return cv2.VideoCapture(uri)
+            # 만일 OpenCv에서 지원하지 않는 RTSP Url을 사용한다면 replay하는 방법을 해결함.
+            if uri.find("&end=") >= 0 or uri.find("start=") >= 0:
+                new_uri = f"rtsp://localhost:8554/{uuid.uuid1()}"
+                cmd = ["C:\\local\\ffmpeg\\bin\\ffmpeg", "-re", "-rtsp_transport", "tcp", "-i", uri,
+                        "-rtsp_transport", "tcp", "-c:v", "copy", "-f", "rtsp", new_uri]
+                proc = Popen(cmd, stdout=DEVNULL, stderr=DEVNULL)
+                cv2.waitKey(4000)
+
+                vcap = cv2.VideoCapture(new_uri)
+                while (1):
+                    ret, frame = vcap.read()
+                    if ret: return (vcap, proc)
+                    else:
+                        cv2.waitKey(1000)
+                        vcap = cv2.VideoCapture(new_uri)
+            else:
+                return (cv2.VideoCapture(uri), None)
         elif uri.endswith('.mp4') or uri.endswith('.avi'):  # from video-file
             import os
             if not os.path.exists(uri):
                 raise IOError(f"invalid video file path: {uri}")
-            return cv2.VideoCapture(uri)
+            return (cv2.VideoCapture(uri), None)
         else:
             raise ValueError(f"invalid camera uri: {uri}")
 
@@ -111,9 +129,9 @@ class OpenCvVideFile(OpenCvCamera):
         return f"{__class__.__name__}(uri={self.uri}{size_str}, sync={self.sync})"
 
 class OpenCvImageCapture(ImageCapture):
-    __slots__ = '__camera', '__vid', '__size', '__fps', '__frame_index'
+    __slots__ = '__camera', '__vid', '__proc', '__size', '__fps', '__frame_index'
 
-    def __init__(self, camera: OpenCvCamera, vid: cv2.VideoCapture) -> None:
+    def __init__(self, camera: OpenCvCamera, vid: cv2.VideoCapture, proc: CompletedProcess) -> None:
         """Create a OpenCvImageCapture object.
 
         Args:
@@ -122,7 +140,8 @@ class OpenCvImageCapture(ImageCapture):
         self.__camera = camera
         if vid is None:
             raise ValueError(f'cv2.VideoCapture is invalid')
-        self.__vid = vid            # None if closed
+        self.__vid:cv2.VideoCapture = vid            # None if closed
+        self.__proc:CompletedProcess = proc
 
         width = int(self.__vid.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.__vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -134,6 +153,8 @@ class OpenCvImageCapture(ImageCapture):
         if self.__vid:
             self.__vid.release()
             self.__vid = None
+            if self.__proc is not None:
+                self.__proc.kill()
 
     def __call__(self) -> Optional[Frame]:
         if not self.is_open():
@@ -193,7 +214,7 @@ class VideoFileCapture(OpenCvImageCapture):
         Args:
             camera (OpenCvCamera): Resource identifier.
         """
-        super().__init__(camera, vid)
+        super().__init__(camera, vid, None)
 
         self.__interval = 1.0 / self.fps
         self.__sync = self.camera.sync

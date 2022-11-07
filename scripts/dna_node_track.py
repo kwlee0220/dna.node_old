@@ -41,8 +41,11 @@ def main():
     # 카메라 설정 정보 추가
     conf.camera.begin_frame = args.begin_frame
     conf.camera.end_frame = args.end_frame
-
     camera:Camera = create_camera_from_conf(conf.camera)
+
+    # ImageProcess 설정 정보 추가
+    conf.output = args.output
+    conf.output_video = args.output_video
     img_proc = ImageProcessor(camera.open(), conf)
 
     tracker_conf = conf.get('tracker', OmegaConf.create())

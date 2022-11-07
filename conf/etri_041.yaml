@@ -2,7 +2,7 @@ id: etri:04
 
 camera:
   uri: data/etri/etri_041.mp4
-  size: [1920, 1080]
+  # size: [1920, 1080]
 
 tracker:
   uri: dna.tracker.dna_deepsort
