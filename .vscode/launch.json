@@ -23,12 +23,13 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--node", "etri:07",
-                "--conf", "conf/etri_051.yaml",
+                "--conf", "conf/etri_041.yaml",
                 // "--output", "output/etri/etri_051_event.json",   // -o <file>
                 // "--begin_frame", "1000",
                 // "--end_frame", "1000",
                 "--show",   // -s
                 // "--show_progress",  // -p
+                "--loop",   // -s
             ],
             "justMyCode": true
         },

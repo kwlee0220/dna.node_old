@@ -45,6 +45,7 @@ class ImageProcessor(AbstractExecution):
         elapsed: float
         frame_count: int
         fps_measured: float
+        failure_cause: Exception
 
         def __repr__(self):
             return (f"elapsed={timedelta(seconds=self.elapsed)}, "
@@ -102,6 +103,7 @@ class ImageProcessor(AbstractExecution):
 
         capture_count = 0
         self.fps_measured = 0.
+        failure_cause = None
         try:
             self.logger.info(f'start: ImageProcess[cap={self.capture}]')
             while self.capture.is_open():
@@ -116,13 +118,13 @@ class ImageProcessor(AbstractExecution):
                 for fproc in processors:
                     frame = fproc.process_frame(frame)
                     if frame is None: break
-                if frame is None: break
 
                 elapsed = time.time() - started
                 fps = 1 / (elapsed / capture_count)
                 weight = ImageProcessor.__ALPHA if capture_count > 10 else 0.5
                 self.fps_measured = weight*fps + (1-weight)*self.fps_measured
         except Exception as e:
+            failure_cause = e
             self.logger.error(e, exc_info=True)
         finally:
             for fproc in reversed(processors):
@@ -131,7 +133,7 @@ class ImageProcessor(AbstractExecution):
                 except Exception as e:
                     self.logger.error(e, exc_info=True)
 
-        return ImageProcessor.Result(time.time()-started, capture_count, self.fps_measured)
+        return ImageProcessor.Result(time.time()-started, capture_count, self.fps_measured, failure_cause)
 
     def finalize(self) -> None:
         self.capture.close()

@@ -18,6 +18,7 @@ def parse_args():
     parser.add_argument("--node", metavar="id", help="DNA node id")
     parser.add_argument("--output", metavar="json file", help="track event file.", default=None)
     parser.add_argument("--show", action='store_true')
+    parser.add_argument("--loop", action='store_true')
     parser.add_argument("--show_progress", help="display progress bar.", action='store_true')
     parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number", default=1)
     parser.add_argument("--end_frame", type=int, metavar="number", help="the last frame number")
@@ -47,8 +48,11 @@ def main():
         conf.publishing = publishing_conf
 
     camera = create_camera_from_conf(conf.camera)
-    img_proc = build_node_processor(camera.open(), conf)
-    result = img_proc.run()
+    while True:
+        img_proc = build_node_processor(camera.open(), conf)
+        result = img_proc.run()
+        if not args.loop:
+            break
     print(result)
 
 if __name__ == '__main__':
