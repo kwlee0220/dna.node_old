@@ -18,8 +18,8 @@ tracker:
   #   detector: configs/CenterNet_siammot.yaml
 
   dna_deepsort:
-    detector: dna.detect.yolov4
-    # detector: dna.detect.yolov5:model=m&score=0.45
+    # detector: dna.detect.yolov4
+    detector: dna.detect.yolov5:model=m&score=0.45
     # detector: dna.detect.rcnn50_fpn
     # detector: file:videos/etri/etri_051_det.txt
     # min_detection_score: 0
