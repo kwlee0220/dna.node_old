@@ -40,6 +40,9 @@ setup(
         # geodesic transformation
         'pyproj',
 
+        # PostgreSQL
+        'psycopg2',
+
         # rabbitmq
         'pika',
 
