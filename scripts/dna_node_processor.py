@@ -15,7 +15,7 @@ def parse_args():
                         default="urc2004")
     parser.add_argument("--request_qname", "-q", metavar="json file", help="track event file.",
                         default="track_requests")
-    parser.add_argument("--show", "-s", action='store_true')
+    parser.add_argument("--show", "-s", nargs='?', const='0x0')
 
     parser.add_argument("--db_host", metavar="postgresql host", help="PostgreSQL host", default='localhost')
     parser.add_argument("--db_port", metavar="postgresql port", help="PostgreSQL port", default=5432)

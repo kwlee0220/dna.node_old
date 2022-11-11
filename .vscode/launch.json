@@ -22,14 +22,13 @@
             "program": "${workspaceFolder}/scripts/dna_node.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                // "--node", "etri:07",
-                "--conf", "conf/etri_041.yaml",
+                // "--node", "etri:051",
+                "--conf", "conf/etri_051.yaml",
                 // "--output", "output/etri/etri_051_event.json",   // -o <file>
                 // "--begin_frame", "1000",
                 // "--end_frame", "1000",
-                "--show",   // -s
+                "--show", "1280x720",
                 // "--show_progress",  // -p
-                "--loop",   // -s
             ],
             "justMyCode": true
         },
@@ -38,11 +37,11 @@
             "program": "${workspaceFolder}/scripts/dna_node_track.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--node", "etri:041",
+                "--node", "etri:051",
                 // "--conf", "conf/etri_051.yaml",
                 // "--output", "output/etri/etri_051_track.csv",   // -o <file>
-                "--output_video", "output/etri/etri_041_track.mp4",   // -v <file>
-                "--show",   // -s
+                // "--output_video", "output/etri/etri_041_track.mp4",   // -v <file>
+                "--show", "1280x720",
                 // "--show_progress",  // -p
                 // "--pause_on_eos",    // -k
             ],
@@ -61,7 +60,7 @@
                 // "--detector", "file:${env:HOME}/Dropbox/data/etri/etri_051_det.txt",
                 // "--output", "output/etri/etri_051_det.csv",   // -o <file>
                 // "--output_video", "output/etri/etri_051_det.mp4",   // -v <file>
-                "--show",    // -s
+                "--show", "1280x720",
                 // "--show_progress",   // -p
                 // "--pause_on_eos",    // -k
             ],
@@ -72,13 +71,13 @@
             "program": "${workspaceFolder}/scripts/dna_node_show.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                // "--node", "etri:041",
-                "--conf", "conf/etri_live_07.yaml",
+                "--node", "etri:041",
+                // "--conf", "conf/etri_live_07.yaml",
                 // "--conf", "conf/etri_041.yaml",
                 // "--conf", "conf/ictway.yaml",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",
-                "--show",
+                "--show", "1280x720",
                 // "--show_progress",  // -p
             ],
             "justMyCode": true
@@ -106,6 +105,7 @@
                 // "output/etri/etri_061_event.json",
                 // "output/etri/etri_071_event.json",
                 "--servers", "localhost:9092",
+                "--loop",
                 "--sync"
             ],
             "justMyCode": true

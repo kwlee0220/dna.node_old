@@ -18,10 +18,11 @@ def parse_args():
 
     parser.add_argument("--output", "-o", metavar="csv file", help="output detection file.", default=None)
     parser.add_argument("--output_video", "-v", metavar="mp4 file", help="output video file.", default=None)
-    parser.add_argument("--show", "-s", action='store_true')
+    parser.add_argument("--show", "-s", nargs='?', const='0x0')
     parser.add_argument("--show_progress", "-p", help="display progress bar.", action='store_true')
     parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number", default=1)
     parser.add_argument("--end_frame", type=int, metavar="number", help="the last frame number")
+    parser.add_argument("--loop", action='store_true')
     
     parser.add_argument("--db_host", metavar="postgresql host", help="PostgreSQL host", default='localhost')
     parser.add_argument("--db_port", metavar="postgresql port", help="PostgreSQL port", default=5432)
@@ -46,14 +47,16 @@ def main():
     # ImageProcess 설정 정보 추가
     conf.output = args.output
     conf.output_video = args.output_video
-    img_proc = ImageProcessor(camera.open(), conf)
+    while True:
+        img_proc = ImageProcessor(camera.open(), conf)
+        tracker_conf = conf.get('tracker', OmegaConf.create())
+        tracker_conf = OmegaConf.merge(tracker_conf, dna.conf.filter(args_conf, ['output']))
+        track_pipeline = TrackingPipeline.load(img_proc, tracker_conf)
+        img_proc.add_frame_processor(track_pipeline)
 
-    tracker_conf = conf.get('tracker', OmegaConf.create())
-    tracker_conf = OmegaConf.merge(tracker_conf, dna.conf.filter(args_conf, ['output']))
-    track_pipeline = TrackingPipeline.load(img_proc, tracker_conf)
-    img_proc.add_frame_processor(track_pipeline)
-    
-    result = img_proc.run()
+        result: ImageProcessor.Result = img_proc.run()
+        if not args.loop or result.failure_cause is not None:
+            break
     print(result)
 
 if __name__ == '__main__':

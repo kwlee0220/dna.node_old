@@ -7,6 +7,7 @@ from omegaconf import OmegaConf
 
 import dna
 from dna.camera import ImageProcessor,  create_camera_from_conf
+from dna.execution import UserInterruptException
 from dna.node.node_processor import build_node_processor
 from dna.node.utils import read_node_config
 
@@ -17,7 +18,7 @@ def parse_args():
     parser.add_argument("--conf", metavar="file path", help="configuration file path")
     parser.add_argument("--node", metavar="id", help="DNA node id")
     parser.add_argument("--output", metavar="json file", help="track event file.", default=None)
-    parser.add_argument("--show", action='store_true')
+    parser.add_argument("--show", "-s", nargs='?', const='0x0')
     parser.add_argument("--loop", action='store_true')
     parser.add_argument("--show_progress", help="display progress bar.", action='store_true')
     parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number", default=1)
@@ -50,8 +51,8 @@ def main():
     camera = create_camera_from_conf(conf.camera)
     while True:
         img_proc = build_node_processor(camera.open(), conf)
-        result = img_proc.run()
-        if not args.loop:
+        result: ImageProcessor.Result = img_proc.run()
+        if not args.loop or result.failure_cause is not None:
             break
     print(result)
 
