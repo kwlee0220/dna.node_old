@@ -20,29 +20,13 @@ import os
 
 import subprocess
 
-# proc = subprocess.Popen(["C:\\local\\ffmpeg\\bin\\ffmpeg", "-re",
-#                 "-rtsp_transport", "tcp", "-i",
-#                 "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
-#                 "-rtsp_transport", "tcp", "-c:v", "copy",
-#                 "-f", "rtsp", "rtsp://localhost:8554/visual"],
-#                 stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-# proc.communicate()
-
-vcap = cv2.VideoCapture(0)
-
-ret1 = vcap.set(cv2.CAP_PROP_FRAME_WIDTH, 1024)
-ret2 = vcap.set(cv2.CAP_PROP_FRAME_HEIGHT, 768)
-
-while ( 1 ):
-    ret, frame = vcap.read()
-    if ret:
-        cv2.imshow("xxx", frame)
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            break
-    else:
-        break
-vcap.release()
+proc = subprocess.Popen(["C:\\local\\ffmpeg\\bin\\ffmpeg", "-re",
+                "-rtsp_transport", "tcp", "-i",
+                "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
+                "-rtsp_transport", "tcp", "-c:v", "copy",
+                "-f", "rtsp", "rtsp://localhost:8554/visual"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+proc.communicate()
 
 # cv2.waitKey(5000)
 # # vcap = cv2.VideoCapture("rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/6/media.smp")
