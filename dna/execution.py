@@ -78,7 +78,11 @@ class CancellationError(Exception):
         self.message = message
         super().__init__(message)
     
-    
+class UserInterruptException(Exception):
+    def __init__(self) -> None:
+        super().__init__()
+
+
 import threading
 class AbstractExecution(Execution):
     def __init__(self, report_interval=60*60, context:ExecutionContext= NoOpExecutionContext()):

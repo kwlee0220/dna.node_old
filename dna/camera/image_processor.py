@@ -9,13 +9,16 @@ from pathlib import Path
 import time
 from datetime import timedelta
 
+import numpy as np
+
 from omegaconf import OmegaConf
 from tqdm import tqdm
 import cv2
 
 from dna import color, Frame
+from dna.types import Size2d
 from .camera import ImageCapture
-from dna.execution import AbstractExecution, ExecutionContext, NoOpExecutionContext
+from dna.execution import AbstractExecution, ExecutionContext, NoOpExecutionContext, UserInterruptException
 
 import logging
 
@@ -61,7 +64,9 @@ class ImageProcessor(AbstractExecution):
         self.suffix_processors: List[FrameProcessor] = []
 
         output_video:str = conf.get("output_video", None)
-        show:bool = conf.get("show", False)
+        
+        show_str:str = conf.get("show", None)
+        show:Optional[Size2d] = Size2d.parse_string(show_str) if show_str is not None else None
 
         self._is_drawing:bool = show or output_video is not None
         if self._is_drawing:
@@ -72,7 +77,7 @@ class ImageProcessor(AbstractExecution):
 
         if show:
             window_name = f'camera={conf.camera.uri}'
-            self.suffix_processors.append(ShowFrame(window_name))
+            self.suffix_processors.append(ShowFrame(window_name, show.to_tuple() if show else None))
 
         if not isinstance(context, NoOpExecutionContext):
             import dna
@@ -118,6 +123,7 @@ class ImageProcessor(AbstractExecution):
                 for fproc in processors:
                     frame = fproc.process_frame(frame)
                     if frame is None: break
+                if frame is None: break
 
                 elapsed = time.time() - started
                 fps = 1 / (elapsed / capture_count)
@@ -172,28 +178,32 @@ class DrawText(FrameProcessor):
 class ShowFrame(FrameProcessor):
     _PAUSE_MILLIS = int(timedelta(hours=1).total_seconds() * 1000)
 
-    def __init__(self, window_name: str) -> None:
+    def __init__(self, window_name: str, window_size: Optional[Tuple[int,int]]) -> None:
         super().__init__()
         self.window_name = window_name
+        self.window_size:Optional[Tuple[int,int]] = window_size if window_size != (0,0) else None
         self.logger = logging.getLogger('dna.node.frame_processor.show_frame')
 
     def on_started(self, proc:ImageProcessor) -> None:
-        self.logger.info(f'create window: {self.window_name}')
-        cv2.namedWindow(self.window_name)
-        win_size = proc.capture.size
-        cv2.resizeWindow(winname=self.window_name, width=win_size.width, height=win_size.height)
+        win_size = self.window_size if self.window_size else proc.capture.size
+        
+        self.logger.info(f'create window: {self.window_name}, size=({win_size[0]}x{win_size[1]})')
+        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(self.window_name, win_size[0], win_size[1])
 
     def on_stopped(self) -> None:
         self.logger.info(f'destroy window: {self.window_name}')
         with suppress(Exception): cv2.destroyWindow(self.window_name)
 
     def process_frame(self, frame:Frame) -> Optional[Frame]:
-        cv2.imshow(self.window_name, frame.image)
+        img = cv2.resize(frame.image, self.window_size, cv2.INTER_AREA) if self.window_size else frame.image
+        cv2.imshow(self.window_name, img)
+
         key = cv2.waitKey(int(1)) & 0xFF
         while True:
             if key == ord('q'):
                 self.logger.info(f'interrupted by a key-stroke')
-                return None
+                raise UserInterruptException()
             elif key == ord(' '):
                 self.logger.info(f'paused by a key-stroke')
                 while True:
@@ -203,7 +213,7 @@ class ShowFrame(FrameProcessor):
                         key = 1
                         break
                     elif key == ord('q'):
-                        break
+                        raise UserInterruptException()
             else:
                 return frame
 
