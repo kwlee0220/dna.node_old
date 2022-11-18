@@ -4,7 +4,7 @@ from .utils import gdown_file, initialize_logger
 from .pika_execution import PikaConnectionParameters, PikaExecutionServer
 from .conf import *
 
-__version__ = '0.1.4'
+__version__ = '0.1.6'
 
 # DEBUG_FRAME_IDX = -1
 # DEBUG_SHOW_IMAGE = False
