@@ -185,7 +185,7 @@ class ShowFrame(FrameProcessor):
         self.logger = logging.getLogger('dna.node.frame_processor.show_frame')
 
     def on_started(self, proc:ImageProcessor) -> None:
-        win_size = self.window_size if self.window_size else proc.capture.size
+        win_size = self.window_size if self.window_size else proc.capture.size.to_tuple()
         
         self.logger.info(f'create window: {self.window_name}, size=({win_size[0]}x{win_size[1]})')
         cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
