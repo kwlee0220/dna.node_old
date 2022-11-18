@@ -32,7 +32,7 @@
             ],
             "justMyCode": true
         },
-        { "name": "Track Video",
+        { "name": "Track",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_node_track.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
@@ -47,7 +47,7 @@
             ],
             "justMyCode": true
         },
-        { "name": "Detect Video",
+        { "name": "Detect",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_node_detect.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
@@ -66,7 +66,7 @@
             ],
             "justMyCode": true
         },
-        { "name": "Show Video",
+        { "name": "Show",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_node_show.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
@@ -77,7 +77,7 @@
                 // "--conf", "conf/ictway.yaml",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",
-                "--show",
+                // "--show", "1280x720",
                 // "--show_progress",  // -p
             ],
             "justMyCode": true
