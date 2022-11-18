@@ -12,6 +12,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Display a video")
     parser.add_argument("--conf", metavar="file path", help="configuration file path")
     parser.add_argument("--node", metavar="id", help="DNA node id")
+    parser.add_argument("--uri", metavar="uri", help="target camera uri")
     parser.add_argument("--show", "-s", nargs='?', const='0x0')
     parser.add_argument("--show_progress", "-p", help="display progress bar.", action='store_true')
     parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number", default=1)
@@ -34,6 +35,8 @@ def main():
     conf, _, args_conf = dna.load_node_conf(args, ['show', 'show_progress'])
     
     # 카메라 설정 정보 추가
+    conf.camera = dna.conf.get_config(conf, "camera", OmegaConf.create())
+    conf.camera.uri = dna.conf.get_config(conf.camera, "uri", args.uri)
     conf.camera.begin_frame = args.begin_frame
     conf.camera.end_frame = args.end_frame
     camera:Camera = create_camera_from_conf(conf.camera)

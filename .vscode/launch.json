@@ -71,13 +71,13 @@
             "program": "${workspaceFolder}/scripts/dna_node_show.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--node", "etri:041",
+                // "--node", "etri:041",
                 // "--conf", "conf/etri_live_07.yaml",
-                // "--conf", "conf/etri_041.yaml",
+                "--uri", "data/etri/etri_041.mp4",
                 // "--conf", "conf/ictway.yaml",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",
-                "--show", "1280x720",
+                "--show",
                 // "--show_progress",  // -p
             ],
             "justMyCode": true
