@@ -1,12 +1,14 @@
 from __future__ import annotations
 from typing import Optional
 from enum import Enum
+import time
 from threading import Condition, Thread
 from pathlib import Path
+from omegaconf import OmegaConf
 
 from matplotlib.pyplot import show
 
-from dna import Size2d
+from dna import Size2d, color, Frame
 from .camera import Camera, ImageCapture
 from .image_processor import ImageProcessor, FrameProcessor
 
@@ -21,7 +23,7 @@ class ImageHolder(FrameProcessor):
         self.cond = Condition()
         self.__state = State.STARTING
         self.__cap = None
-        self.image = None
+        self.frame = None
 
     @property
     def state(self) -> State:
@@ -47,7 +49,7 @@ class ImageHolder(FrameProcessor):
     def on_started(self, proc: ImageProcessor) -> None:
         with self.cond:
             if self.__state == State.STARTING:
-                self.__cap = proc.image_capture
+                self.__cap = proc.capture
                 self.__state = State.RUNNING
                 self.cond.notifyAll()
             else:
@@ -59,34 +61,32 @@ class ImageHolder(FrameProcessor):
                 self.__state = State.STOPPED
                 self.cond.notifyAll()
 
-    def process_image(self, image: Image) -> Optional[Image]:
+    def process_frame(self, frame: Frame) -> Optional[Frame]:
         with self.cond:
             if self.__state == State.RUNNING:
-                self.image = image
-                # print(f'\tupdated={image}')
+                self.frame = frame
                 self.cond.notifyAll()
-                return image
+                return frame
             elif self.__state == State.STOPPING:
                 return None
             else:
-                raise AssertionError(f"unexpected state: {self.__state} for 'process_image'")
+                raise AssertionError(f"unexpected state: {self.__state} for 'process_frame'")
 
-    def await_image(self, min_frame_idx: int) -> Optional[Image]:
+    def await_frame(self, min_frame_idx: int) -> Optional[Frame]:
         with self.cond:
-            while self.__state == State.STARTING or self.image is None:
+            while self.__state == State.STARTING or self.frame is None:
                 self.cond.wait()
 
             while self.__state == State.RUNNING:
-                if self.image.frame_index < min_frame_idx:
+                if self.frame.index < min_frame_idx:
                     self.cond.wait()
                 else:
-                    # print(f'awaited={self.image}')
-                    return self.image
+                    return self.frame
 
             return None
 
     def __repr__(self) -> str:
-        frame_idx = self.image.frame_index if self.image else None
+        frame_idx = self.frame.index if self.frame else None
         return f"{self.__state}, frame={frame_idx}"
 
 
@@ -100,13 +100,15 @@ class ThreadedCamera(Camera):
     def base_camera(self) -> Camera:
         return self.__base_cam
 
-    @property
-    def parameters(self) -> Camera.Parameters:
-        return self.__base_cam.parameters
-
     def open(self) -> ThreadedImageCapture:
         return ThreadedImageCapture(self.__base_cam.open())
+        
+    @property
+    def uri(self) -> str:
+        return self.__base_cam.uri
 
+    def size(self) -> Size2d:
+        return self.__base_cam.size()
 
 class ThreadedImageCapture(ImageCapture):
     __slots__ = '__holder', '__frame_idx', '__proc', 'thread'
@@ -114,23 +116,27 @@ class ThreadedImageCapture(ImageCapture):
     def __init__(self, capture: ImageCapture) -> None:
         self.__holder = ImageHolder()
         self.__frame_idx = 0
-        self.__proc = ImageProcessor(ImageProcessor.Parameters(), capture, self.__holder)
+
+        conf = OmegaConf.create()
+        self.__proc = ImageProcessor(capture, conf)
+        self.__proc.add_frame_processor(self.__holder)
         self.thread = Thread(target=self.__proc.run, args=tuple())
         self.thread.start()
+        self.__proc.wait_for_ready()
         
     def close(self) -> None:
-        self.__holder.stop()
+        self.__proc.close()
         self.thread.join()
 
     def is_open(self) -> bool:
         return self.__holder.state == State.RUNNING
 
-    def __call__(self) -> Optional[Image]:
-        img: Image = self.__holder.await_image(self.__frame_idx+1)
-        if img:
-            self.__frame_idx = img.frame_index
+    def __call__(self) -> Optional[Frame]:
+        frame: Frame = self.__holder.await_frame(self.__frame_idx+1)
+        if frame:
+            self.__frame_idx = frame.index
 
-        return img
+        return frame
 
     @property
     def size(self) -> Size2d:

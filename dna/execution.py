@@ -77,10 +77,6 @@ class CancellationError(Exception):
     def __init__(self, message:str) -> None:
         self.message = message
         super().__init__(message)
-    
-class UserInterruptException(Exception):
-    def __init__(self) -> None:
-        super().__init__()
 
 
 import threading
@@ -139,6 +135,7 @@ class AbstractExecution(Execution):
                 self.state = ExecutionState.FAILED
                 self.cond.notify_all()
             self.ctx.failed(str(e))
+            raise e
         finally:
             self.finalize()
         

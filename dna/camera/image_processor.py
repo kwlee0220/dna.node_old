@@ -3,6 +3,7 @@ from typing import Optional, Tuple, List
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 from contextlib import suppress
+import threading
 
 import logging
 from pathlib import Path
@@ -18,7 +19,7 @@ import cv2
 from dna import color, Frame
 from dna.types import Size2d
 from .camera import ImageCapture
-from dna.execution import AbstractExecution, ExecutionContext, NoOpExecutionContext, UserInterruptException
+from dna.execution import AbstractExecution, ExecutionContext, NoOpExecutionContext, CancellationError
 
 import logging
 
@@ -40,7 +41,7 @@ class FrameProcessor(metaclass=ABCMeta):
 
 class ImageProcessor(AbstractExecution):
     __ALPHA = 0.2
-    __slots__ = ('capture', 'conf', 'frame_processors', 'suffix_processors', '_is_drawing', 'fps_measured')
+    __slots__ = ('capture', 'conf', 'frame_processors', 'suffix_processors', '_is_drawing', 'fps_measured', 'logger', 'cond', 'ready')
 
     from dataclasses import dataclass
     @dataclass(frozen=True)    # slots=True
@@ -88,7 +89,10 @@ class ImageProcessor(AbstractExecution):
         if show_progress:
             self.suffix_processors.append(ShowProgress(self.capture.total_frame_count))
 
+        self.fps_measured = 0.
         self.logger = logging.getLogger('dna.image_processor')
+
+        self.ready = False
         
     def close(self) -> None:
         self.stop("close requested", nowait=True)
@@ -98,6 +102,11 @@ class ImageProcessor(AbstractExecution):
 
     def add_frame_processor(self, frame_proc: FrameProcessor) -> None:
         self.frame_processors.append(frame_proc)
+
+    def wait_for_ready(self) -> None:
+        with self.cond:
+            while not self.ready:
+                self.cond.wait()
         
     def run_work(self) -> Result:
         started = time.time()
@@ -105,6 +114,10 @@ class ImageProcessor(AbstractExecution):
         processors = self.frame_processors + self.suffix_processors
         for fproc in processors:
             fproc.on_started(self)
+
+        with self.cond:
+            self.ready = True
+            self.cond.notify_all()
 
         capture_count = 0
         self.fps_measured = 0.
@@ -129,6 +142,8 @@ class ImageProcessor(AbstractExecution):
                 fps = 1 / (elapsed / capture_count)
                 weight = ImageProcessor.__ALPHA if capture_count > 10 else 0.5
                 self.fps_measured = weight*fps + (1-weight)*self.fps_measured
+        except CancellationError as e:
+            failure_cause = e
         except Exception as e:
             failure_cause = e
             self.logger.error(e, exc_info=True)
@@ -203,7 +218,7 @@ class ShowFrame(FrameProcessor):
         while True:
             if key == ord('q'):
                 self.logger.info(f'interrupted by a key-stroke')
-                raise UserInterruptException()
+                return None
             elif key == ord(' '):
                 self.logger.info(f'paused by a key-stroke')
                 while True:
@@ -213,7 +228,7 @@ class ShowFrame(FrameProcessor):
                         key = 1
                         break
                     elif key == ord('q'):
-                        raise UserInterruptException()
+                        return None
             else:
                 return frame
 

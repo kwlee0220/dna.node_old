@@ -1,9 +1,8 @@
 id: etri:04
 
 camera:
-  uri: data/etri/etri_041.mp4
+  uri: data/ictway/ictway_042.mp4
   threaded: True
-  # size: [1920, 1080]
 
 tracker:
   uri: dna.tracker.dna_deepsort

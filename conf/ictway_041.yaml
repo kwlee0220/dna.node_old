@@ -1,15 +1,15 @@
 id: etri:04
 
 camera:
-  uri: data/etri/etri_041.mp4
+  uri: data/ictway/ictway_041.mp4
   threaded: True
-  # size: [1920, 1080]
 
 tracker:
   uri: dna.tracker.dna_deepsort
 
   dna_deepsort:
-    detector: dna.detect.yolov4
+    # detector: dna.detect.yolov4
+    detector: dna.detect.yolov5:model=m&score=0.45
     max_age: 30
     blind_zones:
       - [-3,212,636,536]

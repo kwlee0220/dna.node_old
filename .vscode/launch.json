@@ -37,11 +37,12 @@
             "program": "${workspaceFolder}/scripts/dna_node_track.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--node", "etri:051",
-                // "--conf", "conf/etri_051.yaml",
-                // "--output", "output/etri/etri_051_track.csv",   // -o <file>
+                // "--node", "etri:051",
+                // "--conf", "conf/etri/etri_061.yaml",
+                "--conf", "conf/ictway_071.yaml",
+                // "--output", "output/ictway/ictway_041_track.csv",   // -o <file>
                 // "--output_video", "output/etri/etri_041_track.mp4",   // -v <file>
-                "--show", "1280x720",
+                "--show", //"1280x720",
                 // "--show_progress",  // -p
                 // "--pause_on_eos",    // -k
             ],
@@ -72,8 +73,8 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--node", "etri:041",
-                // "--conf", "conf/etri_live_07.yaml",
-                "--uri", "data/etri/etri_041.mp4",
+                "--conf", "conf/etri_041.yaml",
+                // "--uri", "data/etri/etri_041.mp4",
                 // "--conf", "conf/ictway.yaml",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",

@@ -1,7 +1,7 @@
 id: etri:05
 
 camera:
-  uri: data/etri/etri_051.mp4
+  uri: data/ictway/ictway_054.mp4
   size: [1920, 1080]
   # sync: true
   threaded: true

@@ -1,5 +1,4 @@
 from contextlib import closing
-from threading import Thread
 from datetime import timedelta
 
 import yaml
@@ -7,7 +6,6 @@ from omegaconf import OmegaConf
 
 import dna
 from dna.camera import ImageProcessor,  create_camera_from_conf
-from dna.execution import UserInterruptException
 from dna.node.node_processor import build_node_processor
 from dna.node.utils import read_node_config
 
