@@ -64,6 +64,7 @@ class ImageProcessor(AbstractExecution):
         self.frame_processors: List[FrameProcessor] = []
         self.suffix_processors: List[FrameProcessor] = []
 
+        self.show_processor:ShowFrame = None
         output_video:str = conf.get("output_video", None)
         
         show_str:str = conf.get("show", None)
@@ -78,7 +79,8 @@ class ImageProcessor(AbstractExecution):
 
         if show:
             window_name = f'camera={conf.camera.uri}'
-            self.suffix_processors.append(ShowFrame(window_name, show.to_tuple() if show else None))
+            self.show_processor = ShowFrame(window_name, show.to_tuple() if show else None)
+            self.suffix_processors.append(self.show_processor)
 
         if not isinstance(context, NoOpExecutionContext):
             import dna
@@ -102,6 +104,8 @@ class ImageProcessor(AbstractExecution):
 
     def add_frame_processor(self, frame_proc: FrameProcessor) -> None:
         self.frame_processors.append(frame_proc)
+        if self.show_processor is not None:
+            self.show_processor.add_processor(frame_proc)
 
     def wait_for_ready(self) -> None:
         with self.cond:
@@ -197,7 +201,11 @@ class ShowFrame(FrameProcessor):
         super().__init__()
         self.window_name = window_name
         self.window_size:Optional[Tuple[int,int]] = window_size if window_size != (0,0) else None
+        self.processors: List[FrameProcessor] = []
         self.logger = logging.getLogger('dna.node.frame_processor.show_frame')
+        
+    def add_processor(self, proc:FrameProcessor) -> None:
+        self.processors.append(proc)
 
     def on_started(self, proc:ImageProcessor) -> None:
         win_size = self.window_size if self.window_size else proc.capture.size.to_tuple()
@@ -229,7 +237,11 @@ class ShowFrame(FrameProcessor):
                         break
                     elif key == ord('q'):
                         return None
-            else:
+            elif key != 0xFF:
+                for proc in self.processors:
+                    key = proc.set_control(key)
+                return frame
+            else: 
                 return frame
 
 class ShowProgress(FrameProcessor):

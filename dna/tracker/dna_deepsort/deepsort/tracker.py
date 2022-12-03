@@ -4,10 +4,11 @@ from typing import List, Union, Tuple
 import enum
 
 from numpy.linalg import det
+from shapely import geometry
 
 from .detection import Detection
 from . import matcher, utils
-from .utils import all_indices, intersection, subtract, project, overlap_ratios, overlaps_threshold
+from .utils import all_indices, intersection, subtract, project, filter_overlaps
 import dna
 import numpy as np
 from dna.types import Box, Size2d
@@ -33,7 +34,7 @@ class Tracker:
         self.new_track_overlap_threshold = 0.75
 
         self.kf = kalman_filter.KalmanFilter()
-        self.tracks = []
+        self.tracks:List[Track] = []
         self._next_id = 1
 
     def predict(self):
@@ -46,83 +47,76 @@ class Tracker:
 
     def update(self, detections):
         # Run matching cascade.
-        matches, unmatched_tracks, unmatched_detections = self._match(detections)
+        matches, unmatched_track_idxs, unmatched_detections = self._match(detections)
 
-        # Update track set.
+        # Update locations of matched tracks
         for tidx, didx in matches:
             self.tracks[tidx].update(self.kf, detections[didx])
 
+        # get bounding-boxes of all tracks
         t_boxes = [utils.track_to_box(track) for track in self.tracks]
-
-        for tidx in unmatched_tracks:
-            # track 영역이 image 전체의 영역에서 1/4 이상 벗어난 경우에는 더 이상 추적하지 않는다.
-            track = self.tracks[tidx]
-            ratios = overlap_ratios(t_boxes[tidx], self.domain)
-            if ratios[0] < 0.85:
-                track.mark_deleted()
-            else:
-                track.mark_missed()
-
-        # Temporarily lost된 track의 bounding-box의 크기가 일정 이하이면 delete시킨다.
-        # for tidx in range(len(self.tracks)):
-        #     track = self.tracks[tidx]
-        #     if track.is_confirmed() and track.time_since_update > 1:
-        #         size = t_boxes[tidx].size().to_int()
-        #         if size.width < _OBSOLTE_TRACK_SIZE or size.height < _OBSOLTE_TRACK_SIZE:
-        #             LOGGER.debug((f"delete too small temp-lost track[{track.track_id}:{track.time_since_update}], "
-        #                             f"size={size}, frame={dna.DEBUG_FRAME_IDX}"))
-        #             track.mark_deleted()
 
         # track의 bounding-box가 exit_region에 포함된 경우는 delete시킨다.
         for tidx in range(len(self.tracks)):
-            tbox = t_boxes[tidx]
-            if any(r.contains(t_boxes[tidx]) for r in self.params.dim_zones):
+            if dna.utils.find_any_centroid_cover(t_boxes[tidx], self.params.exit_zones) >= 0:
                 self.tracks[tidx].mark_deleted()
-            # elif any(r.contains(t_boxes[tidx]) for r in self.params.blind_zones):
-            #     self.tracks[tidx].mark_deleted()
+        
+        # unmatch된 track들 중에서 해당 box가 이미지 영역에서 1/4이상 넘어가면
+        # lost된 것으로 간주한다.
+        for tidx in unmatched_track_idxs:
+            track:Track = self.tracks[tidx]
+            if not track.is_deleted():
+                ratios = t_boxes[tidx].overlap_ratios(self.domain)
+                if ratios[0] < 0.85:
+                    track.mark_deleted()
+                else:
+                    track.mark_missed()
 
         # confirmed track과 너무 가까운 tentative track들을 제거한다.
         # 일반적으로 이런 track들은 이전 frame에서 한 물체의 여러 detection 검출을 통해 track이 생성된
         # 경우가 많아서 이를 제거하기 위함이다.
         matcher.delete_overlapped_tentative_tracks(self.tracks, self.params.max_overlap_ratio)
-
-        # unmatched detection 중에서 다른 detection과 일정부분 이상 겹치는 경우에는
-        # 새로운 track으로 간주되지 않게하기 위해 제거한다.
+        
         if len(unmatched_detections) > 0:
-            d_boxes = [d.bbox for d in detections]
-
-            non_overlapped = unmatched_detections.copy()
+            new_track_idxs = unmatched_detections.copy()
+            d_boxes: List[Box] = [d.bbox for d in detections]
+            
+            # 새로 추가될 track의 조건을 만족하지 않는 unmatched_detection들을 제거시킨다.
             for didx in unmatched_detections:
                 box = d_boxes[didx]
-
-                # 일정 크기 이하의 detection들은 무시한다.
+                
+                # 일정크기 이하의 unmatched_detections들은 제외시킴.
                 if box.width < self.params.min_size.width or box.height < self.params.min_size.height:
-                    non_overlapped.remove(didx)
+                    new_track_idxs.remove(didx)
                     continue
-
+                
                 # Exit 영역에 포함되는 detection들은 무시한다
-                if any(region.contains(box) for region in self.params.dim_zones):
-                    non_overlapped.remove(didx)
+                if dna.utils.find_any_centroid_cover(box, self.params.exit_zones) >= 0:
+                    new_track_idxs.remove(didx)
                     # LOGGER.debug((f"remove an unmatched detection contained in a blind region: "
                     #                 f"removed={didx}, frame={dna.DEBUG_FRAME_IDX}"))
                     continue
 
-                confi = detections[didx].confidence
-                for idx, ov in overlaps_threshold(box, d_boxes, self.new_track_overlap_threshold):
+                # 이미 match된 detection과 겹치는 비율이 너무 크거나,
+                # 다른 unmatched detection과 겹치는 비율이 크면서 그 detection 영역보다 작은 경우 제외시킴.
+                for idx, ov in filter_overlaps(box, d_boxes, lambda v: max(v) >= self.new_track_overlap_threshold):
                     if idx != didx and (idx not in unmatched_detections or d_boxes[idx].area() >= box.area()):
                         LOGGER.debug((f"remove an unmatched detection that overlaps with better one: "
-                                        f"removed={didx}, better={idx}, ratios={max(ov):.2f}, "
-                                        f"frame={dna.DEBUG_FRAME_IDX}"))
-                        non_overlapped.remove(didx)
+                                        f"removed={didx}, better={idx}, ratios={max(ov):.2f}"))
+                        new_track_idxs.remove(didx)
                         break
-            unmatched_detections = non_overlapped
 
-        for didx in unmatched_detections:
-            track = self._initiate_track(detections[didx])
-            self.tracks.append(track)
-            self._next_id += 1
+            # 조건을 통과한 unmatched detection들은 새로 생성된 track으로 설정한다.
+            for didx in new_track_idxs:
+                d_box = d_boxes[didx]
+                if dna.utils.find_any_centroid_cover(d_box, self.params.stable_zones) < 0:
+                    track = self._initiate_track(detections[didx])
+                    self.tracks.append(track)
+                    self._next_id += 1
+                else:
+                    print("no track initiated at stable zones")
 
-        delete_tracks = [t for t in self.tracks if t.is_deleted() and t.age > 1]
+        deleted_tracks = [t for t in self.tracks if t.is_deleted() and t.age > 1]
         self.tracks = [t for t in self.tracks if not t.is_deleted()]
 
         # Update distance metric.
@@ -139,10 +133,15 @@ class Tracker:
         active_targets = [t.track_id for t in confirmed_tracks]
         self.metric.partial_fit(np.asarray(features), np.asarray(targets), active_targets)
 
-        return delete_tracks
-        
-    def _match(self, detections):
+        return deleted_tracks
+                
+    # 반환값
+    #   * Track 작업으로 binding된 track 객체와 할당된 detection 객체: (track_idx, det_idx)
+    #   * 기존 track 객체들 중에서 이번 작업에서 확인되지 못한 track 객체들의 인덱스 list
+    #   * Track에 할당되지 못한 detection 객체들의 인덱스 list
+    def _match(self, detections) -> Tuple[List[Tuple[int,int]],List[int],List[int]]:
         if len(detections) == 0:
+            # Detection 작업에서 아무런 객체를 검출하지 못한 경우.
             return [], all_indices(self.tracks), detections
 
         # Split track set into confirmed and unconfirmed tracks.
@@ -150,6 +149,7 @@ class Tracker:
         hot_tracks = [i for i, t in enumerate(self.tracks) if t.is_confirmed() and t.time_since_update <= 3]
         unconfirmed_tracks = [i for i, t in enumerate(self.tracks) if not t.is_confirmed()]
 
+        # 이전 track 객체와 새로 detection된 객체사이의 거리 값을 기준으로 cost matrix를 생성함.
         dist_cost = self.distance_cost(self.tracks, detections)
         if dna.DEBUG_PRINT_COST:
             self.print_dist_cost(dist_cost, 999)

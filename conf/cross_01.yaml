@@ -35,7 +35,7 @@ tracker:
     - [-1, 772, 1921, 1081]
     - [1590, 656, 1925, 1084]
     - [1724, 301, 1925, 1083]
-  dim_zones:
+  exit_zones:
     - [502,-9,1568,175]
   draw_zones: true
   # output: C:/Temp/data/track_output.csv

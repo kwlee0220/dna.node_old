@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import cv2
@@ -32,3 +32,12 @@ def draw_label(convas:Image, label:str, tl, color: BGR=WHITE, fill_color: Option
     convas = cv2.rectangle(convas, tl, br, fill_color, -1, cv2.LINE_AA)  # filled
     return cv2.putText(convas, label, (tl[0], tl[1] - 2), 0, scale, color, thickness=txt_thickness,
                         lineType=cv2.LINE_AA)
+    
+def draw_polygon(convas:Image, coords:List[Union[Tuple[float,float],List[float]]], color, thickness) -> Image:
+    if len(coords) > 2:
+        coords = np.array(coords).astype(int)
+        return cv2.polylines(convas, [coords], True, color, thickness)
+    elif len(coords) == 2:
+        return cv2.line(convas, coords[0], coords[1], color, thickness)
+    else:
+        return convas

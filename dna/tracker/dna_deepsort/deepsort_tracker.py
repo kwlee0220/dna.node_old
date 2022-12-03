@@ -8,6 +8,7 @@ from enum import Enum
 import numpy as np
 import cv2
 from omegaconf.omegaconf import OmegaConf
+import shapely.geometry as geometry
 
 from dna import Frame
 
@@ -41,8 +42,9 @@ class DeepSORTParams:
     max_age: int
     min_size: Size2d
     max_overlap_ratio: float
-    blind_zones: List[Box]
-    dim_zones: List[Box]
+    blind_zones: List[geometry.Polygon]
+    exit_zones: List[geometry.Polygon]
+    stable_zones: List[geometry.Polygon]
 
 class DeepSORTTracker(DetectionBasedObjectTracker):
     def __init__(self, detector: ObjectDetector, domain: Box, tracker_conf: OmegaConf) -> None:
@@ -70,11 +72,16 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
 
         blind_zones = tracker_conf.get("blind_zones", [])
         if len(blind_zones) > 0:
-            blind_zones = [Box.from_tlbr(np.array(zone, dtype=np.int32)) for zone in blind_zones]
+            blind_zones = [geometry.Polygon([tuple(c) for c in zone]) for zone in blind_zones]
 
-        dim_zones = tracker_conf.get("dim_zones", [])
-        if len(dim_zones) > 0:
-            dim_zones = [Box.from_tlbr(np.array(zone, dtype=np.int32)) for zone in dim_zones]
+        exit_zones = tracker_conf.get("exit_zones", [])
+        if len(exit_zones) > 0:
+            exit_zones = [geometry.Polygon([tuple(c) for c in zone]) for zone in exit_zones]
+
+        stable_zones = tracker_conf.get("stable_zones", [])
+        if len(stable_zones) > 0:
+            # stable_zones = [Box.from_tlbr(np.array(zone, dtype=np.int32)) for zone in stable_zones]
+            stable_zones = [geometry.Polygon([tuple(c) for c in zone]) for zone in stable_zones]
 
         self.params = DeepSORTParams(metric_threshold=metric_threshold,
                                     max_iou_distance=max_iou_distance,
@@ -83,7 +90,8 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
                                     max_overlap_ratio=max_overlap_ratio,
                                     min_size=min_size,
                                     blind_zones=blind_zones,
-                                    dim_zones=dim_zones)
+                                    exit_zones=exit_zones,
+                                    stable_zones=stable_zones)
         self.deepsort = deepsort_rbc(domain = domain,
                                     wt_path=wt_path,
                                     params=self.params)
@@ -110,7 +118,7 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
 
     def track(self, frame: Frame) -> List[Track]:
         # detector를 통해 match 대상 detection들을 얻는다.
-        dets = self.detector.detect(frame)
+        dets:List[Detection] = self.detector.detect(frame)
 
         # 검출 물체 중 관련있는 label의 detection만 사용한다.
         if self.det_dict:
@@ -122,9 +130,11 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
             dets = new_dets
 
         # 일정 점수 이하의 detection들과 blind zone에 포함된 detection들은 무시한다.
-        def is_valid_detection(det):
-            return det.score >= self.min_detection_score and \
-                    not any(zone.contains(det.bbox) for zone in self.params.blind_zones)
+        def is_valid_detection(det:Detection):
+            if det.score < self.min_detection_score:
+                return False
+            else:
+                return utils.find_any_centroid_cover(det.bbox, self.params.blind_zones) < 0
         detections = [det for det in dets if is_valid_detection(det)]
 
         self.__last_frame_detections = detections

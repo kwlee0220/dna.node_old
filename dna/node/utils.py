@@ -30,10 +30,21 @@ def load_publishing_pipeline(node_id: str, publishing_conf: OmegaConf) -> TrackP
 
     # attach world-coordinates to each track
     if publishing_conf.get('attach_world_coordinates') is not None:
-        from .world_transform import WorldTransform
-        world_coords = WorldTransform(publishing_conf.attach_world_coordinates)
-        queue.add_listener(world_coords)
-        queue = world_coords
+        from .world_coord_attach import WorldCoordinateAttacher
+        attacher = WorldCoordinateAttacher(publishing_conf.attach_world_coordinates)
+        queue.add_listener(attacher)
+        queue = attacher
+
+    if publishing_conf.get('stabilization') is not None:
+        from .stabilizer import Stabilizer
+        stabilizer = Stabilizer(publishing_conf.stabilization)
+        queue.add_listener(stabilizer)
+        queue = stabilizer
+
+    if publishing_conf.get('local_path') is not None:
+        from .local_path_generator import LocalPathGenerator
+        path_gen = LocalPathGenerator(publishing_conf.local_path)
+        queue.add_listener(path_gen)
 
     if publishing_conf.get('kafka', None) is not None:
         queue.add_listener(KafkaEventPublisher(publishing_conf.kafka))

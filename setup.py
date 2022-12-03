@@ -18,6 +18,7 @@ setup(
 			'dna_node_processor_client = scripts.dna_node_processor_client:main',
 			'dna_publish_events = scripts.dna_publish_events:main',
 			'dna_publish_event_server = scripts.dna_publish_event_server:main',
+			'dna_draw_trajs = scripts.dna_draw_trajs:main',
 		],
 	},
     install_requires = [

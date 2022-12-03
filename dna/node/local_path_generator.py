@@ -2,8 +2,10 @@ from typing import List
 
 from omegaconf import OmegaConf
 from shapely.geometry import LineString
+import cv2
 
-from dna import Point
+from dna import Point, Image
+from dna.color import BGR
 from dna.tracker.tracker import TrackState
 from .local_path_event import LocalPathEvent
 from .track_event import TrackEvent
@@ -25,7 +27,7 @@ class Session:
 
     def append(self, ev: TrackEvent) -> None:
         self.points.append(ev.location.center())
-        self.world_coords.append(ev.world_coord)
+        self.world_coords.append(ev.lonlat_coord)
         if self.first_frame < 0:
             self.first_frame = ev.frame_index
         self.last_frame = ev.frame_index
@@ -41,14 +43,19 @@ class Session:
                               first_frame=self.first_frame, last_frame=self.last_frame,
                               continuation=cont)
 
+    # def draw_camera_path(self, convas:Image, color:BGR, thickness:int=2) -> Image:
+    #     return cv2.polylines(convas, [pt.to_tuple() for pt in self.points], False, color, thickness)
 
-class GenerateLocalPath(EventProcessor):
+    # def draw_world_path(self, convas:Image, color:BGR, thickness:int=2) -> Image:
+    #     return cv2.polylines(convas, [pt.to_tuple() for pt in self.world_coords], False, color, thickness)
+
+class LocalPathGenerator(EventProcessor):
     MAX_PATH_LENGTH = 100
 
     def __init__(self, conf:OmegaConf) -> None:
         EventProcessor.__init__(self)
 
-        self.max_path_length = conf.get('max_path_length', GenerateLocalPath.MAX_PATH_LENGTH)
+        self.max_path_length = conf.get('max_path_length', LocalPathGenerator.MAX_PATH_LENGTH)
         self.sessions = dict()
 
     def close(self) -> None:

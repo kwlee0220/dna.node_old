@@ -61,6 +61,9 @@ class Point:
         xs = [pt1.x + (idx * step_x) for idx in range(1, npoints+1)]
         return [Point.from_np(np.array([x, func(x)])) for x in xs]
 
+    def to_rint(self) -> Point:
+        return Point.from_np(np.rint(self.__xy).astype(int))
+
     def __add__(self, rhs) -> Point:
         if isinstance(rhs, Point):
             return Point.from_np(self.xy + rhs.xy)
@@ -281,6 +284,13 @@ class Box:
     @property
     def height(self) -> Union[float,int]:
         return self.wh[1]
+    
+    @property
+    def coords(self) -> np.ndarray:
+        return np.array([[self.__tlbr[0], self.__tlbr[1]],
+                            [self.__tlbr[2], self.__tlbr[1]],
+                            [self.__tlbr[2], self.__tlbr[3]],
+                            [self.__tlbr[0], self.__tlbr[3]]])
 
     def top_left(self) -> Point:
         return Point.from_np(self.tl)
@@ -343,10 +353,22 @@ class Box:
         area1, area2 = self.area_int(), self.area_int()
         return inter_area / (area1 + area2 - inter_area)
 
+    def overlap_ratios(self, other:Box) -> Tuple[float,float,float]:
+        inter_area = self.intersection(other).area()
+        r1 = inter_area / self.area() if self.is_valid() else 0
+        r2 = inter_area / other.area() if other.is_valid() else 0
+        iou = inter_area / (self.area() + other.area() - inter_area)  if self.is_valid() and other.is_valid() else 0
+        return (r1, r2, iou)
+
     def draw(self, convas:Image, color:BGR, line_thickness=2):
         tlbr_int = self.__tlbr.astype(int)
         return cv2.rectangle(convas, tlbr_int[0:2], tlbr_int[2:4], color,
                             thickness=line_thickness, lineType=cv2.LINE_AA)
+
+    def project(self, img:Image) -> np.ndarray:
+        tl = self.tl
+        br = self.br
+        return img[tl[1]:br[1], tl[0]:br[0]]
     
     def __repr__(self):
         return '{}:{}'.format(self.top_left(), self.size())

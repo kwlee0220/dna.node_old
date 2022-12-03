@@ -1,27 +1,57 @@
+id: etri:05
 
 camera:
-  id: etri:05
-  uri: C:/Temp/data/etri/etri_05.mp4
-  size: [1920, 1080]
-  fps: 10
-  blind_regions:
-    - [-17,-3,727,391]
-    - [719,29,1904,249]
-    - [1307,232,1915,398]
-    - [-5,828,1235,1082]
+  uri: data/2022/etri2022_05_crop.mp4
+  # size: [1920, 1080]
+  sync: false
 
 tracker:
-  # detector: yolov4
-  detector: file:C:/Temp/data/etri/etri_05_det.txt
-  n_init: 3
-  matching_threshold: 0.55
-  max_iou_distance: 0.7
-  max_age: 10
-  min_detection_score: 0
-  det_mapping:
-    car: car
-    bus: car
-    truck: car
+  uri: dna.tracker.dna_deepsort
+  # uri: dna.tracker.cnu_siammot
+  # draw_tracks: true
+  draw_zones: True
+  # output: C:/Temp/data/track_output.csv
 
-camera_geometry:
-  file: C:\development\dna\data\camera_geoms\etri_05.pickle
+  # cnu_siammot:
+  #   model: models/person_vehicle/models.pth
+  #   detector: configs/CenterNet_siammot.yaml
+
+  dna_deepsort:
+    detector: dna.detect.yolov4
+    # detector: dna.detect.yolov5:model=m&score=0.45
+    # detector: dna.detect.rcnn50_fpn
+    # detector: file:videos/etri/etri_051_det.txt
+    # min_detection_score: 0
+    # n_init: 3
+    # metric_threshold: 0.55
+    # max_iou_distance: 0.85
+    # max_overlap_ratio: 0.75
+    # max_age: 10
+    # min_size: [30, 20]
+    # det_mapping:
+    #   car: car
+    #   bus: car
+    #   truck: car
+    blind_zones:
+      - [[1915, 26], [10, 22], [2, 625], [674, 367], [713, 322], [657, 299], [662, 200], [993, 241],
+        [1302, 301], [1682, 408], [1681, 542], [1547, 516], [1420, 534], [1346, 593], [1268, 796],
+        [347, 805], [5, 1038], [5, 1072], [1915, 1066]]
+    exit_zones:
+      - [[265, 520], [385, 888], [284, 1079], [0, 1080], [2, 521]]
+      - [[1916, 394], [1914, 632], [1693, 608], [1693, 388]]
+      - [[706, 183], [706, 320], [551, 316], [552, 178]]
+
+publishing:
+  min_path_length: 10
+  attach_world_coordinates:
+    camera_geometry: conf/region_etri/etri_testbed.json
+    # camera_geometry: conf/etri_camera_geom.json
+    camera_index: 1
+    epsg_code: "EPSG:3857"
+    # world_coords_offset: [-1.5,3]
+  local_path:
+    max_path_length: 100
+  kafka:
+    bootstrap_servers: [localhost:9092]
+#   bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
+    topic: 'node-tracks'

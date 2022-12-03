@@ -63,10 +63,10 @@ class deepsort_rbc():
 
 	def run_deep_sort(self, frame, bboxes: List[Box], scores: List[float]):
 		if len(bboxes) > 0:
-			tlwhs = [b.to_tlwh() for b in bboxes]
-			features = self.extract_features(frame, tlwhs)
+			tlwh_list = [b.to_tlwh() for b in bboxes]
+			features = self.extract_features(frame, tlwh_list)
 			dets = [Detection(bbox, score, feature)	for bbox, score, feature in zip(bboxes, scores, features)]
-			outboxes = np.array(tlwhs)
+			outboxes = np.array(tlwh_list)
 			outscores = np.array([d.confidence for d in dets])
 			indices = prep.non_max_suppression(outboxes, 0.8, outscores)
 			dets = [dets[i] for i in indices]

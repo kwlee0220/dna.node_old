@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, Optional
 import collections
+from pathlib import Path
 
 from omegaconf import OmegaConf
 import numpy as np
@@ -19,6 +20,9 @@ class TrackWriter(TrackProcessor):
     def track_started(self, tracker: ObjectTracker) -> None:
         super().track_started(tracker)
 
+        parent = Path(self.track_file).parent
+        if not parent.exists():
+            parent.mkdir(parents=True, exist_ok=True)
         self.out_handle = open(self.track_file, 'w')
     
     def track_stopped(self, tracker: ObjectTracker) -> None:
@@ -121,8 +125,10 @@ class TrackingPipeline(FrameProcessor):
             processor.track_stopped(self.tracker)
 
     def set_control(self, key: int) -> int:
-        if key == ord('r'):
+        if key == ord('z'):
             self.draw_zones = not self.draw_zones
+        if key == ord('t'):
+            self.draw_tracks = not self.draw_tracks
         return key
 
     def process_frame(self, frame: Frame) -> Frame:
@@ -133,10 +139,12 @@ class TrackingPipeline(FrameProcessor):
 
         convas = frame.image
         if self.draw_zones:
-            for region in self.tracker.params.blind_zones:
-                convas = region.draw(convas, color.MAGENTA, 2)
-            for region in self.tracker.params.dim_zones:
-                convas = region.draw(convas, color.RED, 2)
+            for zone in self.tracker.params.blind_zones:
+                convas = plot_utils.draw_polygon(convas, list(zone.exterior.coords), color.YELLOW, 2)
+            for zone in self.tracker.params.exit_zones:
+                convas = plot_utils.draw_polygon(convas, list(zone.exterior.coords), color.RED, 2)
+            for poly in self.tracker.params.stable_zones:
+                convas = plot_utils.draw_polygon(convas, list(poly.exterior.coords), color.BLUE, 2)
 
         if self.draw_tracks:
             if self.is_detection_based:

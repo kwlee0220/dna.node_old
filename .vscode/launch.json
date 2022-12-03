@@ -4,6 +4,8 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
+        
         { "name": "NodeProcessor",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_node_processor.py",
@@ -11,7 +13,7 @@
             "args": [
                 // "--host", "localhost",
                 // "--user", "dna",
-                // "--password", "urc2004",
+                "--password", "urc2004",
                 "--request_qname", "track_requests",
                 "--show",   // -s
             ],
@@ -23,12 +25,12 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--node", "etri:051",
-                "--conf", "conf/etri_051.yaml",
-                // "--output", "output/etri/etri_051_event.json",   // -o <file>
+                "--conf", "conf/etri_05.yaml",
+                "--output", "output/2022/etri_05_event.json",   // -o <file>
                 // "--begin_frame", "1000",
                 // "--end_frame", "1000",
-                "--show", "1280x720",
-                // "--show_progress",  // -p
+                // "--show", //"1280x720",
+                "--show_progress",  // -p
             ],
             "justMyCode": true
         },
@@ -38,12 +40,11 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--node", "etri:051",
-                // "--conf", "conf/etri/etri_061.yaml",
-                "--conf", "conf/ictway_071.yaml",
-                // "--output", "output/ictway/ictway_041_track.csv",   // -o <file>
-                // "--output_video", "output/etri/etri_041_track.mp4",   // -v <file>
-                "--show", //"1280x720",
-                // "--show_progress",  // -p
+                "--conf", "conf/etri_07.yaml",
+                "--output", "output/2022/etri_07_track.csv",   // -o <file>
+                "--output_video", "output/2022/etri_07_track_all.mp4",   // -v <file>
+                // "--show", //"1280x720",
+                "--show_progress",  // -p
                 // "--pause_on_eos",    // -k
             ],
             "justMyCode": true
@@ -54,15 +55,15 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--node", "etri:051",
-                "--conf", "conf/etri_051.yaml",
+                "--conf", "conf/etri_07.yaml",
                 // "--detector", "dna.detect.yolov4",
                 // "--detector", "dna.detect.rcnn50_fpn",
                 // "--detector", "dna.detect.yolov5:model=l&score=0.4",
                 // "--detector", "file:${env:HOME}/Dropbox/data/etri/etri_051_det.txt",
-                // "--output", "output/etri/etri_051_det.csv",   // -o <file>
-                // "--output_video", "output/etri/etri_051_det.mp4",   // -v <file>
-                "--show", "1280x720",
-                // "--show_progress",   // -p
+                "--output", "output/2022/etri_07_det.csv",   // -o <file>
+                "--output_video", "output/2022/etri_07_det.mp4",   // -v <file>
+                // "--show", "1280x720",
+                "--show_progress",   // -p
                 // "--pause_on_eos",    // -k
             ],
             "justMyCode": true
@@ -73,8 +74,8 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--node", "etri:041",
-                "--conf", "conf/etri_041.yaml",
-                // "--uri", "data/etri/etri_041.mp4",
+                "--conf", "conf/ictway_04.yaml",
+                // "--uri", "data/ictway/ictway_04_crop_30fps.mp4",
                 // "--conf", "conf/ictway.yaml",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",
@@ -83,11 +84,27 @@
             ],
             "justMyCode": true
         },
+        { "name": "DrawTrajs",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_draw_trajs.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "output/2022/etri_06_track.csv",
+                "--video", "data/2022/etri2022_06_crop.mp4",
+                // "--type", "json",
+                "--camera_index", "2",
+                // "--world_view",
+                // "--thickness", "2",
+                "-i",
+                // "-o", "output/result.jpg",
+            ],
+            "justMyCode": true
+        },
 
 
         { "name": "Test",
             "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/test.py",
+            "program": "${workspaceFolder}/test_drawer.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "${workspaceFolder}/conf/etri_051.yaml:camera",
@@ -133,12 +150,16 @@
             ],
             "justMyCode": true
         },
-        { "name": "TestExec",
+        { "name": "Play",
             "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/test_exec.py",
+            "program": "${workspaceFolder}/play_videos.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--no_sync",
+                "output/2022/etri_04_track_raw.mp4",
+                "output/result.mp4",
+                "--begin_frame", "59",
+                "--end_frame", "112",
+                "--tlbr", "0,452,1440,624",
             ],
             "justMyCode": true
         },

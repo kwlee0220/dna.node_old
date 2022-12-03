@@ -1,28 +1,38 @@
+id: etri:06
 
 camera:
-  id: etri:06
-  uri: C:/Temp/data/etri/etri_06.mp4
-  size: [1920, 1080]
-  fps: 10
-  blind_regions:
-    - [1309,223,1908,488]
-    - [743,87,1081,316]
-    - [1741,508,1923,1087]
-    - [-3,634,387,1083]
+  uri: data/2022/etri2022_06_crop.mp4
+  sync: False
 
 tracker:
-  # detector: yolov4
-  detector: file:C:/Temp/data/etri/etri_06_det.txt
-  n_init: 5
-  matching_threshold: 0.55
-  max_iou_distance: 0.7
-  max_age: 30
-  min_detection_score: 0
-  min_size: [30, 22]
-  det_mapping:
-    car: car
-    bus: car
-    truck: car
+  uri: dna.tracker.dna_deepsort
+  draw_zones: True
+  
+  dna_deepsort:
+    detector: dna.detect.yolov4
+    n_init: 5
+    max_age: 30
+    blind_zones:
+      - [[186, 631], [738, 492], [917, 345], [1019, 345], [1016, 332], [1102, 332], [1311, 488], [1726, 587],
+        [1759, 843], [1733, 1076], [1921, 1075], [1920, 2], [0, -2], [-2, 636], [1, 1076], [226, 1077], [174, 826]]
+    exit_zones:
+      - [[997, 327], [997, 327], [925, 313], [923, 247], [1089, 247], [1090, 328]]
+      - [[1636, 586], [1637, 925], [1917, 923], [1917, 592]]
+      - [[189, 616], [185, 962], [3, 966], [3, 615]]
+    stable_zones:
+      - [[940, 363], [1097, 361], [1265, 527], [771, 539]]
 
-camera_geometry:
-  file: C:\development\dna\data\camera_geoms\etri_06.pickle
+publishing:
+  min_path_length: 10
+  attach_world_coordinates:
+    camera_geometry: conf/region_etri/etri_testbed.json
+    # camera_geometry: conf/etri_camera_geom.json
+    camera_index: 2
+    epsg_code: "EPSG:3857"
+    # world_coords_offset: [1,5]
+  stabilization:
+    look_ahead: 7
+  kafka:
+    bootstrap_servers: [localhost:9092]
+#   bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
+    topic: 'node-tracks'

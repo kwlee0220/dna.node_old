@@ -6,7 +6,7 @@ from scipy.optimize import linear_sum_assignment
 import dna
 from dna import Box
 from . import utils
-from .utils import overlaps_threshold, overlap_ratios
+from .utils import filter_overlaps
 
 import logging
 LOGGER = logging.getLogger('dna.tracker.deepsort')
@@ -205,10 +205,10 @@ def matching_by_hungarian(cost_matrix, threshold, track_indices, detection_indic
     return matches, unmatched_tracks, unmatched_detections
 
 
-def overlap_detections1(box, detections, threshold, detection_indices):
+def overlap_detections1(box:Box, detections, threshold, detection_indices):
     overlaps = []
     for didx in detection_indices:
-        score = max(overlap_ratios(box, detections[didx].bbox))
+        score = max(box.overlap_ratios(detections[didx].bbox))
         if score >= threshold:
             overlaps.append((didx, score))
     return overlaps
@@ -221,15 +221,15 @@ def overlap_detections(targets, detections, threshold, target_indices, detection
     return overlaps
 
 def delete_overlapped_tentative_tracks(tracks, threshold):
-    confirmed_tracks = [i for i, t in enumerate(tracks) if t.is_confirmed() and t.time_since_update == 1 and not t.is_deleted()]
-    unconfirmed_tracks = [i for i, t in enumerate(tracks) if not t.is_confirmed() and not t.is_deleted()]
+    confirmed_track_idxs = [i for i, t in enumerate(tracks) if t.is_confirmed() and t.time_since_update == 1 and not t.is_deleted()]
+    unconfirmed_track_idxs = [i for i, t in enumerate(tracks) if not t.is_confirmed() and not t.is_deleted()]
 
-    if len(confirmed_tracks) > 0 and len(unconfirmed_tracks) > 0:
-        track_boxes = [utils.track_to_box(track) for track in tracks]
+    if len(confirmed_track_idxs) > 0 and len(unconfirmed_track_idxs) > 0:
+        t_boxes = [utils.track_to_box(track) for track in tracks]
 
         suriveds = []
-        for uc_idx in unconfirmed_tracks:
-            ovs = overlaps_threshold(track_boxes[uc_idx], track_boxes, threshold, confirmed_tracks)
+        for uc_idx in unconfirmed_track_idxs:
+            ovs = filter_overlaps(t_boxes[uc_idx], t_boxes, lambda o: max(o) >= threshold, confirmed_track_idxs)
             if len(ovs) > 0:
                 tracks[uc_idx].mark_deleted()
                 if LOGGER.isEnabledFor(logging.DEBUG):
@@ -247,7 +247,7 @@ def overlap_cost(tracks, detections, track_indices, detention_indices):
     for tidx in track_indices:
         t_box = utils.track_to_box(tracks[tidx])
         for didx in detention_indices:
-            ovr_matrix[tidx, didx] = max(overlap_ratios(t_box, det_boxes[didx]))
+            ovr_matrix[tidx, didx] = max(t_box.overlap_ratios(det_boxes[didx]))
 
     return ovr_matrix
 
@@ -256,6 +256,6 @@ def iou_matrix(tracks, detections, track_indices, detention_indices):
     for tidx in track_indices:
         t_box = utils.track_to_box(tracks[tidx])
         for didx in detention_indices:
-            iou_matrix[tidx, didx] = overlap_ratios(t_box, detections[didx].bbox)[2]
+            iou_matrix[tidx, didx] = t_box.overlap_ratios(detections[didx].bbox)[2]
 
     return iou_matrix
