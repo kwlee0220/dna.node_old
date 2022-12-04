@@ -1,5 +1,6 @@
+
+from typing import List, Union, Tuple, Any
 from datetime import datetime
-from typing import List, Union, Tuple
 from pathlib import Path
 from dataclasses import dataclass
 import sys
@@ -10,7 +11,7 @@ import cv2
 from omegaconf.omegaconf import OmegaConf
 import shapely.geometry as geometry
 
-from dna import Frame
+from dna import Frame, Image, BGR, color, plot_utils
 
 FILE = Path(__file__).absolute()
 DEEPSORT_DIR = str(FILE.parents[0] / 'deepsort')
@@ -20,7 +21,8 @@ if not DEEPSORT_DIR in sys.path:
 import dna
 from dna import Box, Size2d, utils, gdown_file
 from dna.detect import ObjectDetector, Detection
-from ..tracker import Track, TrackState, DetectionBasedObjectTracker
+from dna.tracker.dna_track import DNATrack, TrackState
+from ..tracker import DetectionBasedObjectTracker
 from .deepsort.deepsort import deepsort_rbc
 from .deepsort.track import Track as DSTrack
 from .deepsort.track import TrackState as DSTrackState
@@ -45,6 +47,58 @@ class DeepSORTParams:
     blind_zones: List[geometry.Polygon]
     exit_zones: List[geometry.Polygon]
     stable_zones: List[geometry.Polygon]
+    
+class DeepSORTTrack(DNATrack):
+    from .deepsort.track import Track as DSTrack
+    def __init__(self, ds_track: DSTrack, frame_index:int, timestamp:float) -> None:
+        super().__init__()
+        self.ds_track:DSTrack = ds_track
+        self.__id = ds_track.track_id
+        self.__location = Box.from_tlbr(np.rint(ds_track.to_tlbr()))
+        self.__frame_index = frame_index
+        self.__timestamp = timestamp
+        
+        if ds_track.state == DSTrackState.Confirmed:
+            self.__state = TrackState.Confirmed if ds_track.time_since_update <= 0 else TrackState.TemporarilyLost
+        elif ds_track.state == DSTrackState.Tentative:
+            self.__state = TrackState.Tentative
+        elif ds_track.state == DSTrackState.Deleted:
+            self.__state = TrackState.Deleted
+        
+    @property
+    def id(self) -> Any:
+        return self.__id
+
+    @property
+    def state(self) -> TrackState:
+        return self.__state
+
+    @property
+    def location(self) -> Box:
+        return self.__location
+
+    @property
+    def frame_index(self) -> int:
+        return self.__frame_index
+
+    @property
+    def timestamp(self) -> float:
+        return self.__timestamp
+    
+    def draw(self, convas:Image, color:BGR, label_color:BGR=None, line_thickness:int=2) -> Image:
+        loc = self.location
+        convas = loc.draw(convas, color, line_thickness=line_thickness)
+        convas = cv2.circle(convas, loc.center().xy.astype(int), 4, color, thickness=-1, lineType=cv2.LINE_AA)
+        if label_color:
+            if self.__state == TrackState.Confirmed:
+                label = f"{self.id}({self.state.code})"
+            elif self.__state == TrackState.TemporarilyLost:
+                label = f"{self.id}({self.ds_track.time_since_update})"
+            elif self.__state == TrackState.Tentative:
+                remains = self.ds_track.hits - self.ds_track._n_init
+                label = f"{self.id}({remains})"
+            convas = plot_utils.draw_label(convas, label, loc.tl.astype('int32'), label_color, color, 2)
+        return convas
 
 class DeepSORTTracker(DetectionBasedObjectTracker):
     def __init__(self, detector: ObjectDetector, domain: Box, tracker_conf: OmegaConf) -> None:
@@ -96,11 +150,6 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
                                     wt_path=wt_path,
                                     params=self.params)
         self.__last_frame_detections = []
-
-        # level_name = tracker_conf.get("log_level", "info").upper()
-        # level = logging.getLevelName(level_name)
-        # logger = get_logger("dna.track.deep_sort")
-        # logger.setLevel(level)
         
     @property
     def detector(self) -> ObjectDetector:
@@ -116,7 +165,7 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
         else:
             return None
 
-    def track(self, frame: Frame) -> List[Track]:
+    def track(self, frame: Frame) -> List[DNATrack]:
         # detector를 통해 match 대상 detection들을 얻는다.
         dets:List[Detection] = self.detector.detect(frame)
 
@@ -141,21 +190,9 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
         bboxes, scores = self.split_boxes_scores(self.__last_frame_detections)
         tracker, deleted_tracks = self.deepsort.run_deep_sort(frame.image.astype(np.uint8), bboxes, scores)
 
-        active_tracks = [self.to_dna_track(ds_track, frame.index, frame.ts) for ds_track in tracker.tracks]
-        deleted_tracks = [self.to_dna_track(ds_track, frame.index, frame.ts) for ds_track in deleted_tracks]
+        active_tracks = [DeepSORTTrack(ds_track, frame.index, frame.ts) for ds_track in tracker.tracks]
+        deleted_tracks = [DeepSORTTrack(ds_track, frame.index, frame.ts) for ds_track in deleted_tracks]
         return active_tracks + deleted_tracks
-
-    def to_dna_track(self, ds_track: DSTrack, frame_idx: int, ts:float) -> Track:
-        if ds_track.state == DSTrackState.Confirmed:
-            state = TrackState.Confirmed if ds_track.time_since_update <= 0 else TrackState.TemporarilyLost
-        elif ds_track.state == DSTrackState.Tentative:
-            state = TrackState.Tentative
-        elif ds_track.state == DSTrackState.Deleted:
-            state = TrackState.Deleted
-
-        return Track(id=ds_track.track_id, state=state,
-                    location=Box.from_tlbr(np.rint(ds_track.to_tlbr())),
-                    frame_index=frame_idx, ts=ts)
 
     def split_boxes_scores(self, det_list) -> Tuple[List[Box], List[float]]:
         boxes = []

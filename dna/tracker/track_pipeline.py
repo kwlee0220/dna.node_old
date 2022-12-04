@@ -7,7 +7,8 @@ from omegaconf import OmegaConf
 import numpy as np
 
 from dna import plot_utils, color, Point, BGR, Image, Frame
-from .tracker import Track, TrackState, ObjectTracker, TrackProcessor, DetectionBasedObjectTracker
+from .dna_track import DNATrack, TrackState
+from .tracker import ObjectTracker, TrackProcessor, DetectionBasedObjectTracker
 
 
 class TrackWriter(TrackProcessor):
@@ -32,7 +33,7 @@ class TrackWriter(TrackProcessor):
 
         super().track_stopped(tracker)
 
-    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[Track]) -> None:
+    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[DNATrack]) -> None:
         for track in tracks:
             self.out_handle.write(track.to_string() + '\n')
 
@@ -43,10 +44,10 @@ class Trail:
         self.__tracks = []
 
     @property
-    def tracks(self) -> List[Track]:
+    def tracks(self) -> List[DNATrack]:
         return self.__tracks
 
-    def append(self, track: Track) -> None:
+    def append(self, track: DNATrack) -> None:
         self.__tracks.append(track)
 
     def draw(self, convas: np.ndarray, color: color.BGR, line_thickness=2) -> np.ndarray:
@@ -68,7 +69,7 @@ class TrailCollector(TrackProcessor):
     def track_started(self, tracker: ObjectTracker) -> None: pass
     def track_stopped(self, tracker: ObjectTracker) -> None: pass
 
-    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[Track]) -> None:      
+    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[DNATrack]) -> None:      
         for track in tracks:
             if track.state == TrackState.Confirmed  \
                 or track.state == TrackState.TemporarilyLost    \
@@ -164,7 +165,7 @@ class TrackingPipeline(FrameProcessor):
         else:
             return frame
     
-    def draw_track_trail(self, convas:Image, track: Track, color: color.BGR, label_color: BGR=color.WHITE,
+    def draw_track_trail(self, convas:Image, track: DNATrack, color: color.BGR, label_color: BGR=color.WHITE,
                         trail_color: Optional[BGR]=None) -> np.ndarray:
         convas = track.draw(convas, color, label_color=label_color, line_thickness=2)
 

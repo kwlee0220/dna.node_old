@@ -14,37 +14,28 @@ from dna.utils import RectangleDrawer, PolygonDrawer
 img = None
 
 camera_conf = OmegaConf.create()
-camera_conf.uri = "output/2022/etri_07_track_all.mp4"
+camera_conf.uri = "output/2022/etri_06_track_all.mp4"
 # camera_conf.uri = "output/result.jpg"
-camera_conf.begin_frame = 2614
+camera_conf.begin_frame = 1525
 camera:Camera = create_camera_from_conf(camera_conf)
- 
-tlbrs = [[-17,-3,727,391],
-        [-5,828,1235,1082],
-        [1776, -4, 2017, 669]]
-# boxes:List[Box] = [Box.from_tlbr(tlbr) for tlbr in tlbrs]
-boxes = []
 
 coords_list = [
     # [[186, 631], [738, 492], [915, 352], [1016, 351], [1017, 334], [1101, 334], [1311, 488], [1726, 587],
     #     [1759, 843], [1733, 1076], [1921, 1075], [1920, 2], [0, -2], [-2, 636],  [1, 1076], [226, 1077], [174, 826]],
     # [[1339, 563], [1296, 1045], [1410, 1054], [1466, 595]],
-    # [[1152, 420], [871, 411], [860, 463], [1168, 459]],
-    [[199, 467], [531, 509], [800, 460], [1136, 308], [1284, 311], [1317, 268], [1425, 273], [1399, 513],
-        [1518, 587], [1673, 632], [1683, 1078], [1919, 1076], [1918, 6], [2, 6], [2, 657], [150, 581], [85, 526]]
+    [[1017, 356], [998, 273], [1091, 272], [1097, 355]],
+    [[186, 631], [738, 492], [917, 349], [1112, 347], [1311, 488], [1726, 587], [1759, 843], [1733, 1076],
+        [1921, 1075], [1920, 2], [0, -2], [-2, 636], [1, 1076], [226, 1077], [174, 826]]
 ]
 
 with closing(camera.open()) as cap:
     img = cap().image
 # img = cv2.imread("output/result.jpg", cv2.IMREAD_COLOR)
-for box in boxes:
-    img = box.draw(img, color.CYAN, 2)
 for coords in coords_list:
     img = plot_utils.draw_polygon(img, coords, color.ORANGE, 2)
 
 polygon = []
-polygon = [[199, 467], [531, 509], [800, 460], [1136, 308], [1284, 311], [1317, 268], [1425, 273], [1399, 513],
-        [1518, 587], [1673, 632], [1683, 1078], [1919, 1076], [1918, 6], [2, 6], [2, 657], [150, 581], [85, 526]]
+polygon = [[1017, 356], [998, 273], [1091, 272], [1097, 355]]
 
 coords = PolygonDrawer(img, polygon).run()
 print(coords)

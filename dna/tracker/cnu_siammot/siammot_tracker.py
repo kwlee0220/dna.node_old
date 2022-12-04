@@ -19,7 +19,7 @@ if not DEEPSORT_DIR in sys.path:
 
 import dna
 from dna import Box
-from dna.tracker import Track, TrackState
+from dna.tracker.dna_track import SimpleTrack, TrackState
 
 from detectron2.config import get_cfg
 from detectron2.structures import Instances
@@ -91,9 +91,9 @@ class SiamMOT():
             if track_state[idx] <= -2:
                 state = TrackState(4)
 
-            result.append(Track(id=int(track_id),
+            result.append(SimpleTrack(id=int(track_id),
                                 state=state,
                                 location=Box(bboxes[idx]),
                                 frame_index=frame_idx,
-                                ts=ts))
+                                timestamp=ts))
         return result
