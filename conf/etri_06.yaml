@@ -30,8 +30,9 @@ publishing:
     camera_index: 2
     epsg_code: "EPSG:3857"
     # world_coords_offset: [1,5]
-  # stabilization:
-  #   look_ahead: 7
+  stabilization:
+    look_ahead: 7
+    # smoothing_factor: 1
   kafka:
     bootstrap_servers: [localhost:9092]
 #   bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]

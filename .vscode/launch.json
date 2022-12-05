@@ -25,8 +25,8 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--node", "etri:051",
-                "--conf", "conf/etri_07.yaml",
-                "--output", "output/2022/etri_07_event.json",   // -o <file>
+                "--conf", "conf/etri_06.yaml",
+                "--output", "output/2022/etri_06_event.json",   // -o <file>
                 // "--begin_frame", "1000",
                 // "--end_frame", "1000",
                 // "--show", //"1280x720",
