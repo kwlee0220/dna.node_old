@@ -7,7 +7,7 @@ import json
 import numpy as np
 
 from dna import Box, Point
-from dna.tracker.dna_track import DNATrack, TrackState
+from dna.tracker import DNATrack, TrackState
 from .kafka_event import KafkaEvent
 
 
@@ -36,9 +36,9 @@ class TrackEvent(KafkaEvent):
             return False
 
     @staticmethod
-    def from_track(node_id:str, track:Track) -> TrackEvent:
+    def from_track(node_id:str, track:DNATrack) -> TrackEvent:
         return TrackEvent(node_id=node_id, luid=track.id, state=track.state,
-                        location=track.location, frame_index=track.frame_index, ts=int(track.ts * 1000))
+                        location=track.location, frame_index=track.frame_index, ts=int(track.timestamp * 1000))
 
     @staticmethod
     def from_json(json_str:str) -> TrackEvent:
