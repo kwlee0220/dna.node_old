@@ -27,7 +27,7 @@ class Session:
 
     def append(self, ev: TrackEvent) -> None:
         self.points.append(ev.location.center())
-        self.world_coords.append(ev.lonlat_coord)
+        self.world_coords.append(ev.world_coord)
         if self.first_frame < 0:
             self.first_frame = ev.frame_index
         self.last_frame = ev.frame_index

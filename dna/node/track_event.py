@@ -21,7 +21,7 @@ class TrackEvent(KafkaEvent):
     location: Box = field(hash=False)
     frame_index: int
     ts: int = field(hash=False)
-    lonlat_coord: Optional[Point] = field(default=None, repr=False, hash=False)
+    world_coord: Optional[Point] = field(default=None, repr=False, hash=False)
     distance: Optional[float] = field(default=None, repr=False, hash=False)
 
     def key(self) -> str:
@@ -44,9 +44,9 @@ class TrackEvent(KafkaEvent):
     def from_json(json_str:str) -> TrackEvent:
         json_obj = json.loads(json_str)
 
-        lonlat_coord = json_obj.get('lonlat_coord', None)
-        if lonlat_coord is not None:
-            lonlat_coord = Point.from_np(lonlat_coord)
+        world_coord = json_obj.get('world_coord', None)
+        if world_coord is not None:
+            world_coord = Point.from_np(world_coord)
         distance = json_obj.get('distance', None)
 
         return TrackEvent(node_id=json_obj['node'],
@@ -55,15 +55,15 @@ class TrackEvent(KafkaEvent):
                             location=Box.from_tlbr(np.array(json_obj['location'])),
                             frame_index=json_obj['frame_index'],
                             ts=json_obj['ts'],
-                            lonlat_coord=lonlat_coord,
+                            world_coord=world_coord,
                             distance=distance)
 
     def to_json(self) -> str:
         tlbr_expr = [round(v, 2) for v in self.location.to_tlbr().tolist()]
         serialized = {'node':self.node_id, 'luid':self.luid, 'state':self.state.name,
                     'location':tlbr_expr, 'frame_index':self.frame_index, 'ts': self.ts}
-        if self.lonlat_coord is not None:
-            serialized['lonlat_coord'] = [round(v, _WGS84_PRECISION) for v in self.lonlat_coord.to_tuple()]
+        if self.world_coord is not None:
+            serialized['world_coord'] = [round(v, _WGS84_PRECISION) for v in self.world_coord.to_tuple()]
         if self.distance is not None:
             serialized['distance'] = round(self.distance, _DIST_PRECISION)
 
@@ -73,8 +73,8 @@ class TrackEvent(KafkaEvent):
         tlbr_expr = [round(v, 2) for v in self.location.to_tlbr().tolist()]
         serialized = {'node':self.node_id, 'luid':self.luid, 'state':self.state.name,
                     'location':tlbr_expr, 'frame_index':self.frame_index, 'ts': self.ts}
-        if self.lonlat_coord is not None:
-            serialized['lonlat_coord'] = [round(v, _WGS84_PRECISION) for v in self.lonlat_coord.to_tuple()]
+        if self.world_coord is not None:
+            serialized['world_coord'] = [round(v, _WGS84_PRECISION) for v in self.world_coord.to_tuple()]
         if self.distance is not None:
             serialized['distance'] = round(self.distance, _DIST_PRECISION)
 
@@ -90,8 +90,8 @@ class TrackEvent(KafkaEvent):
         vlist = [self.node_id, self.luid, self.state.name] \
                 + self.location.to_tlbr().tolist() \
                 + [self.frame_index, self.ts]
-        if self.lonlat_coord is not None:
-            vlist += np.round(self.lonlat_coord.xy, _WGS84_PRECISION).tolist() + [round(self.distance, _DIST_PRECISION)]
+        if self.world_coord is not None:
+            vlist += np.round(self.world_coord.xy, _WGS84_PRECISION).tolist() + [round(self.distance, _DIST_PRECISION)]
         else:
             vlist += ['', '']
 
@@ -109,21 +109,21 @@ class TrackEvent(KafkaEvent):
         ts=int(parts[8])
         xy_str = parts[9:11]
         if len(xy_str[0]) > 0:
-            lonlat_coord = Point.from_np(np.array([float(s) for s in xy_str]))
+            world_coord = Point.from_np(np.array([float(s) for s in xy_str]))
             dist = float(parts[11])
         else:
-            lonlat_coord = None
+            world_coord = None
             dist = None
             
         return TrackEvent(node_id=node_id, luid=luid, state=state, location=loc,
-                            frame_index=frame_idx, ts=ts, lonlat_coord=lonlat_coord, distance=dist)
+                            frame_index=frame_idx, ts=ts, world_coord=world_coord, distance=dist)
     
     def __repr__(self) -> str:
         return (f"TrackEvent[node={self.node_id}, id={self.luid}, loc={self.location}, "
                 f"frame={self.frame_index}, ts={self.ts}]")
 
 EOT:TrackEvent = TrackEvent(node_id=None, luid=None, state=None, location=None,
-                            lonlat_coord=None, distance=None, frame_index=-1, ts=-1)
+                            world_coord=None, distance=None, frame_index=-1, ts=-1)
 
 
 from dna import Frame

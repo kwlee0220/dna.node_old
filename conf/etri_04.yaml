@@ -28,7 +28,7 @@ publishing:
     camera_geometry: conf/region_etri/etri_testbed.json
     # camera_geometry: conf/etri_camera_geom.json
     camera_index: 0
-    epsg_code: "EPSG:3857"
+    # epsg_code: "EPSG:5186"
     # world_coords_offset: [-4,5]
 
   # stabilization:

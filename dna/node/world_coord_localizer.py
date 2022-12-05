@@ -24,7 +24,7 @@ class ContactPointType(Enum):
 _BASE_EPSG = 'EPSG:5186'
 CameraGeometry = namedtuple('CameraGeometry', 'K,distort,ori,pos,polygons,planes,cylinder_table,cuboid_table')
 class WorldCoordinateLocalizer:
-    def __init__(self, config_file:str, camera_index:int) -> None:
+    def __init__(self, config_file:str, camera_index:int, epsg_code:str=_BASE_EPSG) -> None:
         self.satellite, cameras = load_config_file(config_file)
         camera_params = cameras[camera_index]
         self.geometry = CameraGeometry(camera_params['K'], camera_params['distort'],
@@ -38,13 +38,15 @@ class WorldCoordinateLocalizer:
         self.origin_utm = transformer.transform(*(self.satellite['origin_lonlat'][::-1]))[::-1]
 
         # 위경도 좌표계 생성을 위한 좌표계 변환 객체 생성
-        self.transformer = Transformer.from_crs(_BASE_EPSG, 'EPSG:4326')
+        self.transformer = None
+        if epsg_code != _BASE_EPSG:
+            self.transformer = Transformer.from_crs(_BASE_EPSG, epsg_code)
         
-    def to_lonlat_coord(self, pt:np.array) -> Tuple[Optional[np.ndarray], np.double]:
+    def to_world_coord(self, pt:np.array) -> Tuple[Optional[np.ndarray], np.double]:
         pt_m, dist = self.localize_point(pt)
         pt_5186 = pt_m[0:2] + self.origin_utm
-        pt_lonlat = self.transformer.transform(*pt_5186[::-1])[::-1]
-        return pt_lonlat, dist
+        pt_world = pt_5186 if self.transformer is None else self.transformer.transform(*pt_5186[::-1])[::-1]
+        return pt_world, dist
 
     def to_image_coord(self, pt) -> Point:
         pt_m, dist = self.localize_point(pt)
@@ -187,11 +189,11 @@ if __name__ == '__main__':
 
     config_file = 'conf/region_etri/etri_testbed.json'
     camera_index = 2
-    localizer = WorldCoordinateLocalizer(config_file, camera_index, 'EPSG:3857')
+    localizer = WorldCoordinateLocalizer(config_file, camera_index, 'EPSG:5186')
     box = Box([323,679,715,995])
     pt = box.center().xy
 
-    coord, dist = localizer.to_lonlat_coord(pt)
+    coord, dist = localizer.to_world_coord(pt)
     print(coord, dist)
 
     img = cv2.imread("data/ETRI_221011.png", cv2.IMREAD_COLOR)

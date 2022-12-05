@@ -25,8 +25,8 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--node", "etri:051",
-                "--conf", "conf/etri_06.yaml",
-                "--output", "output/2022/etri_06_event.json",   // -o <file>
+                "--conf", "conf/etri_07.yaml",
+                "--output", "output/2022/etri_07_event.json",   // -o <file>
                 // "--begin_frame", "1000",
                 // "--end_frame", "1000",
                 // "--show", //"1280x720",
@@ -40,9 +40,9 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--node", "etri:051",
-                "--conf", "conf/etri_06.yaml",
-                "--output", "output/2022/etri_06_track.csv",   // -o <file>
-                "--output_video", "output/2022/etri_06_track_all.mp4",   // -v <file>
+                "--conf", "conf/etri_07.yaml",
+                "--output", "output/2022/etri_07_track.csv",   // -o <file>
+                "--output_video", "output/2022/etri_07_track_all.mp4",   // -v <file>
                 // "--show", //"1280x720",
                 "--show_progress",  // -p
                 // "--pause_on_eos",    // -k
@@ -95,7 +95,7 @@
                 "--camera_index", "0",
                 // "--world_view",
                 // "--thickness", "2",
-                "-i",
+                // "-i",
                 // "-o", "output/result.jpg",
             ],
             "justMyCode": true

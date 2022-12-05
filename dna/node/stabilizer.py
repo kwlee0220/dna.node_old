@@ -108,7 +108,7 @@ class Stabilizer(EventProcessor):
             if i >= self.current:
                 pt = Point(x=xs[i], y=ys[i])
                 ev = self.pending_events[i]
-                stabilized = ev.updated(lonlat_coord=pt)
+                stabilized = ev.updated(world_coord=pt)
                 # print(f"{stabilized.frame_index}: {ev.world_coord} -> {stabilized.world_coord}")
                 self.publish_event(stabilized)
 
@@ -116,7 +116,7 @@ class Stabilizer(EventProcessor):
         
     def handle_event(self, ev: KafkaEvent) -> None:
         self.pending_events.append(ev)
-        x, y = ev.lonlat_coord.to_tuple()
+        x, y = ev.world_coord.to_tuple()
         self.pending_xs.append(x)
         self.pending_ys.append(y)
         self.upper += 1
@@ -127,7 +127,7 @@ class Stabilizer(EventProcessor):
 
             pt = Point(x=xs[self.current], y=ys[self.current])
             ev = self.pending_events[self.current]
-            stabilized = ev.updated(lonlat_coord=pt)
+            stabilized = ev.updated(world_coord=pt)
             # print(f"{stabilized.frame_index}: {ev.world_coord} -> {stabilized.world_coord}")
             self.publish_event(stabilized)
 

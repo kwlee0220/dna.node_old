@@ -24,7 +24,7 @@ def parse_args():
     parser.add_argument("--type", metavar="[csv|json]", default='csv', help="input track file type")
     parser.add_argument("--video", metavar="uri", help="video uri for background image")
     parser.add_argument("--frame", metavar="number", default=1, help="video frame number")
-    parser.add_argument("--camera_index", metavar="index", type=int, help="camera index")
+    parser.add_argument("--camera_index", metavar="index", type=int, default=0, help="camera index")
     parser.add_argument("--contact_point", metavar="contact-point type", 
                         choices=_contact_point_choices, type=str.lower, default='Simulation', help="output jpeg file path")
     parser.add_argument("--world_view", action='store_true', help="show trajectories in world coordinates")
@@ -175,14 +175,14 @@ class TrajectoryDrawer:
                 key = cv2.waitKey(1) & 0xFF
                 if key == ord('q'):
                     break
-                elif key == ord('c'):
-                    self.show_contact_point = not self.show_contact_point
-                    convas = bg_image.copy()
-                    convas = self._put_text(convas)
-                    for traj in self.box_trajs.values():
-                        convas = self._draw_trajectory(convas, traj)
-                elif key == ord('w') and self.localizer is not None:
-                    self.show_world_coords = not self.show_world_coords
+                elif key != 0xFF:
+                    if key == ord('c'):
+                        self.contact_point_type = ContactPointType((self.contact_point_type.value+1) % len(ContactPointType))
+                    elif key == ord('w') and self.localizer is not None:
+                        self.show_world_coords = not self.show_world_coords
+                    elif key == ord('s'):
+                        self.stabilizer = RunningStabilizer(_LOOK_AHEAD) if self.stabilizer is None else None
+
                     bg_image = self.world_image if self.world_image is not None and self.show_world_coords else self.bg_image
                     convas = bg_image.copy()
                     convas = self._put_text(convas)
@@ -224,17 +224,6 @@ class TrajectoryDrawer:
                         break
         finally:
             cv2.destroyWindow(title)
-            
-    def _stabilize(self, traj:List[Point]) -> List[Point]:
-        pts_s = []
-        for pt in traj:
-            pt_s = self.stabilizer.transform(pt)
-            if pt_s is not None:
-                pts_s.append(pt_s)
-        pts_s.extend(self.stabilizer.get_tail())
-        self.stabilizer.reset()
-
-        return pts_s
 
     def _draw_trajectory(self, convas:Image, traj: List[Box]) -> Image:
         pts = None
@@ -252,6 +241,17 @@ class TrajectoryDrawer:
         pts = [_xy(pt) for pt in pts]
         pts = np.rint(np.array(pts)).astype('int32')
         return cv2.polylines(convas, [pts], False, self.__color, self.__thickness)
+            
+    def _stabilize(self, traj:List[Point]) -> List[Point]:
+        pts_s = []
+        for pt in traj:
+            pt_s = self.stabilizer.transform(pt)
+            if pt_s is not None:
+                pts_s.append(pt_s)
+        pts_s.extend(self.stabilizer.get_tail())
+        self.stabilizer.reset()
+
+        return pts_s
 
 def main():
     args, _ = parse_args()
@@ -259,8 +259,7 @@ def main():
     box_trajs = load_trajectories_csv(args.track_file) if args.type == 'csv' else load_trajectories_json(args.track_file)
 
     bg_img = load_video_image(args.video, args.frame)
-    localizer = WorldCoordinateLocalizer('conf/region_etri/etri_testbed.json',
-                                            args.camera_index) if args.camera_index >= 0 else None
+    localizer = WorldCoordinateLocalizer('conf/region_etri/etri_testbed.json', args.camera_index) if args.camera_index >= 0 else None
     contact_point = ContactPointType(_contact_point_choices.index(args.contact_point))
     world_image = cv2.imread("data/ETRI_221011.png", cv2.IMREAD_COLOR)
     drawer = TrajectoryDrawer(box_trajs, bg_img, args.world_view, localizer, contact_point, world_image)
