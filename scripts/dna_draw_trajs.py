@@ -26,11 +26,12 @@ def parse_args():
     parser.add_argument("--frame", metavar="number", default=1, help="video frame number")
     parser.add_argument("--camera_index", metavar="index", type=int, default=0, help="camera index")
     parser.add_argument("--contact_point", metavar="contact-point type", 
-                        choices=_contact_point_choices, type=str.lower, default='Simulation', help="output jpeg file path")
+                        choices=_contact_point_choices, type=str.lower, default='centroid', help="contact-point type")
     parser.add_argument("--world_view", action='store_true', help="show trajectories in world coordinates")
     parser.add_argument("--thickness", metavar="number", type=int, default=1, help="drawing line thickness")
     parser.add_argument("--interactive", "-i", action='store_true', help="show trajectories interactively")
-    parser.add_argument("--stabilize", action='store_true', help="show stabilized coordinates")
+    parser.add_argument("--look_ahead", metavar='count', type=int, default=7, help="look-ahead/behind count")
+    parser.add_argument("--smoothing", metavar='value', type=float, default=1, help="stabilization smoothing factor")
     parser.add_argument("--output", "-o", metavar="file path", help="output jpeg file path")
     return parser.parse_known_args()
 
@@ -84,8 +85,9 @@ def _xy(pt):
 
 _LOOK_AHEAD = 7
 class RunningStabilizer:
-    def __init__(self, look_ahead:int) -> None:
+    def __init__(self, look_ahead:int, smoothing_factor:float=1) -> None:
         self.look_ahead = look_ahead
+        self.smoothing_factor = smoothing_factor
         self.current, self.upper = 0, 0
         self.pending_xs: List[float] = []
         self.pending_ys: List[float] = []
@@ -96,8 +98,8 @@ class RunningStabilizer:
         self.upper += 1
 
         if self.upper - self.current > self.look_ahead:
-            xs = stabilizer.stabilization_location(self.pending_xs, self.look_ahead)
-            ys = stabilizer.stabilization_location(self.pending_ys, self.look_ahead)
+            xs = stabilizer.stabilization_location(self.pending_xs, self.look_ahead, self.smoothing_factor)
+            ys = stabilizer.stabilization_location(self.pending_ys, self.look_ahead, self.smoothing_factor)
             stabilized = Point(x=xs[self.current], y=ys[self.current])
 
             self.current += 1
@@ -111,8 +113,8 @@ class RunningStabilizer:
             return None
     
     def get_tail(self) -> List[Point]:
-        xs = stabilizer.stabilization_location(self.pending_xs, self.look_ahead)
-        ys = stabilizer.stabilization_location(self.pending_ys, self.look_ahead)
+        xs = stabilizer.stabilization_location(self.pending_xs, self.look_ahead, self.smoothing_factor)
+        ys = stabilizer.stabilization_location(self.pending_ys, self.look_ahead, self.smoothing_factor)
         return [Point(x,y) for x, y in zip(xs[self.current:], ys[self.current:])]
 
     def reset(self) -> None:
@@ -121,35 +123,18 @@ class RunningStabilizer:
         self.pending_ys: List[float] = []
 
 class TrajectoryDrawer:
-    def __init__(self, box_trajs: Dict[str,List[Box]], bg_image: Image, world_view:bool=False,
-                localizer:WorldCoordinateLocalizer=None, contact_point_type:ContactPointType=ContactPointType.Simulation,
-                world_image: Image=None, stabilized:bool=False) -> None:
+    def __init__(self, box_trajs: Dict[str,List[Box]], camera_image: Image, world_image: Image=None,
+                localizer:WorldCoordinateLocalizer=None, stabilizer:RunningStabilizer=None) -> None:
         self.box_trajs = box_trajs
-        self.bg_image = bg_image
+        self.camera_image = camera_image
         self.world_image = world_image
         self.localizer = localizer
-        self.contact_point_type = contact_point_type
-        self.convas = bg_image.copy()
-        self.__color = color.RED
-        self.__thickness = 2
-        self.show_world_coords = world_view
-        self.stabilizer = RunningStabilizer(_LOOK_AHEAD) if stabilized else None
+        self.stabilizer = stabilizer
+        self.color = color.RED
+        self.thickness = 2
 
-    @property
-    def thickness(self) -> int:
-        return self.__thickness
-
-    @thickness.setter
-    def thickness(self, value:int) -> None:
-        self.__thickness = value
-
-    @property
-    def color(self) -> int:
-        return self.__color
-
-    @color.setter
-    def color(self, value:BGR) -> None:
-        self.__color = value
+        self.show_world_coords = False
+        self.show_stabilized = False
 
     def draw_to_file(self, outfile:str) -> None:
         convas = self.draw(pause=False)
@@ -158,12 +143,13 @@ class TrajectoryDrawer:
     def _put_text(self, convas:Image, luid:int=None):
         id_str = f'luid={luid}, ' if luid is not None else ''
         view = "world" if self.show_world_coords else "camera"
-        stabilized_flag = ', stabilized' if self.stabilizer is not None else ''
-        return cv2.putText(convas, f'{id_str}view={view}, contact={self.contact_point_type.name}{stabilized_flag}',
-                            (10, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, self.__color, 2)
+        contact = self.localizer.contact_point_type.name if self.localizer else ContactPointType.Centroid.name
+        stabilized_flag = f', stabilized({self.stabilizer.smoothing_factor})' if self.show_stabilized else ''
+        return cv2.putText(convas, f'{id_str}view={view}, contact={contact}{stabilized_flag}',
+                            (10, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, self.color, 2)
 
     def draw(self, title='trajectories', pause:bool=True) -> Image:
-        bg_image = self.world_image if self.world_image is not None and self.show_world_coords else self.bg_image
+        bg_image = self.world_image if self.world_image is not None and self.show_world_coords else self.camera_image
         convas = bg_image.copy()
         convas = self._put_text(convas)
         for traj in self.box_trajs.values():
@@ -176,14 +162,15 @@ class TrajectoryDrawer:
                 if key == ord('q'):
                     break
                 elif key != 0xFF:
-                    if key == ord('c'):
-                        self.contact_point_type = ContactPointType((self.contact_point_type.value+1) % len(ContactPointType))
+                    if key == ord('c') and self.localizer is not None:
+                        contact_point_type = ContactPointType((self.contact_point_type.value+1) % len(ContactPointType))
+                        self.localizer = contact_point_type
                     elif key == ord('w') and self.localizer is not None:
                         self.show_world_coords = not self.show_world_coords
                     elif key == ord('s'):
-                        self.stabilizer = RunningStabilizer(_LOOK_AHEAD) if self.stabilizer is None else None
+                        self.show_stabilized = not self.show_stabilized
 
-                    bg_image = self.world_image if self.world_image is not None and self.show_world_coords else self.bg_image
+                    bg_image = self.world_image if self.world_image is not None and self.show_world_coords else self.camera_image
                     convas = bg_image.copy()
                     convas = self._put_text(convas)
                     for traj in self.box_trajs.values():
@@ -197,7 +184,7 @@ class TrajectoryDrawer:
             idx = 0
             while True:
                 luid = id_list[idx]
-                bg_img = self.world_image if self.world_image is not None and self.show_world_coords else self.bg_image
+                bg_img = self.world_image if self.world_image is not None and self.show_world_coords else self.camera_image
                 convas = bg_img.copy()
                 convas = self._put_text(convas, luid)
                 convas = self._draw_trajectory(convas, self.box_trajs[luid])
@@ -214,13 +201,15 @@ class TrajectoryDrawer:
                         idx = max(idx-1, 0)
                         break
                     elif key == ord('c') and self.localizer is not None:
-                        self.contact_point_type = ContactPointType((self.contact_point_type.value+1) % len(ContactPointType))
+                        cp_value = self.localizer.contact_point_type.value + 1
+                        contact_point_type = ContactPointType(cp_value % len(ContactPointType))
+                        self.localizer.contact_point_type = contact_point_type
                         break
                     elif key == ord('w') and self.localizer is not None:
                         self.show_world_coords = not self.show_world_coords
                         break
                     elif key == ord('s'):
-                        self.stabilizer = RunningStabilizer(_LOOK_AHEAD) if self.stabilizer is None else None
+                        self.show_stabilized = not self.show_stabilized
                         break
         finally:
             cv2.destroyWindow(title)
@@ -228,21 +217,21 @@ class TrajectoryDrawer:
     def _draw_trajectory(self, convas:Image, traj: List[Box]) -> Image:
         pts = None
         if self.localizer is not None:
-            pts = [self.localizer.select_contact_point(box.to_tlbr(), self.contact_point_type) for box in traj]
+            pts = [self.localizer.select_contact_point(box.to_tlbr()) for box in traj]
         else:
             pts = [box.center() for box in traj]
             
         if self.show_world_coords:
             pts = [self.localizer.to_image_coord(pt) for pt in pts]
             
-        if self.stabilizer is not None:
-            pts = self._stabilize(pts)
+        if self.show_stabilized:
+            pts = self.stabilize(pts)
             
         pts = [_xy(pt) for pt in pts]
         pts = np.rint(np.array(pts)).astype('int32')
-        return cv2.polylines(convas, [pts], False, self.__color, self.__thickness)
+        return cv2.polylines(convas, [pts], False, self.color, self.thickness)
             
-    def _stabilize(self, traj:List[Point]) -> List[Point]:
+    def stabilize(self, traj:List[Point]) -> List[Point]:
         pts_s = []
         for pt in traj:
             pt_s = self.stabilizer.transform(pt)
@@ -259,10 +248,17 @@ def main():
     box_trajs = load_trajectories_csv(args.track_file) if args.type == 'csv' else load_trajectories_json(args.track_file)
 
     bg_img = load_video_image(args.video, args.frame)
-    localizer = WorldCoordinateLocalizer('conf/region_etri/etri_testbed.json', args.camera_index) if args.camera_index >= 0 else None
     contact_point = ContactPointType(_contact_point_choices.index(args.contact_point))
+    localizer = WorldCoordinateLocalizer('conf/region_etri/etri_testbed.json', args.camera_index,
+                                        contact_point_type=contact_point) if args.camera_index >= 0 else None
     world_image = cv2.imread("data/ETRI_221011.png", cv2.IMREAD_COLOR)
-    drawer = TrajectoryDrawer(box_trajs, bg_img, args.world_view, localizer, contact_point, world_image)
+
+    stabilizer = None
+    if args.look_ahead > 0 and args.smoothing > 0:
+        stabilizer = RunningStabilizer(args.look_ahead, args.smoothing)
+
+    drawer = TrajectoryDrawer(box_trajs, camera_image=bg_img, world_image=world_image,
+                              localizer=localizer, stabilizer=stabilizer)
 
     if args.output is not None:
         drawer.draw_to_file(args.output)

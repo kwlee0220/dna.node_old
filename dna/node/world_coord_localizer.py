@@ -24,7 +24,8 @@ class ContactPointType(Enum):
 _BASE_EPSG = 'EPSG:5186'
 CameraGeometry = namedtuple('CameraGeometry', 'K,distort,ori,pos,polygons,planes,cylinder_table,cuboid_table')
 class WorldCoordinateLocalizer:
-    def __init__(self, config_file:str, camera_index:int, epsg_code:str=_BASE_EPSG) -> None:
+    def __init__(self, config_file:str, camera_index:int, epsg_code:str=_BASE_EPSG,
+                contact_point_type:ContactPointType=ContactPointType.Simulation) -> None:
         self.satellite, cameras = load_config_file(config_file)
         camera_params = cameras[camera_index]
         self.geometry = CameraGeometry(camera_params['K'], camera_params['distort'],
@@ -41,12 +42,21 @@ class WorldCoordinateLocalizer:
         self.transformer = None
         if epsg_code != _BASE_EPSG:
             self.transformer = Transformer.from_crs(_BASE_EPSG, epsg_code)
+        self.contact_point_type = contact_point_type
+        
+    def to_world_coord_box(self, tlbr:np.array) -> Tuple[Optional[np.ndarray], np.double]:
+        pt = self.select_contact_point(tlbr, self.contact_point_type)
+        return self.to_world_coord(pt)
         
     def to_world_coord(self, pt:np.array) -> Tuple[Optional[np.ndarray], np.double]:
         pt_m, dist = self.localize_point(pt)
         pt_5186 = pt_m[0:2] + self.origin_utm
         pt_world = pt_5186 if self.transformer is None else self.transformer.transform(*pt_5186[::-1])[::-1]
         return pt_world, dist
+        
+    def to_image_coord_box(self, tlbr:np.array) -> Tuple[Optional[np.ndarray], np.double]:
+        pt = self.select_contact_point(tlbr, self.contact_point_type)
+        return self.to_image_coord(pt)
 
     def to_image_coord(self, pt) -> Point:
         pt_m, dist = self.localize_point(pt)
@@ -80,21 +90,21 @@ class WorldCoordinateLocalizer:
         position = self.geometry.pos + distance * r
         return position, np.fabs(distance)
 
-    def select_contact_point(self, tlbr:np.ndarray, contact_type:ContactPointType=ContactPointType.Simulation) -> np.ndarray:
+    def select_contact_point(self, tlbr:np.ndarray) -> np.ndarray:
         '''Get the bottom middle point of the given bounding box'''
         tl_x, tl_y, br_x, br_y = tlbr
-        if contact_type == ContactPointType.Centroid:
+        if self.contact_point_type == ContactPointType.Centroid:
             return np.array([(tl_x + br_x) / 2, (tl_y + br_y) / 2])
         
         pt_bc = np.array([(tl_x + br_x) / 2, br_y])
-        if contact_type == ContactPointType.BottomCenter:
+        if self.contact_point_type == ContactPointType.BottomCenter:
             return pt_bc
-        elif contact_type == ContactPointType.Simulation:
+        elif self.contact_point_type == ContactPointType.Simulation:
             # delta = predict_center_from_table(pt, self.camera_params['cylinder_table'])
             delta = predict_center_from_table(pt_bc, self.geometry.cuboid_table)
             return pt_bc + delta
         else:
-            raise ValueError(f"unknown contact-point type={contact_type}")
+            raise ValueError(f"unknown contact-point type={self.contact_point_type}")
 
 def load_config_file(json_file:str):
     '''Load the satellite and multi-camera configuration together from a JSON file'''
