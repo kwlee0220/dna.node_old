@@ -10,18 +10,23 @@ from omegaconf import OmegaConf
 from dna import Box, Image, BGR, color, Frame, Point
 from dna.camera import Camera
 from dna.camera.utils import create_camera_from_conf
-from dna.node.world_coord_localizer import WorldCoordinateLocalizer
+from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
 from dna.node import stabilizer
 
 
+_contact_point_choices = [t.name.lower() for t in ContactPointType]
+
 import argparse
 def parse_args():
+    
     parser = argparse.ArgumentParser(description="Draw paths")
     parser.add_argument("track_file")
     parser.add_argument("--type", metavar="[csv|json]", default='csv', help="input track file type")
     parser.add_argument("--video", metavar="uri", help="video uri for background image")
     parser.add_argument("--frame", metavar="number", default=1, help="video frame number")
     parser.add_argument("--camera_index", metavar="index", type=int, help="camera index")
+    parser.add_argument("--contact_point", metavar="contact-point type", 
+                        choices=_contact_point_choices, type=str.lower, default='Simulation', help="output jpeg file path")
     parser.add_argument("--world_view", action='store_true', help="show trajectories in world coordinates")
     parser.add_argument("--thickness", metavar="number", type=int, default=1, help="drawing line thickness")
     parser.add_argument("--interactive", "-i", action='store_true', help="show trajectories interactively")
@@ -117,17 +122,17 @@ class RunningStabilizer:
 
 class TrajectoryDrawer:
     def __init__(self, box_trajs: Dict[str,List[Box]], bg_image: Image, world_view:bool=False,
-                localizer:WorldCoordinateLocalizer=None, world_image: Image=None,
-                stabilized:bool=False) -> None:
+                localizer:WorldCoordinateLocalizer=None, contact_point_type:ContactPointType=ContactPointType.Simulation,
+                world_image: Image=None, stabilized:bool=False) -> None:
         self.box_trajs = box_trajs
         self.bg_image = bg_image
         self.world_image = world_image
         self.localizer = localizer
+        self.contact_point_type = contact_point_type
         self.convas = bg_image.copy()
         self.__color = color.RED
         self.__thickness = 2
         self.show_world_coords = world_view
-        self.show_contact_point = world_view
         self.stabilizer = RunningStabilizer(_LOOK_AHEAD) if stabilized else None
 
     @property
@@ -152,10 +157,9 @@ class TrajectoryDrawer:
 
     def _put_text(self, convas:Image, luid:int=None):
         id_str = f'luid={luid}, ' if luid is not None else ''
-        type = "contact" if self.show_contact_point else "centroid"
         view = "world" if self.show_world_coords else "camera"
         stabilized_flag = ', stabilized' if self.stabilizer is not None else ''
-        return cv2.putText(convas, f'{id_str}view={view}, {type}{stabilized_flag}',
+        return cv2.putText(convas, f'{id_str}view={view}, contact={self.contact_point_type.name}{stabilized_flag}',
                             (10, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, self.__color, 2)
 
     def draw(self, title='trajectories', pause:bool=True) -> Image:
@@ -210,7 +214,7 @@ class TrajectoryDrawer:
                         idx = max(idx-1, 0)
                         break
                     elif key == ord('c') and self.localizer is not None:
-                        self.show_contact_point = not self.show_contact_point
+                        self.contact_point_type = ContactPointType((self.contact_point_type.value+1) % len(ContactPointType))
                         break
                     elif key == ord('w') and self.localizer is not None:
                         self.show_world_coords = not self.show_world_coords
@@ -234,8 +238,8 @@ class TrajectoryDrawer:
 
     def _draw_trajectory(self, convas:Image, traj: List[Box]) -> Image:
         pts = None
-        if self.localizer is not None and self.show_contact_point:
-            pts = [self.localizer.select_contact_point(box.to_tlbr()) for box in traj]
+        if self.localizer is not None:
+            pts = [self.localizer.select_contact_point(box.to_tlbr(), self.contact_point_type) for box in traj]
         else:
             pts = [box.center() for box in traj]
             
@@ -257,8 +261,9 @@ def main():
     bg_img = load_video_image(args.video, args.frame)
     localizer = WorldCoordinateLocalizer('conf/region_etri/etri_testbed.json',
                                             args.camera_index) if args.camera_index >= 0 else None
+    contact_point = ContactPointType(_contact_point_choices.index(args.contact_point))
     world_image = cv2.imread("data/ETRI_221011.png", cv2.IMREAD_COLOR)
-    drawer = TrajectoryDrawer(box_trajs, bg_img, args.world_view, localizer, world_image)
+    drawer = TrajectoryDrawer(box_trajs, bg_img, args.world_view, localizer, contact_point, world_image)
 
     if args.output is not None:
         drawer.draw_to_file(args.output)

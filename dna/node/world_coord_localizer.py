@@ -1,4 +1,5 @@
 from typing import Tuple, Optional
+from enum import Enum
 from collections import namedtuple
 import json, pickle
 
@@ -14,6 +15,11 @@ from dna.node.event_processor import EventProcessor
 
 import logging
 LOGGER = logging.getLogger("dna.node.pipeline")
+
+class ContactPointType(Enum):
+    Centroid = 0
+    BottomCenter = 1
+    Simulation = 2
 
 _BASE_EPSG = 'EPSG:5186'
 CameraGeometry = namedtuple('CameraGeometry', 'K,distort,ori,pos,polygons,planes,cylinder_table,cuboid_table')
@@ -72,16 +78,21 @@ class WorldCoordinateLocalizer:
         position = self.geometry.pos + distance * r
         return position, np.fabs(distance)
 
-    def select_contact_point(self, tlbr:np.ndarray) -> np.ndarray:
+    def select_contact_point(self, tlbr:np.ndarray, contact_type:ContactPointType=ContactPointType.Simulation) -> np.ndarray:
         '''Get the bottom middle point of the given bounding box'''
         tl_x, tl_y, br_x, br_y = tlbr
-        pt = np.array([(tl_x + br_x) / 2, br_y])
-
-        # delta = predict_center_from_table(pt, self.camera_params['cylinder_table'])
-        delta = predict_center_from_table(pt, self.geometry.cuboid_table)
-        pt += delta
-
-        return pt
+        if contact_type == ContactPointType.Centroid:
+            return np.array([(tl_x + br_x) / 2, (tl_y + br_y) / 2])
+        
+        pt_bc = np.array([(tl_x + br_x) / 2, br_y])
+        if contact_type == ContactPointType.BottomCenter:
+            return pt_bc
+        elif contact_type == ContactPointType.Simulation:
+            # delta = predict_center_from_table(pt, self.camera_params['cylinder_table'])
+            delta = predict_center_from_table(pt_bc, self.geometry.cuboid_table)
+            return pt_bc + delta
+        else:
+            raise ValueError(f"unknown contact-point type={contact_type}")
 
 def load_config_file(json_file:str):
     '''Load the satellite and multi-camera configuration together from a JSON file'''

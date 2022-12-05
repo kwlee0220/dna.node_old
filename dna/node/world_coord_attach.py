@@ -14,8 +14,10 @@ class WorldCoordinateAttacher(EventProcessor):
     def __init__(self, conf:OmegaConf) -> None:
         EventProcessor.__init__(self)
 
-        from .world_coord_localizer import WorldCoordinateLocalizer
+        from .world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
         self.localizer = WorldCoordinateLocalizer(conf.camera_geometry, conf.get('camera_index', 0))
+        self.contact_point = conf.get('contact_point', ContactPointType.Simulation.value)
+        self.contact_point = ContactPointType(self.contact_point)
 
     def handle_event(self, ev:TrackEvent) -> None:
         pt = self.localizer.select_contact_point(ev.location.to_tlbr())

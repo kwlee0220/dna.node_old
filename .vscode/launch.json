@@ -89,10 +89,10 @@
             "program": "${workspaceFolder}/scripts/dna_draw_trajs.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "output/2022/etri_06_track.csv",
-                "--video", "data/2022/etri2022_06_crop.mp4",
+                "output/2022/etri_04_track.csv",
+                "--video", "data/2022/etri2022_04_crop.mp4",
                 // "--type", "json",
-                "--camera_index", "2",
+                "--camera_index", "0",
                 // "--world_view",
                 // "--thickness", "2",
                 "-i",
