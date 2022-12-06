@@ -1,0 +1,39 @@
+id: etri:06
+
+camera:
+  uri: data/2022/etri2022_06_crop.mp4
+  sync: False
+
+tracker:
+  uri: dna.tracker.dna_deepsort
+  draw_zones: True
+  
+  dna_deepsort:
+    detector: dna.detect.yolov4
+    n_init: 5
+    max_age: 30
+    blind_zones:
+      - [[186, 631], [738, 492], [921, 342], [1115, 342], [1311, 488], [1726, 587], [1759, 843],
+        [1733, 1076], [1921, 1075], [1920, 2], [0, -2], [-2, 636], [1, 1076], [226, 1077], [174, 826]]
+    exit_zones:
+      - [[1017, 352], [998, 273], [1091, 272], [1098, 351]]
+      - [[1636, 586], [1637, 925], [1917, 923], [1917, 592]]
+      - [[189, 616], [185, 962], [3, 966], [3, 615]]
+    stable_zones:
+      - [[940, 363], [1097, 361], [1265, 527], [771, 539]]
+
+publishing:
+  min_path_length: 10
+  attach_world_coordinates:
+    camera_geometry: conf/region_etri/etri_testbed.json
+    # camera_geometry: conf/etri_camera_geom.json
+    camera_index: 2
+    # epsg_code: "EPSG:5186"
+    # world_coords_offset: [1,5]
+  stabilization:
+    look_ahead: 7
+    # smoothing_factor: 1
+  kafka:
+    bootstrap_servers: [localhost:9092]
+#   bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
+    topic: 'node-tracks'
