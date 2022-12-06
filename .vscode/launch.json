@@ -26,7 +26,7 @@
             "args": [
                 // "--node", "etri:051",
                 "--conf", "conf/etri_07.yaml",
-                "--output", "output/2022/etri_07_event.json",   // -o <file>
+                "--output", "output/etri_07_event.json",   // -o <file>
                 // "--begin_frame", "1000",
                 // "--end_frame", "1000",
                 // "--show", //"1280x720",
@@ -41,7 +41,7 @@
             "args": [
                 // "--node", "etri:051",
                 "--conf", "conf/etri_07.yaml",
-                "--output", "output/2022/etri_07_track.csv",   // -o <file>
+                "--output", "output/etri_07_track.csv",   // -o <file>
                 "--output_video", "output/2022/etri_07_track_all.mp4",   // -v <file>
                 // "--show", //"1280x720",
                 "--show_progress",  // -p
@@ -74,9 +74,9 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--node", "etri:041",
-                // "--conf", "conf/ictway_04.yaml",
+                "--conf", "conf/etri_04.yaml",
                 // "--uri", "data/ictway/ictway_04_crop_30fps.mp4",
-                "--conf", "conf/etri_live_07.yaml",
+                // "--conf", "conf/etri_live_07.yaml",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",
                 // "--show", "1280x720",
@@ -135,7 +135,7 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [ 
                 // "data/on-demand-requests/req01_etri_07.json",
-                "data/event_publisher/test_etri_041_save.json",
+                "data/event_publisher/test_etri_041.json",
                 // "data/event_publisher/test_etri_051.json",
                 // "data/event_publisher/test_etri_051_2.json",
             ],
