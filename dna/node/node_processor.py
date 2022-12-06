@@ -1,7 +1,8 @@
 
+from pathlib import Path
 from omegaconf import OmegaConf
 
-from dna.conf import exists_config
+from dna.conf import exists_config, load_config
 from dna.camera import ImageProcessor, ImageCapture
 from dna.execution import Execution, ExecutionContext, NoOpExecutionContext
 from dna.pika_execution import PikaExecutionContext, PikaExecutionFactory
@@ -31,14 +32,15 @@ class PikaNodeExecutionFactory(PikaExecutionFactory):
     def __init__(self, db_conf: OmegaConf, show: bool) -> None:
         super().__init__()
         self.db_conf = db_conf
+        self.conf_root:Path = Path("conf")
         self.show = show
 
     def create(self, pika_ctx: PikaExecutionContext) -> Execution:
         request = OmegaConf.create(pika_ctx.request)
-
+        
         if exists_config(request, 'node'):
-            from .utils import read_node_config
-            conf = read_node_config(self.db_conf, request.node)
+            path = self.conf_root / (request.node.replace(":", "_") + '.yaml')
+            conf = load_config(path)
         elif exists_config(request, 'parameters'):
             conf = request.parameters
             conf.id = request.id
@@ -62,3 +64,33 @@ class PikaNodeExecutionFactory(PikaExecutionFactory):
             img_proc.report_interval = interval
 
         return img_proc
+
+    # def create(self, pika_ctx: PikaExecutionContext) -> Execution:
+    #     request = OmegaConf.create(pika_ctx.request)
+
+    #     if exists_config(request, 'node'):
+    #         from .utils import read_node_config
+    #         conf = read_node_config(self.db_conf, request.node)
+    #     elif exists_config(request, 'parameters'):
+    #         conf = request.parameters
+    #         conf.id = request.id
+    #     else:
+    #         raise ValueError(f'cannot get node configuration: request={request}')
+    #     conf.show = self.show
+
+    #     import json
+    #     rtsp_uri = request.get('rtsp_uri', None)
+    #     if rtsp_uri is None:
+    #         raise ValueError(f'RTSP stream is not specified')
+    #     rtsp_conf = OmegaConf.create({'uri': rtsp_uri})
+        
+    #     from dna.camera.utils import create_camera_from_conf
+    #     camera = create_camera_from_conf(rtsp_conf)
+        
+    #     import dna
+    #     img_proc = build_node_processor(camera.open(), conf, context=pika_ctx)
+    #     if dna.conf.exists_config(request, 'progress_report.interval_seconds'):
+    #         interval = int(request.progress_report.interval_seconds)
+    #         img_proc.report_interval = interval
+
+    #     return img_proc
