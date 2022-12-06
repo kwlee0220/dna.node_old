@@ -79,7 +79,7 @@ class OpenCvCamera(Camera):
                 cmd = ["C:\\local\\ffmpeg\\bin\\ffmpeg", "-re", "-rtsp_transport", "tcp", "-i", uri,
                         "-rtsp_transport", "tcp", "-c:v", "copy", "-f", "rtsp", new_uri]
                 proc = Popen(cmd, stdout=DEVNULL, stderr=DEVNULL)
-                cv2.waitKey(4000)
+                cv2.waitKey(5000)
 
                 vcap = cv2.VideoCapture(new_uri)
                 while (1):
