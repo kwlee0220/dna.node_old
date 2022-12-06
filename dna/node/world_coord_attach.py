@@ -22,8 +22,8 @@ class WorldCoordinateAttacher(EventProcessor):
 
     def handle_event(self, ev:TrackEvent) -> None:
         pt = self.localizer.select_contact_point(ev.location.to_tlbr())
-        pt_lonlat, dist = self.localizer.to_world_coord(pt)
-        if pt_lonlat is not None:
-            pt_lonlat = Point.from_np(pt_lonlat)
-        updated = ev.updated(world_coord=pt_lonlat, distance=dist)
+        world_coord, dist = self.localizer.to_world_coord(pt)
+        if world_coord is not None:
+            world_coord = Point.from_np(world_coord)
+        updated = ev.updated(world_coord=world_coord, distance=dist)
         self.publish_event(updated)
