@@ -76,8 +76,9 @@ class PikaExecutionContext(ExecutionContext):
         self.channel.queue_delete(queue=self.control_qname)
 
     def reply(self, data:object) -> None:
-        self.channel.basic_publish(exchange='', routing_key=self.reply_to, properties=self.response_props,
-                                    body=self.serde.serialize(data))
+        if self.reply_to is not None:
+            self.channel.basic_publish(exchange='', routing_key=self.reply_to, properties=self.response_props,
+                                        body=self.serde.serialize(data))
 
 
 _REQ_QUEUE = 'long_rpc_requests'
