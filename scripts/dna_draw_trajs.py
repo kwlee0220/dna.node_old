@@ -30,6 +30,7 @@ def parse_args():
     parser.add_argument("--world_view", action='store_true', help="show trajectories in world coordinates")
     parser.add_argument("--thickness", metavar="number", type=int, default=1, help="drawing line thickness")
     parser.add_argument("--interactive", "-i", action='store_true', help="show trajectories interactively")
+    parser.add_argument("--pause", action='store_true', help="pause before termination")
     parser.add_argument("--look_ahead", metavar='count', type=int, default=7, help="look-ahead/behind count")
     parser.add_argument("--smoothing", metavar='value', type=float, default=1, help="stabilization smoothing factor")
     parser.add_argument("--output", "-o", metavar="file path", help="output jpeg file path")
@@ -126,6 +127,8 @@ class TrajectoryDrawer:
     def __init__(self, box_trajs: Dict[str,List[Box]], camera_image: Image, world_image: Image=None,
                 localizer:WorldCoordinateLocalizer=None, stabilizer:RunningStabilizer=None) -> None:
         self.box_trajs = box_trajs
+        self.localizer = localizer
+        self.stabilizer = stabilizer
         self.camera_image = camera_image
         self.world_image = world_image
         self.localizer = localizer
@@ -163,8 +166,9 @@ class TrajectoryDrawer:
                     break
                 elif key != 0xFF:
                     if key == ord('c') and self.localizer is not None:
-                        contact_point_type = ContactPointType((self.contact_point_type.value+1) % len(ContactPointType))
-                        self.localizer = contact_point_type
+                        cp_value = self.localizer.contact_point_type.value + 1
+                        contact_point_type = ContactPointType(cp_value % len(ContactPointType))
+                        self.localizer.contact_point_type = contact_point_type
                     elif key == ord('w') and self.localizer is not None:
                         self.show_world_coords = not self.show_world_coords
                     elif key == ord('s'):
@@ -260,12 +264,14 @@ def main():
     drawer = TrajectoryDrawer(box_trajs, camera_image=bg_img, world_image=world_image,
                               localizer=localizer, stabilizer=stabilizer)
 
-    if args.output is not None:
-        drawer.draw_to_file(args.output)
-    elif args.interactive:
+    if args.interactive:
         drawer.draw_interactively()
     else:
-        drawer.draw(pause=True)
+        drawer.show_stabilized = stabilizer is not None
+        drawer.show_world_coords = args.world_view
+        convas = drawer.draw(pause=args.pause or args.output is None)
+        if args.output is not None:
+            cv2.imwrite(args.output, convas)
 
 if __name__ == '__main__':
     main()
