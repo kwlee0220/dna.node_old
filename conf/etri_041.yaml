@@ -2,12 +2,9 @@ id: etri:04
 
 camera:
   uri: rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/3/media.smp
-  # size: [1920, 1080]
-  # sync: False
 
 tracker:
   uri: dna.tracker.dna_deepsort
-  # draw_zones: True
 
   dna_deepsort:
     detector: dna.detect.yolov4
@@ -25,15 +22,12 @@ tracker:
 publishing:
   min_path_length: 10
   attach_world_coordinates:
-    camera_geometry: conf/region_etri/etri_testbed.json
-    # camera_geometry: conf/etri_camera_geom.json
+    camera_geometry: regions/etri_testbed/etri_testbed.json
     camera_index: 0
-    epsg_code: "EPSG:3857"
-    # world_coords_offset: [-4,5]
-
+    # contact_point: simulation
   # stabilization:
-  #   look_ahead: 3
+  #   look_ahead: 7
 
   kafka:
-    bootstrap_servers: [localhost:9092]
+    bootstrap_servers: [192.168.35.193:9092]
     topic: 'node-tracks'

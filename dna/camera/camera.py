@@ -59,6 +59,10 @@ class Camera(metaclass=ABCMeta):
         """
         pass
 
+    def resize(self, size:Size2d) -> Camera:
+        from .resized_camera import ResizingCamera
+        return ResizingCamera(self, size)
+
 
 class ImageCapture(metaclass=ABCMeta):
     @abstractmethod
@@ -113,6 +117,11 @@ class ImageCapture(metaclass=ABCMeta):
         Returns:
             int: The number of frames
         """
+        pass
+
+    @property
+    @abstractmethod
+    def sync(self) -> bool:
         pass
 
     @property

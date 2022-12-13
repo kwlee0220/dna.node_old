@@ -25,7 +25,7 @@ _BASE_EPSG = 'EPSG:5186'
 CameraGeometry = namedtuple('CameraGeometry', 'K,distort,ori,pos,polygons,planes,cylinder_table,cuboid_table')
 class WorldCoordinateLocalizer:
     def __init__(self, config_file:str, camera_index:int, epsg_code:str=_BASE_EPSG,
-                contact_point_type:ContactPointType=ContactPointType.Simulation) -> None:
+                contact_point:ContactPointType=ContactPointType.Simulation) -> None:
         self.satellite, cameras = load_config_file(config_file)
         camera_params = cameras[camera_index]
         self.geometry = CameraGeometry(camera_params['K'], camera_params['distort'],
@@ -42,7 +42,7 @@ class WorldCoordinateLocalizer:
         self.transformer = None
         if epsg_code != _BASE_EPSG:
             self.transformer = Transformer.from_crs(_BASE_EPSG, epsg_code)
-        self.contact_point_type = contact_point_type
+        self.contact_point_type = contact_point
         
     def to_world_coord_box(self, tlbr:np.array) -> Tuple[Optional[np.ndarray], np.double]:
         pt = self.select_contact_point(tlbr, self.contact_point_type)
@@ -50,6 +50,8 @@ class WorldCoordinateLocalizer:
         
     def to_world_coord(self, pt:np.array) -> Tuple[Optional[np.ndarray], np.double]:
         pt_m, dist = self.localize_point(pt)
+        if pt_m is None:
+            return None, None
         pt_5186 = pt_m[0:2] + self.origin_utm
         pt_world = pt_5186 if self.transformer is None else self.transformer.transform(*pt_5186[::-1])[::-1]
         return pt_world, dist

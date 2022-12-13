@@ -10,15 +10,16 @@ setup(
     url = 'https://github.com/kwlee0220/dna.node',
 	entry_points={
 		'console_scripts': [
-			'dna_node_show = scripts.dna_node_show:main',
-			'dna_node_detect = scripts.dna_node_detect:main',
-			'dna_node_track = scripts.dna_node_track:main',
+			'dna_show = scripts.dna_show:main',
+			'dna_detect = scripts.dna_detect:main',
+			'dna_track = scripts.dna_track:main',
 			'dna_node = scripts.dna_node:main',
 			'dna_node_processor = scripts.dna_node_processor:main',
 			'dna_node_processor_client = scripts.dna_node_processor_client:main',
 			'dna_publish_events = scripts.dna_publish_events:main',
 			'dna_publish_event_server = scripts.dna_publish_event_server:main',
 			'dna_draw_trajs = scripts.dna_draw_trajs:main',
+			'dna_sync_videos = scripts.dna_sync_videos:main',
 		],
 	},
     install_requires = [

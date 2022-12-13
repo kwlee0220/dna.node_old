@@ -3,14 +3,18 @@ from typing import Optional
 
 import cv2
 
-from dna import Size2d
-from .camera import Camera, ImageCapture, Image
+from dna import Size2d, Image, Frame
+from .camera import Camera, ImageCapture
 
 
 class ResizingCamera(Camera):
     def __init__(self, camera: Camera, target_size: Size2d):
         self.base_camera = camera
         self.__size = target_size
+
+    @property
+    def uri(self) -> str:
+        return self.base_camera.uri
 
     def open(self) -> ImageCapture:
         src_capture = self.base_camera.open()
@@ -47,11 +51,11 @@ class ResizingImageCapture(ImageCapture):
         return self.__cap.is_open()
 
     def __call__(self) -> Optional[Image]:
-        img = self.__cap()
-        if img:
-            mat = cv2.resize(img.mat, dsize=self.__size.to_tuple(), interpolation=self.interpolation)
-            img = Image(mat=mat, frame_index=img.frame_index, ts=img.ts)
-        return img
+        frame:Frame = self.__cap()
+        if frame:
+            mat = cv2.resize(frame.image, dsize=self.__size.to_tuple(), interpolation=self.interpolation)
+            frame = Frame(image=mat, index=frame.index, ts=frame.ts)
+        return frame
 
     @property
     def size(self) -> Size2d:
@@ -64,6 +68,14 @@ class ResizingImageCapture(ImageCapture):
     @property
     def frame_index(self) -> int:
         return self.__cap.frame_index
+
+    @property
+    def sync(self) -> bool:
+        return self.__cap.sync
+
+    @sync.setter
+    def sync(self, flag) -> None:
+        self.__cap.sync = flag
 
     @property
     def repr_str(self) -> str:

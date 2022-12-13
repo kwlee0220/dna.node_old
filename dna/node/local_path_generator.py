@@ -4,7 +4,7 @@ from omegaconf import OmegaConf
 from shapely.geometry import LineString
 import cv2
 
-from dna import Point, Image
+from dna import Point
 from dna.color import BGR
 from dna.tracker import TrackState
 from .local_path_event import LocalPathEvent
@@ -39,15 +39,9 @@ class Session:
         self.world_coords = self.world_coords[length:]
 
         return LocalPathEvent(node_id=self.node_id, luid=self.luid,
-                              camera_path=camera_path, world_path = world_path,
+                              camera_path=camera_path, world_path=world_path,
                               first_frame=self.first_frame, last_frame=self.last_frame,
                               continuation=cont)
-
-    # def draw_camera_path(self, convas:Image, color:BGR, thickness:int=2) -> Image:
-    #     return cv2.polylines(convas, [pt.to_tuple() for pt in self.points], False, color, thickness)
-
-    # def draw_world_path(self, convas:Image, color:BGR, thickness:int=2) -> Image:
-    #     return cv2.polylines(convas, [pt.to_tuple() for pt in self.world_coords], False, color, thickness)
 
 class LocalPathGenerator(EventProcessor):
     MAX_PATH_LENGTH = 100

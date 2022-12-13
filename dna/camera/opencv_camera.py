@@ -61,7 +61,7 @@ class OpenCvCamera(Camera):
             return self.__target_size
         
         if self.__size is None:
-            vid = self.__open_video_capture(self.uri)
+            vid, _ = self.__open_video_capture(self.uri)
             width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
             self.__size = Size2d(width, height)
@@ -195,6 +195,10 @@ class OpenCvImageCapture(ImageCapture):
         self.__frame_index = index
 
     @property
+    def sync(self) -> bool:
+        return False
+
+    @property
     def repr_str(self) -> str:
         state = 'opened' if self.is_open() else 'closed'
         return f'{state}, size={self.size}, frames={self.frame_index}, fps={self.fps:.0f}/s'
@@ -242,7 +246,7 @@ class VideoFileCapture(OpenCvImageCapture):
         if frame.index > self.__last_frame_index:
             return None
 
-        if self.__sync:
+        if self.sync:
             remains = self.__interval - (frame.ts - started) - self.__overhead
             # print(f'elapsed={(img.ts - started)*1000:.0f}, overhead={self.__overhead*1000:.0f}, remains={remains*1000:.0f}')
             if remains > 0.005:
@@ -263,5 +267,13 @@ class VideoFileCapture(OpenCvImageCapture):
         return frame
 
     @property
+    def sync(self) -> bool:
+        return self.__sync
+
+    @sync.setter
+    def sync(self, flag) -> None:
+        self.__sync = flag
+
+    @property
     def repr_str(self) -> str:
-        return f'{super().repr_str}, sync={self.__sync}'
+        return f'{super().repr_str}, sync={self.sync}'

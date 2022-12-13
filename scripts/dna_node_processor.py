@@ -2,7 +2,6 @@
 from omegaconf import OmegaConf
 
 import dna
-from dna.camera.image_processor import ImageProcessor
 from dna.node.node_processor import PikaNodeExecutionFactory
 
 import argparse
