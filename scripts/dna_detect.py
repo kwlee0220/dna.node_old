@@ -6,9 +6,11 @@ import argparse
 from omegaconf import OmegaConf
 
 import dna
+from dna.conf import load_node_conf, get_config
 from dna.camera import Camera, ImageProcessor
 from dna.camera.utils import create_camera_from_conf
 from dna.detect.detecting_processor import DetectingProcessor
+from scripts.utils import load_camera_conf
 
 # __DEFAULT_DETECTOR_URI = 'dna.detect.yolov5:model=l&score=0.4'
 __DEFAULT_DETECTOR_URI = 'dna.detect.yolov4'
@@ -16,10 +18,12 @@ __DEFAULT_DETECTOR_URI = 'dna.detect.yolov4'
 def parse_args():
     parser = argparse.ArgumentParser(description="Detect objects in an video")
     parser.add_argument("--conf", metavar="file path", help="configuration file path")
-
+    
     parser.add_argument("--camera", metavar="uri", help="target camera uri")
+    parser.add_argument("--sync", action='store_true', help="sync to camera fps")
     parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number", default=1)
     parser.add_argument("--end_frame", type=int, metavar="number", help="the last frame number")
+
     parser.add_argument("--detector", help="Object detection algorithm.", default=None)
     parser.add_argument("--output", "-o", metavar="csv file", help="output detection file.", default=None)
     parser.add_argument("--output_video", "-v", metavar="mp4 file", help="output video file.", default=None)
@@ -34,14 +38,10 @@ def main():
     args, _ = parse_args()
 
     dna.initialize_logger(args.logger)
-    conf, _, args_conf = dna.load_node_conf(args, ['show', 'show_progress'])
+    conf, _, args_conf = load_node_conf(args, ['show', 'show_progress'])
     
     # 카메라 설정 정보 추가
-    conf.camera = dna.conf.get_config(conf, "camera", OmegaConf.create())
-    conf.camera.uri = dna.conf.get_config(conf.camera, "uri", args.camera)
-    conf.camera.begin_frame = args.begin_frame
-    conf.camera.end_frame = args.end_frame
-
+    conf.camera = load_camera_conf(get_config(conf, "camera", OmegaConf.create()), args_conf)
     camera:Camera = create_camera_from_conf(conf.camera)
     
     # detector 설정 정보

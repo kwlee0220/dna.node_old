@@ -12,10 +12,12 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description="Display a video")
     parser.add_argument("--conf", metavar="file path", help="configuration file path")
+    
     parser.add_argument("--camera", metavar="uri", help="target camera uri")
-    parser.add_argument("--show", "-s", nargs='?', const='0x0', default='0x0')
     parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number", default=1)
     parser.add_argument("--end_frame", type=int, metavar="number", help="the last frame number")
+
+    parser.add_argument("--show", "-s", nargs='?', const='0x0', default='0x0')
     parser.add_argument("--loop", action='store_true')
 
     parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
