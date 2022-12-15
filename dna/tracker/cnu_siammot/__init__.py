@@ -1,7 +1,8 @@
 from omegaconf import OmegaConf
 import pathlib
 
-from dna import Box, gdown_file
+import dna
+from dna import Box
 from .siammot_tracker import SiamMOT
 
 
@@ -13,7 +14,7 @@ def load(domain:Box, tracker_conf: OmegaConf):
     conf = tracker_conf.get('cnu_siammot', OmegaConf.create())
     
     model_path = conf.get('model', _MODEL_PATH)
-    gdown_file(_MODEL_URI, model_path)
+    dna.utils.gdown_file(_MODEL_URI, model_path)
     
     detector_conf = conf.get('detector', None)
     if detector_conf is None:

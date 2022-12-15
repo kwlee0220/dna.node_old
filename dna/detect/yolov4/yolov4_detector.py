@@ -15,8 +15,8 @@ import gdown
 # if not _YOLOV4_DIR in sys.path:
 #     sys.path.append(_YOLOV4_DIR)
 
-from dna import Box, gdown_file, Frame
-from dna.utils import parse_query, get_first_param
+from dna import Box, Frame
+from dna.utils import gdown_file, parse_query, get_first_param
 from dna.detect import Detection, ObjectDetector
 
 from .tool.utils import load_class_names

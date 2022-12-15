@@ -19,7 +19,7 @@ if not DEEPSORT_DIR in sys.path:
     sys.path.append(DEEPSORT_DIR)
 
 import dna
-from dna import Box, Size2d, utils, gdown_file
+from dna import Box, Size2d
 from dna.detect import ObjectDetector, Detection
 from dna.tracker.dna_track import DNATrack, TrackState
 from ..tracker import DetectionBasedObjectTracker
@@ -112,7 +112,7 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
         model_file = Path(model_file).resolve()
         if not model_file.exists():
             if model_file.name == 'model640.pt':
-                gdown_file('https://drive.google.com/uc?id=160jJWtgIhyhHIBpgNOkAT52uvvtOYGly', model_file)
+                dna.utils.gdown_file('https://drive.google.com/uc?id=160jJWtgIhyhHIBpgNOkAT52uvvtOYGly', model_file)
             else:
                 raise ValueError(f'Cannot find DeepSORT reid model: {model_file}')
         wt_path = Path(model_file)
@@ -183,7 +183,7 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
             if det.score < self.min_detection_score:
                 return False
             else:
-                return utils.find_any_centroid_cover(det.bbox, self.params.blind_zones) < 0
+                return dna.utils.find_any_centroid_cover(det.bbox, self.params.blind_zones) < 0
         detections = [det for det in dets if is_valid_detection(det)]
 
         self.__last_frame_detections = detections
