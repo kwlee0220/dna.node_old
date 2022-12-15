@@ -20,6 +20,7 @@ setup(
 			'dna_publish_event_server = scripts.dna_publish_event_server:main',
 			'dna_draw_trajs = scripts.dna_draw_trajs:main',
 			'dna_sync_videos = scripts.dna_sync_videos:main',
+			'dna_show_multiple_videos = scripts.dna_show_multiple_videos:main',
 		],
 	},
     install_requires = [

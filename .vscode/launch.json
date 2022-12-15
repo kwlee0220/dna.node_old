@@ -22,12 +22,13 @@
             "program": "${workspaceFolder}/scripts/dna_node.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--conf", "conf/etri_07.yaml",
-                "--output", "output/2021/etri_07_event.json",   // -o <file>
+                "--camera", "data/2022/etri_041.mp4",
+                "--conf", "conf/etri_04.yaml",
+                "--output", "output/2022/etri_041_event.json",   // -o <file>
                 // "--begin_frame", "1000",
                 // "--end_frame", "1000",
-                // "--show", "1280x720",
-                "--show_progress",  // -p
+                "--show", //"1280x720",
+                // "--show_progress",  // -p
             ],
             "justMyCode": true
         },
@@ -78,7 +79,7 @@
         },
         { "name": "SyncVideos",
             "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/sync_videos.py",
+            "program": "${workspaceFolder}/scripts/dna_sync_videos.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "output/2021/etri_05_event.json",
@@ -91,14 +92,14 @@
         },
         { "name": "ShowMultipleVideos",
             "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/show_multiple_videos.py",
+            "program": "${workspaceFolder}/scripts/dna_show_multiple_videos.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "data/2022/etri2022_04_crop.mp4",
-                "data/2022/etri2022_05_crop.mp4",
-                "data/2022/etri2022_06_crop.mp4",
-                "data/2022/etri2022_07_crop.mp4",
-                "--begin_frames", "1700, 2000, 2500, 3300",
+                "data/2022/etri_041.mp4",
+                "data/2022/etri_051.mp4",
+                "data/2022/etri_061.mp4",
+                "data/2022/etri_071.mp4",
+                "--begin_frames", "0, 11, 10, 0",
             ],
             "justMyCode": true
         },

@@ -46,7 +46,7 @@ def main():
             frame:Frame = cap()
             if frame is None:
                 break
-            img = roi.project(frame.image) if roi is not None else None
+            img = roi.crop(frame.image) if roi is not None else None
             writer.write(img)
 
 if __name__ == '__main__':

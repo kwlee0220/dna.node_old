@@ -244,6 +244,11 @@ class Box:
     def from_size(size:Size2d) -> Box:
         return Box.from_tlbr(np.array([0, 0, size.width, size.height]))
 
+    def translate(self, x: Union[int, float], y: Union[int, float]) -> Box:
+        tl = self.tl
+        wh = self.wh
+        return Box.from_tlwh(np.array([tl[0]+x, tl[1]+y, wh[0], wh[1]]))
+
     def is_valid(self) -> bool:
         wh = self.wh
         return wh[0] >= 0 and wh[1] >= 0
@@ -365,10 +370,15 @@ class Box:
         return cv2.rectangle(convas, tlbr_int[0:2], tlbr_int[2:4], color,
                             thickness=line_thickness, lineType=cv2.LINE_AA)
 
-    def project(self, img:Image) -> np.ndarray:
+    def crop(self, img:Image) -> np.ndarray:
         tl = self.tl
         br = self.br
         return img[tl[1]:br[1], tl[0]:br[0]]
+
+    def copy(self, src_img:Image, tar_img:Image) -> None:
+        x, y = tuple(self.tl)
+        w, h = tuple(self.wh)
+        tar_img[y:y+h, x:x+w] = src_img
     
     def __repr__(self):
         return '{}:{}'.format(self.top_left(), self.size())
@@ -382,3 +392,6 @@ class Frame:
     image: Image = field(repr=False)
     index: int
     ts: float
+    
+    def copy(self) -> Frame:
+        return Frame(self.image.copy(), self.index, self.ts)
