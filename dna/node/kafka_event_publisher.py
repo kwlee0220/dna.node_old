@@ -13,9 +13,13 @@ class KafkaEventPublisher(EventProcessor):
     def __init__(self, conf:OmegaConf) -> None:
         EventProcessor.__init__(self)
 
-        self.producer = KafkaProducer(bootstrap_servers=conf.bootstrap_servers)
-        self.topic = conf.topic
-        LOGGER.info(f"connect kafka-servers: {conf.bootstrap_servers}")
+        try:
+            self.producer = KafkaProducer(bootstrap_servers=conf.bootstrap_servers)
+            self.topic = conf.topic
+            LOGGER.info(f"connect kafka-servers: {conf.bootstrap_servers}")
+        except BaseException as e:
+            LOGGER.error(f"fails to connect KafkaBrokers: {conf.bootstrap_servers}")
+            raise e
 
     def close(self) -> None:
         super().close()
