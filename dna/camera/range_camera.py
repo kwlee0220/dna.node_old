@@ -66,6 +66,14 @@ class RangedImageCapture(ImageCapture):
         return self.__cap.fps
 
     @property
+    def sync(self) -> bool:
+        return self.__cap.sync
+
+    @sync.setter
+    def sync(self, flag) -> None:
+        return self.__cap.sync(flag)
+
+    @property
     def frame_index(self) -> int:
         return self.__cap.frame_index
 

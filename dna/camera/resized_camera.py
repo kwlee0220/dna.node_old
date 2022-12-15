@@ -75,7 +75,7 @@ class ResizingImageCapture(ImageCapture):
 
     @sync.setter
     def sync(self, flag) -> None:
-        self.__cap.sync = flag
+        return self.__cap.sync(flag)
 
     @property
     def repr_str(self) -> str:
