@@ -4,8 +4,10 @@ from omegaconf import OmegaConf
 import sys
 
 import dna
+from dna.conf import load_node_conf, get_config
 from dna.camera import Camera, ImageProcessor
 from dna.camera.utils import create_camera_from_conf
+from scripts.utils import load_camera_conf
 
 
 import argparse
@@ -27,14 +29,11 @@ def main():
     args, _ = parse_args()
 
     dna.initialize_logger(args.logger)
-    conf, _, args_conf = dna.load_node_conf(args, ['show'])
+    conf, _, args_conf = load_node_conf(args, ['show'])
     
     # 카메라 설정 정보 추가
-    conf.camera = dna.conf.get_config(conf, "camera", OmegaConf.create())
-    conf.camera.uri = dna.conf.get_config(conf.camera, "uri", args.camera)
-    conf.camera.begin_frame = args.begin_frame
-    conf.camera.end_frame = args.end_frame
-    camera:Camera = create_camera_from_conf(conf.camera)
+    conf.camera = load_camera_conf(get_config(conf, "camera", OmegaConf.create()), args_conf)
+    camera = create_camera_from_conf(conf.camera)
 
     while True:
         img_proc = ImageProcessor(camera.open(), conf)

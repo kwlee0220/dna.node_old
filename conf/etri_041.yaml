@@ -1,7 +1,8 @@
 id: etri:04
 
 camera:
-  uri: rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/3/media.smp
+  # uri: rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/3/media.smp
+  uri: rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000
 
 tracker:
   uri: dna.tracker.dna_deepsort
@@ -29,5 +30,5 @@ publishing:
   #   look_ahead: 7
 
   kafka:
-    bootstrap_servers: [192.168.35.193:9092]
+    bootstrap_servers: [localhost:9092]
     topic: 'node-tracks'

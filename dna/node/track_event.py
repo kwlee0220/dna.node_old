@@ -59,7 +59,7 @@ class TrackEvent(KafkaEvent):
                             distance=distance)
 
     def to_json(self) -> str:
-        tlbr_expr = [round(v, 2) for v in self.location.to_tlbr().tolist()]
+        tlbr_expr = [round(v, 2) for v in self.location.tlbr.tolist()]
         serialized = {'node':self.node_id, 'luid':self.luid, 'state':self.state.name,
                     'location':tlbr_expr, 'frame_index':self.frame_index, 'ts': self.ts}
         if self.world_coord is not None:
@@ -70,7 +70,7 @@ class TrackEvent(KafkaEvent):
         return json.dumps(serialized, separators=(',', ':'))
 
     def serialize(self) -> str:
-        tlbr_expr = [round(v, 2) for v in self.location.to_tlbr().tolist()]
+        tlbr_expr = [round(v, 2) for v in self.location.tlbr.tolist()]
         serialized = {'node':self.node_id, 'luid':self.luid, 'state':self.state.name,
                     'location':tlbr_expr, 'frame_index':self.frame_index, 'ts': self.ts}
         if self.world_coord is not None:
@@ -88,7 +88,7 @@ class TrackEvent(KafkaEvent):
 
     def to_csv(self) -> str:
         vlist = [self.node_id, self.luid, self.state.name] \
-                + self.location.to_tlbr().tolist() \
+                + self.location.tlbr.tolist() \
                 + [self.frame_index, self.ts]
         if self.world_coord is not None:
             vlist += np.round(self.world_coord.xy, _WGS84_PRECISION).tolist() + [round(self.distance, _DIST_PRECISION)]

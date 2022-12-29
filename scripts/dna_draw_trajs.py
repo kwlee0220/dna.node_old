@@ -74,7 +74,7 @@ def to_point_sequence(trajs: Dict[str,List[Box]]) -> Dict[str,List[Point]]:
 
 def to_contact_points(trajs: Dict[str,List[Box]], localizer:WorldCoordinateLocalizer):
     def tbox_to_tpoint(tbox:List[Box]):
-        return [Point.from_np(localizer.select_contact_point(box.to_tlbr())) for box in tbox]
+        return [Point.from_np(localizer.select_contact_point(box.tlbr)) for box in tbox]
     return {luid:tbox_to_tpoint(tbox) for luid, tbox in trajs.items()}
             
 def _x(pt):
@@ -221,7 +221,7 @@ class TrajectoryDrawer:
     def _draw_trajectory(self, convas:Image, traj: List[Box]) -> Image:
         pts = None
         if self.localizer is not None:
-            pts = [self.localizer.select_contact_point(box.to_tlbr()) for box in traj]
+            pts = [self.localizer.select_contact_point(box.tlbr) for box in traj]
         else:
             pts = [box.center() for box in traj]
             

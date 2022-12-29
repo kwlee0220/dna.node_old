@@ -22,7 +22,7 @@
             "program": "${workspaceFolder}/scripts/dna_node.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--camera", "data/2022/etri_041.mp4",
+                "--camera", "data/2022/crops/etri_041_crop.mp4",
                 "--conf", "conf/etri_04.yaml",
                 "--output", "output/2022/etri_041_event.json",   // -o <file>
                 // "--begin_frame", "1000",
@@ -37,6 +37,8 @@
             "program": "${workspaceFolder}/scripts/dna_track.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
+                "--camera", "data/2022/crops/etri_041_crop.mp4", //"--sync",
+                // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 "--conf", "conf/etri_04.yaml",
                 // "--output", "output/etri_04_track.csv",   // -o <file>
                 // "--output_video", "output/2022/etri_04_track_all.mp4",   // -v <file>
@@ -51,7 +53,9 @@
             "program": "${workspaceFolder}/scripts/dna_detect.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
+                "--camera", "data/2022/crops/etri_041_crop.mp4", //"--sync",
                 "--conf", "conf/etri_04.yaml",
+                // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 // "--detector", "dna.detect.yolov4",
                 // "--detector", "dna.detect.rcnn50_fpn",
                 // "--detector", "dna.detect.yolov5:model=l&score=0.4",
@@ -69,8 +73,8 @@
             "program": "${workspaceFolder}/scripts/dna_show.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                // "--conf", "conf/etri_04.yaml",
-                "--camera", "data/2021/etri_04.mp4",
+                "--conf", "conf/etri_04.yaml",
+                // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",
                 // "--show", //"1280x720",

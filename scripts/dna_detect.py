@@ -19,7 +19,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Detect objects in an video")
     parser.add_argument("--conf", metavar="file path", help="configuration file path")
     
-    parser.add_argument("--camera", metavar="uri", help="target camera uri")
+    parser.add_argument("--camera", metavar="uri", required=False, help="target camera uri")
     parser.add_argument("--sync", action='store_true', help="sync to camera fps")
     parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number", default=1)
     parser.add_argument("--end_frame", type=int, metavar="number", help="the last frame number")

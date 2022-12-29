@@ -15,50 +15,6 @@ DEBUG_PRINT_COST = DEBUG_SHOW_IMAGE
 DEBUG_START_FRAME = 32
 DEBUG_TARGET_TRACKS = None
 
-# class Config:
-#     def __init__(self, conf: OmegaConf) -> None:
-#         assert conf is not None
-#         self.conf = conf
-
-#     @classmethod
-#     def load_config_file(cls, config_path: Union[str,Path]) -> None:
-#         config_path = Path(config_path) if isinstance(config_path, str) else config_path
-#         conf = OmegaConf.load(config_path)
-#         return cls(conf)
-
-#     @classmethod
-#     def load_sub_config(cls, root_dir:Path, key_path:str) -> Optional[Config]:
-#         suffix = key_path.replace('.', '/') + ".yaml"
-#         full_path = root_dir / suffix
-#         if full_path.is_file():
-#             return Config.load_config_file(full_path)
-#         else:
-#             raise ValueError(f"configuration file is not found: '{full_path}'")
-
-#     def exists(self, key_path:str) -> bool:
-#         conf = self.conf
-#         parts = key_path.split('.')
-#         for name in parts:
-#             if hasattr(conf, name):
-#                 conf = conf.get(name)
-#             else:
-#                 return False
-#         return True
-
-#     def get(self, key_path:str, def_value: Optional[object]=None) -> object:
-#         parts = key_path.split('.')
-#         conf = self.conf
-#         for name in parts:
-#             if hasattr(conf, name):
-#                 conf = conf.get(name)
-#             else:
-#                 return def_value
-#         return conf
-
-#     def filter(self, keys: Optional[List[str]]=None) -> None:
-#         filtered = { k:self.get(k) for k in keys if self.exists(k) }
-#         return Config(OmegaConf.create(filtered))
-
 
 def load_config(config_path: Union[str,Path], conf_id: Optional[str]=None) -> OmegaConf:
     config_path = Path(config_path) if isinstance(config_path, str) else config_path
@@ -119,7 +75,7 @@ def get_terminal_config(conf: OmegaConf, key_path: str) -> Optional[Tuple[OmegaC
 def get_config(conf:OmegaConf, key_path:str, def_value: Optional[object]=None) -> object:
     parts = key_path.split('.')
     for name in parts:
-        if hasattr(conf, name):
+        if hasattr(conf, name) and conf.get(name):
             conf = conf.get(name)
         else:
             return def_value

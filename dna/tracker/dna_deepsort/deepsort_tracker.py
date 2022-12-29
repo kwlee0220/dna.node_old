@@ -124,16 +124,13 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
         max_overlap_ratio = tracker_conf.get('max_overlap_ratio', DEFAULT_MAX_OVERLAP_RATIO)
         min_size = Size2d.from_np(np.array(tracker_conf.get('min_size', DEFAULT_MIN_SIZE)))
 
-        blind_zones = tracker_conf.get("blind_zones", [])
-        if len(blind_zones) > 0:
+        if blind_zones := tracker_conf.get("blind_zones", []):
             blind_zones = [geometry.Polygon([tuple(c) for c in zone]) for zone in blind_zones]
 
-        exit_zones = tracker_conf.get("exit_zones", [])
-        if len(exit_zones) > 0:
+        if exit_zones := tracker_conf.get("exit_zones", []):
             exit_zones = [geometry.Polygon([tuple(c) for c in zone]) for zone in exit_zones]
 
-        stable_zones = tracker_conf.get("stable_zones", [])
-        if len(stable_zones) > 0:
+        if stable_zones := tracker_conf.get("stable_zones", []):
             # stable_zones = [Box.from_tlbr(np.array(zone, dtype=np.int32)) for zone in stable_zones]
             stable_zones = [geometry.Polygon([tuple(c) for c in zone]) for zone in stable_zones]
 
@@ -173,8 +170,7 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
         if self.det_dict:
             new_dets = []
             for det in dets:
-                label = self.det_dict.get(det.label, None)
-                if label:
+                if label := self.det_dict.get(det.label, None):
                     new_dets.append(Detection(det.bbox, label, det.score))
             dets = new_dets
 

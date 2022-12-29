@@ -11,7 +11,7 @@ class Detection(object):
         self.feature = np.asarray(feature, dtype=np.float32)
 
     # def to_tlbr(self):
-    #     return self.bbox.to_tlbr()
+    #     return self.bbox.tlbr
 
     # def to_xyah(self):
     #     return self.bbox.to_xyah()

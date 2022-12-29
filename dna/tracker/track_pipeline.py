@@ -5,6 +5,7 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 import numpy as np
+import cv2
 
 from dna import plot_utils, color, Point, BGR, Image, Frame
 from .dna_track import DNATrack, TrackState

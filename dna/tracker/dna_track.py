@@ -10,17 +10,18 @@ import cv2
 from dna import Box, Image, plot_utils
 from dna.color import BGR
 
-_STATE_CODE = {0:'N', 1:'T', 2:'C', 3:'L', 4: 'D'}
+
 class TrackState(Enum):
-    Null = 0
-    Tentative = 1
-    Confirmed = 2
-    TemporarilyLost = 3
-    Deleted = 4
+    Null = (0, 'N')
+    Tentative = (1, 'T')
+    Confirmed = (2, 'C')
+    TemporarilyLost = (3, 'L')
+    Deleted = (4, 'D')
     
-    @property
-    def code(self) -> str:
-        return _STATE_CODE[self.value]
+    def __init__(self, code, abbr) -> None:
+        super().__init__()
+        self.code = code
+        self.abbr = abbr
     
 class DNATrack(metaclass=ABCMeta):
     @property
@@ -64,12 +65,12 @@ class DNATrack(metaclass=ABCMeta):
         convas = loc.draw(convas, color, line_thickness=line_thickness)
         convas = cv2.circle(convas, loc.center().xy.astype(int), 4, color, thickness=-1, lineType=cv2.LINE_AA)
         if label_color:
-            label = f"{self.id}({self.state.code})"
+            label = f"{self.id}({self.state.abbr})"
             convas = plot_utils.draw_label(convas, label, loc.tl.astype(int), label_color, color, 2)
         return convas
 
     def to_string(self) -> str:
-        tlbr = self.location.to_tlbr()
+        tlbr = self.location.tlbr
         epoch = int(round(self.timestamp * 1000))
         return (f"{self.frame_index},{self.id},{tlbr[0]:.0f},{tlbr[1]:.0f},{tlbr[2]:.0f},{tlbr[3]:.0f},"
                 f"{self.state.name},{epoch}")

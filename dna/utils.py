@@ -53,7 +53,7 @@ import cv2
 import numpy as np
 
 def _draw_ds_track(convas, track, box_color:BGR, label_color:BGR, line_thickness:int):
-    box = Box.from_tlbr(track.to_tlbr())
+    box = Box.from_tlbr(track.tlbr)
     box.draw(convas, box_color)
     if label_color:
         msg = f"{track.track_id}[{track.state}]"
@@ -158,7 +158,7 @@ class RectangleDrawer:
                 return idx
         return -1
     
-    def is_on_line(self, coord: List[float], radius=_RADIUS) -> int:
+    def is_on_the_line(self, coord: List[float], radius=_RADIUS) -> int:
         if len(self.coords) > 1:
             pt = geometry.Point(coord).buffer(radius)
             extended = self.coords + [self.coords[0]]

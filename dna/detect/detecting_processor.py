@@ -75,6 +75,6 @@ class DetectingProcessor(FrameProcessor):
         return key
 
     def _to_string(self, frame_idx: int, det: Detection) -> str:
-        tlbr = det.bbox.to_tlbr()
+        tlbr = det.bbox.tlbr
         return (f"{frame_idx},-1,{tlbr[0]:.3f},{tlbr[1]:.3f},{tlbr[2]:.3f},{tlbr[3]:.3f},"
                 f"{det.score:.3f},-1,-1,-1,{det.label}")

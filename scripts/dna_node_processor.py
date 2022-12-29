@@ -2,6 +2,7 @@
 from omegaconf import OmegaConf
 
 import dna
+from dna.conf import load_node_conf, get_config
 from dna.node.node_processor import PikaNodeExecutionFactory
 
 import argparse
@@ -29,7 +30,7 @@ def main():
     args, _ = parse_args()
 
     dna.initialize_logger(args.logger)
-    conf, db_conf, args_conf = dna.load_node_conf(args)
+    conf, db_conf, args_conf = load_node_conf(args)
 
     conn_params = dna.PikaConnectionParameters(host=args.host, port=args.port,
                                                user_id=args.user, password=args.password)

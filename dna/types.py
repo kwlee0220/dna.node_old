@@ -9,6 +9,8 @@ import cv2
 
 from .color import BGR
 
+Image = NewType('Image', np.ndarray)
+
 
 class Point:
     __slots__ = ('__xy', )
@@ -221,10 +223,10 @@ EMPTY_SIZE2D: Size2d = Size2d(-1, -1)
 
 
 class Box:
-    __slots__ = ('__tlbr', )
+    __slots__ = ('tlbr', )
 
     def __init__(self, tlbr: np.ndarray) -> None:
-        self.__tlbr = np.array(tlbr)
+        self.tlbr = np.array(tlbr)
 
     @classmethod
     def from_points(self, tl: Point, br: Point) -> Box:
@@ -242,22 +244,19 @@ class Box:
 
     @staticmethod
     def from_size(size:Size2d) -> Box:
-        return Box.from_tlbr(np.array([0, 0, size.width, size.height]))
+        w, h = size.to_tuple()
+        return Box.from_tlbr(np.array([0, 0, w, h]))
 
     def translate(self, x: Union[int, float], y: Union[int, float]) -> Box:
-        tl = self.tl
-        wh = self.wh
-        return Box.from_tlwh(np.array([tl[0]+x, tl[1]+y, wh[0], wh[1]]))
+        delta = np.array([y, x, y, x])
+        return Box(self.tlbr + delta)
 
     def is_valid(self) -> bool:
         wh = self.wh
         return wh[0] >= 0 and wh[1] >= 0
 
-    def to_tlbr(self) -> np.ndarray:
-        return self.__tlbr
-
     def to_tlwh(self) -> np.ndarray:
-        tlwh = self.__tlbr.copy()
+        tlwh = self.tlbr.copy()
         tlwh[2:] = self.br - self.tl
         return tlwh
 
@@ -268,15 +267,15 @@ class Box:
         return ret
 
     def to_rint(self) -> Box:
-        return Box(np.rint(self.__tlbr).astype(int))
+        return Box(np.rint(self.tlbr).astype(int))
 
     @property
     def tl(self) -> np.ndarray:
-        return self.__tlbr[:2]
+        return self.tlbr[:2]
 
     @property
     def br(self) -> np.ndarray:
-        return self.__tlbr[2:]
+        return self.tlbr[2:]
 
     @property
     def wh(self) -> np.ndarray:
@@ -292,10 +291,10 @@ class Box:
     
     @property
     def coords(self) -> np.ndarray:
-        return np.array([[self.__tlbr[0], self.__tlbr[1]],
-                            [self.__tlbr[2], self.__tlbr[1]],
-                            [self.__tlbr[2], self.__tlbr[3]],
-                            [self.__tlbr[0], self.__tlbr[3]]])
+        return np.array([[self.tlbr[0], self.tlbr[1]],
+                            [self.tlbr[2], self.tlbr[1]],
+                            [self.tlbr[2], self.tlbr[3]],
+                            [self.tlbr[0], self.tlbr[3]]])
 
     def top_left(self) -> Point:
         return Point.from_np(self.tl)
@@ -323,8 +322,8 @@ class Box:
             return 0
 
     def distance_to(self, box:Box) -> float:
-        tlbr1 = self.__tlbr
-        tlbr2 = box.__tlbr
+        tlbr1 = self.tlbr
+        tlbr2 = box.tlbr
 
         delta1 = tlbr1[[0,3]] - tlbr2[[2,1]]
         delta2 = tlbr2[[0,3]] - tlbr2[[2,1]]
@@ -334,14 +333,14 @@ class Box:
         return dist
 
     def contains(self,box:Box) -> bool:
-        return self.__tlbr[0] <= box.__tlbr[0] and self.__tlbr[1] <= box.__tlbr[1] \
-                and self.__tlbr[2] >= box.__tlbr[2] and self.__tlbr[3] >= box.__tlbr[3]
+        return self.tlbr[0] <= box.tlbr[0] and self.tlbr[1] <= box.tlbr[1] \
+                and self.tlbr[2] >= box.tlbr[2] and self.tlbr[3] >= box.tlbr[3]
 
     def intersection(self, bbox:Box) -> Optional[Box]:
-        x1 = max(self.__tlbr[0], bbox.__tlbr[0])
-        y1 = max(self.__tlbr[1], bbox.__tlbr[1])
-        x2 = min(self.__tlbr[2], bbox.__tlbr[2])
-        y2 = min(self.__tlbr[3], bbox.__tlbr[3])
+        x1 = max(self.tlbr[0], bbox.tlbr[0])
+        y1 = max(self.tlbr[1], bbox.tlbr[1])
+        x2 = min(self.tlbr[2], bbox.tlbr[2])
+        y2 = min(self.tlbr[3], bbox.tlbr[3])
         
         if x1 >= x2 or y1 >= y2:
             return EMPTY_BOX
@@ -366,11 +365,11 @@ class Box:
         return (r1, r2, iou)
 
     def draw(self, convas:Image, color:BGR, line_thickness=2):
-        tlbr_int = self.__tlbr.astype(int)
+        tlbr_int = self.tlbr.astype(int)
         return cv2.rectangle(convas, tlbr_int[0:2], tlbr_int[2:4], color,
                             thickness=line_thickness, lineType=cv2.LINE_AA)
 
-    def crop(self, img:Image) -> np.ndarray:
+    def crop(self, img:Image) -> Image:
         tl = self.tl
         br = self.br
         return img[tl[1]:br[1], tl[0]:br[0]]
@@ -386,7 +385,6 @@ class Box:
 EMPTY_BOX:Box = Box(np.array([-1,-1,0,0]))
 
 
-Image = NewType('Image', np.ndarray)
 @dataclass(frozen=True, eq=True)    # slots=True
 class Frame:
     image: Image = field(repr=False)

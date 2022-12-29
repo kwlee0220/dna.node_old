@@ -27,7 +27,7 @@ class WorldCoordinateAttacher(EventProcessor):
                           f'contact_point={self.contact_point}'))
 
     def handle_event(self, ev:TrackEvent) -> None:
-        pt = self.localizer.select_contact_point(ev.location.to_tlbr())
+        pt = self.localizer.select_contact_point(ev.location.tlbr)
         world_coord, dist = self.localizer.to_world_coord(pt)
         if world_coord is not None:
             world_coord = Point.from_np(world_coord)
