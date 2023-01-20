@@ -11,7 +11,7 @@ from .object_detector import ObjectDetector, Detection
 
 
 class DetectingProcessor(FrameProcessor):
-    __slots__ = 'detector', 'draw_detections', 'box_color', 'label_color', 'show_score', 'output', 'out_handle'
+    __slots__ = 'detector', 'draw_detections', 'box_color', 'label_color', 'show_score', 'output', 'out_fp'
     
     def __init__(self,
                 detector:ObjectDetector,
