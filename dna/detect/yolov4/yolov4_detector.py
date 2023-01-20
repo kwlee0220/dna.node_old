@@ -76,10 +76,15 @@ def load(query: str):
     import os
     top_dir = Path(os.getcwd()) / 'models' / 'yolov4'
 
-    desc = _download_model_descriptor(model_id, top_dir)
-
+    desc:Yolov4TorchDetector = _download_model_descriptor(model_id, top_dir)
     LOGGER.info((f'Loading Yolov4TorchDetector: cfg={desc.cfg_file_path}, weights={desc.weights_file_path}'))
-    return Yolov4TorchDetector(desc)
+    detector = Yolov4TorchDetector(desc)
+
+    score = args.get('score')
+    if score is not None:
+        detector.conf_thres = float(score)
+
+    return detector
 
 class Yolov4TorchDetector(ObjectDetector):
     def __init__(self, desc: YoloV4ModelDesc,
