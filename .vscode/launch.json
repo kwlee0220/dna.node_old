@@ -53,12 +53,12 @@
             "program": "${workspaceFolder}/scripts/dna_detect.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--camera", "data/2022/crops/etri_041_crop.mp4", //"--sync",
+                "--camera", "data/2022/crops/etri_041_crop.mp4", "--sync",
                 "--conf", "conf/etri_04.yaml",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
-                // "--detector", "dna.detect.yolov4",
+                // "--detector", "dna.detect.yolov4:score=0.1",
                 // "--detector", "dna.detect.rcnn50_fpn",
-                // "--detector", "dna.detect.yolov5:model=l&score=0.4",
+                // "--detector", "dna.detect.yolov5:model=l6&score=0.1",
                 // "--detector", "file:${env:HOME}/Dropbox/data/etri/etri_051_det.txt",
                 // "--output", "output/2022/etri_04_det.csv",   // -o <file>
                 // "--output_video", "output/2022/etri_04_det.mp4",   // -v <file>
