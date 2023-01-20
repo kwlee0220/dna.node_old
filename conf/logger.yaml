@@ -2,8 +2,7 @@ version: 1
 
 formatters:
     standard:
-        # format: "%(asctime)s %(levelname).5s [%(name)s] %(message)s (%(filename)s:%(lineno)d)"
-        format: "%(asctime)s %(levelname).5s [%(name)s] %(message)s"
+        format: "%(asctime)s %(levelname).5s [%(name)s] %(message)s (%(filename)s:%(lineno)d)"
         datefmt: "%H:%M:%S"
     error:
         format: "%(levelname)s <PID %(process)d:%(processName)s> %(name)s.%(funcName)s(): %(message)s"
@@ -12,7 +11,7 @@ formatters:
 handlers:
     console:
         class: logging.StreamHandler
-        level: DEBUG
+        level: INFO
         formatter: standard
         stream: ext://sys.stdout
 
@@ -43,15 +42,11 @@ loggers:
     dna:
         level: INFO
         handlers: [console]
-        propagate: yes
+        propagate: no
     dna.image_processor:
         level: INFO
         handlers: [console]
         propagate: no
-    dna.pika_execution:
-        level: DEBUG
-        handlers: [console]
-        propagate: yes
 
     # <module.x>:
     #     level: DEBUG

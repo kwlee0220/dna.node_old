@@ -1,8 +1,7 @@
 id: etri:05
 
 camera:
-  # uri: data/2022/etri2022_05_crop.mp4
-  uri: data/2021/etri_05.mp4
+  uri: data/2022/etri2022_05_crop.mp4
   # size: [1920, 1080]
   sync: false
 
@@ -10,7 +9,7 @@ tracker:
   uri: dna.tracker.dna_deepsort
   # uri: dna.tracker.cnu_siammot
   # draw_tracks: true
-  # draw_zones: True
+  draw_zones: True
   # output: C:/Temp/data/track_output.csv
 
   # cnu_siammot:
@@ -37,20 +36,21 @@ tracker:
       - [[1915, 26], [10, 22], [2, 625], [674, 367], [713, 322], [657, 299], [662, 200], [993, 241],
         [1302, 301], [1682, 408], [1681, 542], [1547, 516], [1420, 534], [1346, 593], [1268, 796],
         [347, 805], [5, 1038], [5, 1072], [1915, 1066]]
-    # exit_zones:
-    #   - [[265, 520], [385, 888], [284, 1079], [0, 1080], [2, 521]]
-    #   - [[1916, 394], [1914, 632], [1693, 608], [1693, 388]]
-    #   - [[706, 183], [706, 320], [551, 316], [552, 178]]
+    exit_zones:
+      - [[265, 520], [385, 888], [284, 1079], [0, 1080], [2, 521]]
+      - [[1916, 394], [1914, 632], [1693, 608], [1693, 388]]
+      - [[706, 183], [706, 320], [551, 316], [552, 178]]
 
 publishing:
   min_path_length: 10
   attach_world_coordinates:
-    camera_geometry: regions/etri_testbed/etri_testbed.json
+    camera_geometry: conf/region_etri/etri_testbed.json
+    # camera_geometry: conf/etri_camera_geom.json
     camera_index: 1
-  # stabilization:
-  #   look_ahead: 7
-  # local_path:
-  #   max_path_length: 100
+    # epsg_code: "EPSG:5186"
+    # world_coords_offset: [-1.5,3]
+  local_path:
+    max_path_length: 100
   kafka:
     bootstrap_servers: [localhost:9092]
 #   bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
