@@ -22,7 +22,7 @@ tracker:
     detector: dna.detect.yolov5:model=m&score=0.45
     # detector: dna.detect.rcnn50_fpn
     # detector: file:videos/etri/etri_051_det.txt
-    # min_detection_score: 0
+    # detection_threshold: 0
     # n_init: 3
     # metric_threshold: 0.55
     # max_iou_distance: 0.85

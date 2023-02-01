@@ -21,7 +21,7 @@ def parse_args():
     
     parser.add_argument("--camera", metavar="uri", help="target camera uri")
     parser.add_argument("--sync", action='store_true', help="sync to camera fps")
-    parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number", default=1)
+    parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number")
     parser.add_argument("--end_frame", type=int, metavar="number", help="the last frame number")
 
     parser.add_argument("--output", "-o", metavar="csv file", help="output detection file.", default=None)

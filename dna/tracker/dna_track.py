@@ -23,7 +23,7 @@ class TrackState(Enum):
         self.code = code
         self.abbr = abbr
     
-class DNATrack(metaclass=ABCMeta):
+class IDNATrack(metaclass=ABCMeta):
     @property
     @abstractmethod
     def id(self) -> Any: pass
@@ -76,7 +76,7 @@ class DNATrack(metaclass=ABCMeta):
                 f"{self.state.name},{epoch}")
     
     @staticmethod
-    def from_string(csv) -> DNATrack:
+    def from_string(csv) -> IDNATrack:
         parts = csv.split(',')
 
         frame_idx = int(parts[0])
@@ -85,11 +85,10 @@ class DNATrack(metaclass=ABCMeta):
         bbox = Box.from_tlbr(tlbr)
         state = TrackState(int(parts[6]))
         ts = int(parts[7]) / 1000
-        
         return SimpleTrack(id=track_id, state=state, location=bbox, frame_index=frame_idx, timestamp=ts)
     
 
-class SimpleTrack(DNATrack):
+class SimpleTrack(IDNATrack):
     def __init__(self, id:int, state:TrackState, location:Box, frame_index:int, timestamp:float) -> None:
         super().__init__()
         self.__id = id

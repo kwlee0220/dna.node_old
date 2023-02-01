@@ -7,7 +7,7 @@ import json
 import numpy as np
 
 from dna import Box, Point
-from dna.tracker import DNATrack, TrackState
+from dna.tracker import IDNATrack, TrackState
 from .kafka_event import KafkaEvent
 
 
@@ -36,7 +36,7 @@ class TrackEvent(KafkaEvent):
             return False
 
     @staticmethod
-    def from_track(node_id:str, track:DNATrack) -> TrackEvent:
+    def from_track(node_id:str, track:IDNATrack) -> TrackEvent:
         return TrackEvent(node_id=node_id, luid=track.id, state=track.state,
                         location=track.location, frame_index=track.frame_index, ts=int(track.timestamp * 1000))
 
@@ -127,7 +127,7 @@ EOT:TrackEvent = TrackEvent(node_id=None, luid=None, state=None, location=None,
 
 
 from dna import Frame
-from dna.tracker.dna_track import DNATrack
+from dna.tracker.dna_track import IDNATrack
 from dna.tracker import TrackProcessor
 from .event_processor import EventQueue
 class TrackEventSource(TrackProcessor, EventQueue):
@@ -141,6 +141,6 @@ class TrackEventSource(TrackProcessor, EventQueue):
     def track_stopped(self, tracker) -> None:
         self.close()
 
-    def process_tracks(self, tracker, frame: Frame, tracks: List[DNATrack]) -> None:
+    def process_tracks(self, tracker, frame: Frame, tracks: List[IDNATrack]) -> None:
         for track in tracks:
             self.publish_event(TrackEvent.from_track(self.node_id, track))

@@ -9,16 +9,16 @@ class Option:
     value: Any
     president: bool = field(default=True)
 
-    @classmethod
-    def empty(cls) -> Option:
+    @staticmethod
+    def empty() -> Option:
         return _EMPTY
 
-    @classmethod
-    def of(cls, value: Any) -> None:
+    @staticmethod
+    def of(value: Any) -> Option:
         return Option(value, True)
 
-    @classmethod
-    def ofNullable(cls, value: Any) -> None:
+    @staticmethod
+    def ofNullable(value: Any) -> Option:
         return Option(value, True) if value is not None else Option.empty()
 
     def get(self) -> Any:

@@ -5,8 +5,8 @@ from omegaconf import OmegaConf
 
 import dna
 from dna import Size2d
-from .opencv_camera import OpenCvCamera, OpenCvVideFile
-from .threaded_camera import ThreadedCamera
+from dna.camera.opencv_camera import OpenCvCamera, OpenCvVideFile
+from dna.camera.threaded_camera import ThreadedCamera
 
 def create_camera(uri:str, size:Size2d=None, begin_frame: int=0) -> OpenCvCamera:
     conf = OmegaConf.create()

@@ -8,7 +8,7 @@ import numpy as np
 import cv2
 
 from dna import plot_utils, color, Point, BGR, Image, Frame
-from .dna_track import DNATrack, TrackState
+from .dna_track import IDNATrack, TrackState
 from .tracker import ObjectTracker, TrackProcessor, DetectionBasedObjectTracker
 
 
@@ -34,7 +34,7 @@ class TrackWriter(TrackProcessor):
 
         super().track_stopped(tracker)
 
-    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[DNATrack]) -> None:
+    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[IDNATrack]) -> None:
         for track in tracks:
             self.out_handle.write(track.to_string() + '\n')
 
@@ -45,10 +45,10 @@ class Trail:
         self.__tracks = []
 
     @property
-    def tracks(self) -> List[DNATrack]:
+    def tracks(self) -> List[IDNATrack]:
         return self.__tracks
 
-    def append(self, track: DNATrack) -> None:
+    def append(self, track: IDNATrack) -> None:
         self.__tracks.append(track)
 
     def draw(self, convas: np.ndarray, color: color.BGR, line_thickness=2) -> np.ndarray:
@@ -70,7 +70,7 @@ class TrailCollector(TrackProcessor):
     def track_started(self, tracker: ObjectTracker) -> None: pass
     def track_stopped(self, tracker: ObjectTracker) -> None: pass
 
-    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[DNATrack]) -> None:      
+    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[IDNATrack]) -> None:      
         for track in tracks:
             if track.state == TrackState.Confirmed  \
                 or track.state == TrackState.TemporarilyLost    \
@@ -150,8 +150,10 @@ class TrackingPipeline(FrameProcessor):
 
         if self.draw_tracks:
             if self.is_detection_based:
+                threshold = self.tracker.detection_threshold
                 for det in self.tracker.last_frame_detections():
-                    convas = det.draw(convas, color.WHITE, line_thickness=2)
+                    if det.score >= threshold:
+                        convas = det.draw(convas, color.WHITE, line_thickness=2)
 
             for track in tracks:
                 if track.is_tentative():
@@ -166,7 +168,7 @@ class TrackingPipeline(FrameProcessor):
         else:
             return frame
     
-    def draw_track_trail(self, convas:Image, track: DNATrack, color: color.BGR, label_color: BGR=color.WHITE,
+    def draw_track_trail(self, convas:Image, track: IDNATrack, color: color.BGR, label_color: BGR=color.WHITE,
                         trail_color: Optional[BGR]=None) -> np.ndarray:
         convas = track.draw(convas, color, label_color=label_color, line_thickness=2)
 

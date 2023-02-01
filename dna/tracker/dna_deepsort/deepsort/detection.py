@@ -1,13 +1,15 @@
 # vim: expandtab:ts=4:sw=4
 import numpy as np
 
+from dna import Box
+
 
 class Detection(object):
-    __slots__ = 'bbox', 'confidence', 'feature'
+    __slots__ = 'bbox', 'score', 'feature'
     
-    def __init__(self, bbox, confidence, feature):
+    def __init__(self, bbox:Box, score:float, feature):
         self.bbox = bbox
-        self.confidence = confidence
+        self.score = score
         self.feature = np.asarray(feature, dtype=np.float32)
 
     # def to_tlbr(self):
@@ -17,4 +19,4 @@ class Detection(object):
     #     return self.bbox.to_xyah()
 
     def __repr__(self) -> str:
-        return f"({self.bbox},{self.confidence:.2f}"
+        return f"({self.bbox},{self.score:.2f}"

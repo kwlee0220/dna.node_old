@@ -20,7 +20,9 @@ def load(query: str):
     args = parse_query(query)
     model_id = 'yolov5' + args.get('model', 's')
 
-    model = torch.hub.load('ultralytics/yolov5', model_id, pretrained=True, verbose=False)
+    # model = torch.hub.load('ultralytics/yolov5', model_id, pretrained=True, verbose=False)
+    # model = torch.hub.load('yolov5', path='yolov5l6.pt', source='local')
+    model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5l6.pt')
 
     score = args.get('score')
     if score is not None:

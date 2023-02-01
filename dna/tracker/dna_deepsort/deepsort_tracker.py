@@ -21,13 +21,13 @@ if not DEEPSORT_DIR in sys.path:
 import dna
 from dna import Box, Size2d
 from dna.detect import ObjectDetector, Detection
-from dna.tracker.dna_track import DNATrack, TrackState
+from dna.tracker.dna_track import IDNATrack, TrackState
 from ..tracker import DetectionBasedObjectTracker
 from .deepsort.deepsort import deepsort_rbc
 from .deepsort.track import Track as DSTrack
 from .deepsort.track import TrackState as DSTrackState
 
-DEFAULT_MIN_DETECTION_SCORE = 0
+DEFAULT_DETECTION_THRESHOLD = 0
 DEFAULT_METRIC_THRESHOLD = 0.55
 DEFAULT_MAX_IOU_DISTANCE = 0.85
 DEFAULT_MAX_AGE = 10
@@ -48,7 +48,7 @@ class DeepSORTParams:
     exit_zones: List[geometry.Polygon]
     stable_zones: List[geometry.Polygon]
     
-class DeepSORTTrack(DNATrack):
+class DeepSORTTrack(IDNATrack):
     from .deepsort.track import Track as DSTrack
     def __init__(self, ds_track: DSTrack, frame_index:int, timestamp:float) -> None:
         super().__init__()
@@ -91,7 +91,7 @@ class DeepSORTTrack(DNATrack):
         convas = cv2.circle(convas, loc.center().xy.astype(int), 4, color, thickness=-1, lineType=cv2.LINE_AA)
         if label_color:
             if self.__state == TrackState.Confirmed:
-                label = f"{self.id}({self.state.code})"
+                label = f"{self.id}({self.state.abbr})"
             elif self.__state == TrackState.TemporarilyLost:
                 label = f"{self.id}({self.ds_track.time_since_update})"
             elif self.__state == TrackState.Tentative:
@@ -106,7 +106,7 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
 
         self.__detector = detector
         self.det_dict = tracker_conf.get('det_mapping', DEFAULT_DET_MAPPING)
-        self.min_detection_score = tracker_conf.get('min_detection_score', DEFAULT_METRIC_THRESHOLD)
+        self.__detection_threshold = tracker_conf.get('detection_threshold', DEFAULT_DETECTION_THRESHOLD)
 
         model_file = tracker_conf.get('model_file', 'models/deepsort/model640.pt')
         model_file = Path(model_file).resolve()
@@ -144,6 +144,7 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
                                     exit_zones=exit_zones,
                                     stable_zones=stable_zones)
         self.deepsort = deepsort_rbc(domain = domain,
+                                    detection_threshold=self.detection_threshold,
                                     wt_path=wt_path,
                                     params=self.params)
         self.__last_frame_detections = []
@@ -151,6 +152,10 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
     @property
     def detector(self) -> ObjectDetector:
         return self.__detector
+        
+    @property
+    def detection_threshold(self) -> float:
+        return self.__detection_threshold
 
     def last_frame_detections(self) -> List[Detection]:
         return self.__last_frame_detections
@@ -162,7 +167,7 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
         else:
             return None
 
-    def track(self, frame: Frame) -> List[DNATrack]:
+    def track(self, frame: Frame) -> List[IDNATrack]:
         # detector를 통해 match 대상 detection들을 얻는다.
         dets:List[Detection] = self.detector.detect(frame)
 
@@ -176,14 +181,13 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
 
         # 일정 점수 이하의 detection들과 blind zone에 포함된 detection들은 무시한다.
         def is_valid_detection(det:Detection):
-            if det.score < self.min_detection_score:
-                return False
-            else:
-                return dna.utils.find_any_centroid_cover(det.bbox, self.params.blind_zones) < 0
+            return dna.utils.find_any_centroid_cover(det.bbox, self.params.blind_zones) < 0
         detections = [det for det in dets if is_valid_detection(det)]
 
         self.__last_frame_detections = detections
         bboxes, scores = self.split_boxes_scores(self.__last_frame_detections)
+        # kwlee
+        print(f"{frame.index}: ------------------------------------------------------")
         tracker, deleted_tracks = self.deepsort.run_deep_sort(frame.image.astype(np.uint8), bboxes, scores)
 
         active_tracks = [DeepSORTTrack(ds_track, frame.index, frame.ts) for ds_track in tracker.tracks]

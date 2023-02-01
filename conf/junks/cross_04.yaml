@@ -29,7 +29,7 @@ tracker:
   # metric_threshold: 0.55
   # max_iou_distance: 0.7
   # max_age: 10
-  # min_detection_score: 0
+  # detection_threshold: 0
   # min_size: [30, 20]
   det_mapping:
     car: car

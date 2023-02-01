@@ -13,11 +13,11 @@ import cv2
 from dna import Frame
 from dna.detect import Detection
 from dna.detect.object_detector import ObjectDetector
-from .dna_track import DNATrack
+from .dna_track import IDNATrack
 
 class ObjectTracker(metaclass=ABCMeta):
     @abstractmethod
-    def track(self, frame: Frame) -> List[DNATrack]: pass
+    def track(self, frame: Frame) -> List[IDNATrack]: pass
 
 
 class TrackProcessor(metaclass=ABCMeta):
@@ -28,7 +28,7 @@ class TrackProcessor(metaclass=ABCMeta):
     def track_stopped(self, tracker:ObjectTracker) -> None: pass
 
     @abstractmethod
-    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[DNATrack]) -> None: pass
+    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[IDNATrack]) -> None: pass
 
 
 class DetectionBasedObjectTracker(ObjectTracker):
@@ -38,6 +38,10 @@ class DetectionBasedObjectTracker(ObjectTracker):
 
     @abstractmethod
     def last_frame_detections(self) -> List[Detection]: pass
+    
+    @property
+    @abstractmethod
+    def detection_threshold(self) -> float: pass
 
 
 class LogFileBasedObjectTracker(ObjectTracker):
@@ -54,7 +58,7 @@ class LogFileBasedObjectTracker(ObjectTracker):
     def file(self) -> Path:
         return self.__file
 
-    def track(self, frame: Frame) -> List[DNATrack]:
+    def track(self, frame: Frame) -> List[IDNATrack]:
         if not self.look_ahead:
             return []
 
@@ -76,10 +80,10 @@ class LogFileBasedObjectTracker(ObjectTracker):
 
         return tracks
         
-    def _look_ahead(self) -> DNATrack:
+    def _look_ahead(self) -> IDNATrack:
         line = self.__file.readline().rstrip()
         if line:
-            return DNATrack.from_string(line)
+            return IDNATrack.from_string(line)
         else:
             self.__file.close()
             return None

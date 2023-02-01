@@ -5,8 +5,7 @@ import cv2
 import numpy as np
 from omegaconf import OmegaConf
 
-from dna import Box
-from dna import color, plot_utils
+from dna import Box, color, plot_utils
 from dna.camera import Camera, ImageProcessor
 from dna.camera.utils import create_camera_from_conf
 from dna.utils import RectangleDrawer, PolygonDrawer
@@ -14,18 +13,18 @@ from dna.utils import RectangleDrawer, PolygonDrawer
 img = None
 
 camera_conf = OmegaConf.create()
-camera_conf.uri = "output/2022/etri_06_track_all.mp4"
+camera_conf.uri = "data/2022/crops/etri_05_crop.mp4"
 # camera_conf.uri = "output/result.jpg"
-camera_conf.begin_frame = 1525
+camera_conf.begin_frame = 188
 camera:Camera = create_camera_from_conf(camera_conf)
 
 coords_list = [
     # [[186, 631], [738, 492], [915, 352], [1016, 351], [1017, 334], [1101, 334], [1311, 488], [1726, 587],
     #     [1759, 843], [1733, 1076], [1921, 1075], [1920, 2], [0, -2], [-2, 636],  [1, 1076], [226, 1077], [174, 826]],
     # [[1339, 563], [1296, 1045], [1410, 1054], [1466, 595]],
-    [[1017, 356], [998, 273], [1091, 272], [1097, 355]],
-    [[186, 631], [738, 492], [917, 349], [1112, 347], [1311, 488], [1726, 587], [1759, 843], [1733, 1076],
-        [1921, 1075], [1920, 2], [0, -2], [-2, 636], [1, 1076], [226, 1077], [174, 826]]
+    # [[1017, 356], [998, 273], [1091, 272], [1097, 355]],
+    # [[186, 631], [738, 492], [917, 349], [1112, 347], [1311, 488], [1726, 587], [1759, 843], [1733, 1076],
+    #     [1921, 1075], [1920, 2], [0, -2], [-2, 636], [1, 1076], [226, 1077], [174, 826]]
 ]
 
 with closing(camera.open()) as cap:
@@ -35,8 +34,9 @@ for coords in coords_list:
     img = plot_utils.draw_polygon(img, coords, color.ORANGE, 2)
 
 polygon = []
-polygon = [[1017, 356], [998, 273], [1091, 272], [1097, 355]]
-
+polygon = [[1915, 26], [10, 22], [2, 625], [674, 367], [713, 322], [657, 299], [662, 200], [993, 241],
+        [1302, 301], [1682, 408], [1681, 542], [1547, 516], [1420, 534], [1346, 593], [1268, 796],
+        [347, 805], [5, 1038], [5, 1072], [1915, 1066]]
 coords = PolygonDrawer(img, polygon).run()
 print(coords)
 

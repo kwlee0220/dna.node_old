@@ -1,37 +1,42 @@
 # vim: expandtab:ts=4:sw=4
 from __future__ import absolute_import
-from typing import List, Union, Tuple
-import enum
+from typing import List, Tuple
 
+import numpy as np
 from numpy.linalg import det
 from shapely import geometry
 
+import dna
 from .detection import Detection
 from . import matcher, utils
-from .utils import all_indices, intersection, subtract, project, filter_overlaps
-import dna
-import numpy as np
 from dna.types import Box, Size2d
 import kalman_filter
 import linear_assignment
 import iou_matching
 from track import Track
+from .matcher import Matcher, ReciprocalCostMatcher
 
 import logging
-LOGGER = logging.getLogger('dna.tracker.deepsort')
+LOGGER = logging.getLogger('dna.tracker.dnasort')
 
 
-_HOT_DIST_THRESHOLD = 21
-_COST_THRESHOLD = 0.5
-_COST_THRESHOLD_WEAK = 0.75
-_COST_THRESHOLD_STRONG = 0.2
+DIST_THRESHOLD_TIGHT = 20
+DIST_THRESHOLD = 50
+IOU_THRESHOLD_TIGHT = 0.3
+IOU_THRESHOLD = 0.55
+IOU_THRESHOLD_LOOSE = 0.8
+COMBINED_THRESHOLD_TIGHT = 0.2
+# COMBINED_THRESHOLD = 0.5
+COMBINED_THRESHOLD_LOOSE = 0.75
+
 
 class Tracker:
-    def __init__(self, domain, metric, params):
+    def __init__(self, domain, detection_threshold:float, metric, params):
         self.domain = domain
         self.metric = metric
+        self.detection_threshold = detection_threshold
         self.params = params
-        self.new_track_overlap_threshold = 0.75
+        self.new_track_overlap_threshold = 0.65
 
         self.kf = kalman_filter.KalmanFilter()
         self.tracks:List[Track] = []
@@ -45,9 +50,27 @@ class Tracker:
         for track in self.tracks:
             track.predict(self.kf)
 
-    def update(self, detections):
+    def update(self, detections:List[Detection], convas):
         # Run matching cascade.
         matches, unmatched_track_idxs, unmatched_detections = self._match(detections)
+
+        #########################################################################################################################
+        ### kwlee
+        import cv2
+        if len(matches) > 0:
+            from dna import plot_utils, color
+            for t_idx, d_idx in matches:
+                label = f'{self.tracks[t_idx].track_id}({d_idx})'
+                det = detections[d_idx]
+                if det.score >= self.detection_threshold:
+                    convas = plot_utils.draw_label(convas, label, det.bbox.br.astype(int), color.WHITE, color.RED, 1)
+                    convas = det.bbox.draw(convas, color.RED, line_thickness=1)
+                if det.score < self.detection_threshold:
+                    convas = plot_utils.draw_label(convas, label, det.bbox.br.astype(int), color.WHITE, color.BLUE, 1)
+                    convas = det.bbox.draw(convas, color.BLUE, line_thickness=1)
+        cv2.imshow('detections', convas)
+        cv2.waitKey(1)
+        #########################################################################################################################
 
         # Update locations of matched tracks
         for tidx, didx in matches:
@@ -77,9 +100,12 @@ class Tracker:
         # 경우가 많아서 이를 제거하기 위함이다.
         matcher.delete_overlapped_tentative_tracks(self.tracks, self.params.max_overlap_ratio)
         
-        if len(unmatched_detections) > 0:
+        if unmatched_detections:
             new_track_idxs = unmatched_detections.copy()
             d_boxes: List[Box] = [d.bbox for d in detections]
+            matched_det_idxes = utils.project(matches, 1)
+            det_idxes = [idx for idx, det in enumerate(detections) 
+                            if det.score >= self.detection_threshold or idx in matched_det_idxes]
             
             # 새로 추가될 track의 조건을 만족하지 않는 unmatched_detection들을 제거시킨다.
             for didx in unmatched_detections:
@@ -89,7 +115,13 @@ class Tracker:
                 if box.width < self.params.min_size.width or box.height < self.params.min_size.height:
                     new_track_idxs.remove(didx)
                     continue
-                
+
+                # Stable 영역에 포함되는 detection들은 무시한다.
+                # Stable 영역에서는 새로운 track이 생성되지 않도록 함.
+                if dna.utils.find_any_centroid_cover(box, self.params.stable_zones) >= 0:
+                    new_track_idxs.remove(didx)
+                    continue
+
                 # Exit 영역에 포함되는 detection들은 무시한다
                 if dna.utils.find_any_centroid_cover(box, self.params.exit_zones) >= 0:
                     new_track_idxs.remove(didx)
@@ -99,22 +131,19 @@ class Tracker:
 
                 # 이미 match된 detection과 겹치는 비율이 너무 크거나,
                 # 다른 unmatched detection과 겹치는 비율이 크면서 그 detection 영역보다 작은 경우 제외시킴.
-                for idx, ov in filter_overlaps(box, d_boxes, lambda v: max(v) >= self.new_track_overlap_threshold):
-                    if idx != didx and (idx not in unmatched_detections or d_boxes[idx].area() >= box.area()):
-                        LOGGER.debug((f"remove an unmatched detection that overlaps with better one: "
-                                        f"removed={didx}, better={idx}, ratios={max(ov):.2f}"))
-                        new_track_idxs.remove(didx)
-                        break
+                for other_idx, ov in utils.overlap_boxes(box, d_boxes, det_idxes):
+                    if other_idx != didx and max(ov) >= self.new_track_overlap_threshold:
+                        if other_idx in matched_det_idxes or d_boxes[other_idx].area() >= box.area():
+                            LOGGER.debug((f"remove an unmatched detection that overlaps with better one: "
+                                            f"removed={didx}, better={other_idx}, ratios={max(ov):.2f}"))
+                            new_track_idxs.remove(didx)
+                            break
 
             # 조건을 통과한 unmatched detection들은 새로 생성된 track으로 설정한다.
             for didx in new_track_idxs:
-                d_box = d_boxes[didx]
-                if dna.utils.find_any_centroid_cover(d_box, self.params.stable_zones) < 0:
-                    track = self._initiate_track(detections[didx])
-                    self.tracks.append(track)
-                    self._next_id += 1
-                else:
-                    print("no track initiated at stable zones")
+                track = self._initiate_track(detections[didx])
+                self.tracks.append(track)
+                self._next_id += 1
 
         deleted_tracks = [t for t in self.tracks if t.is_deleted() and t.age > 1]
         self.tracks = [t for t in self.tracks if not t.is_deleted()]
@@ -139,162 +168,150 @@ class Tracker:
     #   * Track 작업으로 binding된 track 객체와 할당된 detection 객체: (track_idx, det_idx)
     #   * 기존 track 객체들 중에서 이번 작업에서 확인되지 못한 track 객체들의 인덱스 list
     #   * Track에 할당되지 못한 detection 객체들의 인덱스 list
-    def _match(self, detections) -> Tuple[List[Tuple[int,int]],List[int],List[int]]:
+    def _match(self, detections:List[Detection]) -> Tuple[List[Tuple[int,int]],List[int],List[int]]:
         if len(detections) == 0:
             # Detection 작업에서 아무런 객체를 검출하지 못한 경우.
-            return [], all_indices(self.tracks), detections
-
-        # Split track set into confirmed and unconfirmed tracks.
-        confirmed_tracks = [i for i, t in enumerate(self.tracks) if t.is_confirmed()]
-        hot_tracks = [i for i, t in enumerate(self.tracks) if t.is_confirmed() and t.time_since_update <= 3]
-        unconfirmed_tracks = [i for i, t in enumerate(self.tracks) if not t.is_confirmed()]
+            return [], utils.all_indices(self.tracks), utils.all_indices(detections)
 
         # 이전 track 객체와 새로 detection된 객체사이의 거리 값을 기준으로 cost matrix를 생성함.
         dist_cost = self.distance_cost(self.tracks, detections)
+        iou_cost = matcher.iou_cost_matrix(self.tracks, detections)
         if dna.DEBUG_PRINT_COST:
             self.print_dist_cost(dist_cost, 999)
-
-        matches = []
-        unmatched_tracks = all_indices(self.tracks)
-        unmatched_detections = all_indices(detections)
-
-        #####################################################################################################
-        ########## Hot track에 한정해서 tight한 distance 정보를 사용해서 matching 실시
-        ########## Matching시 단순 distance 값만 보는 것이 아니라, 해당 detection과의 거리가
-        ########## 독점적으로 가까운가도 함께 고려한다.
-        #####################################################################################################
-        if len(detections) > 0 and len(hot_tracks) > 0:
-            matches_hot, unmatched_hot, unmatched_detections \
-                = matcher.matching_by_excl_best(dist_cost, _HOT_DIST_THRESHOLD, hot_tracks, unmatched_detections)
-            matches += matches_hot
-            if dna.DEBUG_PRINT_COST:
-                print(f"[hot, only_dist, {_HOT_DIST_THRESHOLD}]:", self.matches_str(matches_hot))
-            unmatched_tracks = subtract(unmatched_tracks, project(matches_hot, 0))
-
-            # active track과 binding된 detection과 상당히 겹치는 detection들을 제거한다.
-            if len(matches_hot) > 0 and len(unmatched_detections) > 0:
-                d_boxes = [det.bbox for det in detections]
-                overlaps = matcher.overlap_detections(d_boxes, detections, self.params.max_overlap_ratio,
-                                                        project(matches_hot, 1), unmatched_detections)
-                if len(overlaps) > 0:
-                    if LOGGER.isEnabledFor(logging.DEBUG):
-                        str = ','.join([f"({i2}->{i1}:{s:.2f})" for i1, i2, s in overlaps])
-                        LOGGER.debug((f"remove hot-track's overlaps: {str}, frame={dna.DEBUG_FRAME_IDX}"))
-                    unmatched_detections = subtract(unmatched_detections, overlaps)
-        else:
-            unmatched_hot = hot_tracks
+            self.print_dist_cost(iou_cost, 1)
+        
+        matches, unmatched_track_idxes, unmatched_det_idxes = self.match_with_iou_dist(detections, dist_cost, iou_cost)
+        if LOGGER.isEnabledFor(logging.INFO) and matches:
+            track_ids = [self.tracks[tidx].track_id for tidx in unmatched_track_idxes]
+            LOGGER.info(f"(motion-only) hot+tentative, dist+iou: {self.matches_str(matches)}")
 
         #####################################################################################################
-        ########## 통합 비용 행렬을 생성한다.
-        ########## cmatrix: 통합 비용 행렬
-        ########## ua_matrix: unconfirmed track을 고려한 통합 비용 행렬
+        ### 이 단계까지 오면 지난 frame까지 active하게 추적되던 track들 (hot_track_idxes, tentative_track_idxes)에
+        ### 대한 motion 정보만을 통해 matching이 완료됨.
+        ### 남은 track들의 경우에는 이전 몇 frame동안 추적되지 못한 track들이어서 motion 정보만으로 matching하기
+        ### 어려운 것들만 존재함. 이 track들에 대한 matching을 위해서는 appearance를 사용한 matching을 시도한다.
+        ### Appearance를 사용하는 경우는 추적의 안정성을 위해 high-scored detection (즉, strong detection)들과의
+        ### matching을 시도한다. 만일 matching시킬 track이 남아 있지만 strong detection이 남아 있지 않는 경우는
+        ### 마지막 방법으로 weak detection과 IOU를 통해 match를 시도한다.
         #####################################################################################################
-        if len(unmatched_tracks) > 0 and len(unmatched_detections) > 0:
-            metric_cost = self.metric_cost(self.tracks, detections)
-            cmatrix, cmask = matcher.combine_cost_matrices(metric_cost, dist_cost, self.tracks, detections)
-            cmatrix[cmask] = 9.99
-            if dna.DEBUG_PRINT_COST:
-                matcher.print_matrix(self.tracks, detections, metric_cost, 1, unmatched_tracks, unmatched_detections)
-                matcher.print_matrix(self.tracks, detections, cmatrix, 9.98, unmatched_tracks, unmatched_detections)
-            ua_matrix = cmatrix
-        if len(unconfirmed_tracks) > 0 and len(unmatched_detections) > 0:
-            hot_mask = matcher.hot_unconfirmed_mask(cmatrix, 0.1, unconfirmed_tracks, unmatched_detections)
-            hot_mask = np.logical_and(hot_mask, cmatrix >= 0.2)
-            ua_matrix = matcher.create_matrix(cmatrix, 9.99, hot_mask)
+        strong_det_idxes = [idx for idx in unmatched_det_idxes if detections[idx].score >= self.detection_threshold]
+        if unmatched_track_idxes and strong_det_idxes:
+            matches0, _, strong_det_idxes \
+                = self.match_with_metric(detections, dist_cost, unmatched_track_idxes, strong_det_idxes)
+            if matches0:
+                matches += matches0
+                unmatched_track_idxes = utils.subtract(utils.all_indices(self.tracks), utils.project(matches, 0))
+                if LOGGER.isEnabledFor(logging.DEBUG):
+                    LOGGER.debug(f"(motion+metric) all, strong: {self.matches_str(matches0)}")
 
         #####################################################################################################
-        ################ Hot track에 한정해서 강한 threshold를 사용해서  matching 실시
-        ################ Tentative track에 비해 2배 이상 먼거리를 갖는 경우에는 matching을 하지 않도록 함.
+        ### 아직 match되지 못한 track이 존재하면, weak detection들과 IoU에 기반한 Hungarian 방식으로 matching을 시도함.
         #####################################################################################################
-        if len(unmatched_hot) > 0 and len(unmatched_detections) > 0:
-            matrix = matcher.create_matrix(ua_matrix, _COST_THRESHOLD_STRONG)
-            if dna.DEBUG_PRINT_COST:
-                matcher.print_matrix(self.tracks, detections, matrix, _COST_THRESHOLD_STRONG,
-                                        unmatched_hot, unmatched_detections)
+        if unmatched_track_idxes and strong_det_idxes:
+            last_resort_matcher = matcher.HungarianMatcher(iou_cost, IOU_THRESHOLD_LOOSE)
+            matches0, _, _, = last_resort_matcher.match(unmatched_track_idxes, strong_det_idxes)
+            if matches0:
+                matches += matches0
+                unmatched_track_idxes = utils.subtract(utils.all_indices(self.tracks), utils.project(matches, 0))
+                if LOGGER.isEnabledFor(logging.DEBUG):
+                    LOGGER.debug(f"all, strong, last_resort[iou={IOU_THRESHOLD_LOOSE}]: {self.matches_str(matches0)}")
 
-            matches_s, _, unmatched_detections =\
-                matcher.matching_by_hungarian(matrix, _COST_THRESHOLD_STRONG, unmatched_hot, unmatched_detections)
-            if dna.DEBUG_PRINT_COST:
-                print(f"[hot, tentative_aware, {_COST_THRESHOLD_STRONG}]:", self.matches_str(matches_s))
-            matches += matches_s
-            unmatched_tracks = subtract(unmatched_tracks, project(matches_s, 0))
-        else:
-            matrix = None
+        if LOGGER.isEnabledFor(logging.INFO) and matches:
+            track_ids = [self.tracks[tidx].track_id for tidx in unmatched_track_idxes]
+            LOGGER.info(f"matches={self.matches_str(matches)}, unmodified_tracks={track_ids}, "
+                        f"unmodified_detections={strong_det_idxes}")
 
-        #####################################################################################################
-        ################ Tentative track에 한정해서 강한 threshold를 사용해서  matching 실시
-        #####################################################################################################
-        if len(unconfirmed_tracks) > 0 and len(unmatched_detections) > 0:
-            matrix = matcher.create_matrix(ua_matrix, _COST_THRESHOLD_STRONG) if matrix is None else matrix
-            matches_s, _, unmatched_detections =\
-                matcher.matching_by_hungarian(matrix, _COST_THRESHOLD_STRONG, unconfirmed_tracks, unmatched_detections)
-            if dna.DEBUG_PRINT_COST:
-                print(f"[tentative, combined, {_COST_THRESHOLD_STRONG}]:", self.matches_str(matches_s))
-            matches += matches_s
-            unmatched_tracks = subtract(unmatched_tracks, project(matches_s, 0))
-
-        #####################################################################################################
-        ################ 전체 track에 대해 matching 실시
-        ################ Temporarily-lost된 track들이 다시 자기의 detection과
-        ################ matching되는 경우 여기서 주로 발생할 것으로 기대한다.
-        #####################################################################################################
-        if len(unmatched_tracks) > 0 and len(unmatched_detections) > 0:
-            # Tentative track의 거리에 penalty를 주어 다른 track에 비해 덜 matching되게 한다.
-            # 'ua_matrix' 대산 'cmatrix'를 사용하여 temporarily-lost track에 주어던 penalty는 제거한다.
-            unconfirmed_weights = np.array([1 if track.is_confirmed() else 2 for track in self.tracks])
-            weighted_matrix = np.multiply(cmatrix, unconfirmed_weights[:, np.newaxis])
-            matrix = matcher.create_matrix(weighted_matrix, _COST_THRESHOLD)
-            if dna.DEBUG_PRINT_COST:
-                matcher.print_matrix(self.tracks, detections, matrix, _COST_THRESHOLD,
-                                        unmatched_tracks, unmatched_detections)
-
-            matches_s, unmatched_tracks, unmatched_detections =\
-                matcher.matching_by_hungarian(matrix, _COST_THRESHOLD, unmatched_tracks, unmatched_detections)
-            if dna.DEBUG_PRINT_COST:
-                print(f"[all, combined, {_COST_THRESHOLD}]:", self.matches_str(matches_s))
-            matches += matches_s
-
-        #####################################################################################################
-        ################ 겹침 정도를 고려하는 대신 조금 더 느슨한 threshold를 사용하여 matching 실시.
-        #####################################################################################################
-        if len(unmatched_tracks) > 0 and len(unmatched_detections) > 0:
-            matrix = matcher.create_matrix(weighted_matrix, _COST_THRESHOLD_WEAK)
-
-            # IOU 값이 0.1보다 같거나 작은 경우는 matching에서 제외시킨다.
-            iou_matrix = matcher.iou_matrix(self.tracks, detections, unmatched_tracks, unmatched_detections)
-            matrix[iou_matrix <= 0.1] = _COST_THRESHOLD_WEAK + 0.00001
-            if dna.DEBUG_PRINT_COST:
-                matcher.print_matrix(self.tracks, detections, matrix, _COST_THRESHOLD_WEAK,
-                                        unmatched_tracks, unmatched_detections)
-
-            matches_s, unmatched_tracks, unmatched_detections =\
-                matcher.matching_by_hungarian(matrix, _COST_THRESHOLD_WEAK, unmatched_tracks, unmatched_detections)
-            matches += matches_s
-            if dna.DEBUG_PRINT_COST:
-                print(f"[all, iou_weak, {_COST_THRESHOLD_WEAK}]:", self.matches_str(matches_s))
-
-        #####################################################################################################
-        ################ 남은 unmatched track에 대해서 겹침 정보를 기반으로 matching 실시
-        #####################################################################################################
-        if len(unmatched_tracks) > 0 and len(unmatched_detections) > 0:
-            matches_s, unmatched_tracks, unmatched_detections = \
-                linear_assignment.min_cost_matching(iou_matching.iou_cost, self.params.max_iou_distance,
-                                                    self.tracks, detections,
-                                                    unmatched_tracks, unmatched_detections)
-            matches += matches_s
-
-        return matches, unmatched_tracks, unmatched_detections
+        return matches, unmatched_track_idxes, strong_det_idxes
 
     def _initiate_track(self, detection: Detection):
         mean, covariance = self.kf.initiate(detection.bbox.to_xyah())
         return Track(mean, covariance, self._next_id, self.params.n_init, self.params.max_age, detection)
 
+    def match_with_metric(self, detections:List[Detection], dist_cost:np.array, unmatched_track_idxes:List[int],
+                            strong_det_idxes:List[int]):
+        hot_track_idxes = [idx for idx in unmatched_track_idxes \
+                                if self.tracks[idx].is_confirmed() and self.tracks[idx].time_since_update <= 3]
+        tentative_track_idxes = [idx for idx in unmatched_track_idxes if not self.tracks[idx].is_confirmed()]
+        matches = []
+
+        #####################################################################################################
+        ########## 통합 비용 행렬을 생성한다.
+        ########## 통합 비용을 계산할 때는 weak detection은 제외시킨다.
+        ########## cmatrix: 통합 비용 행렬
+        ########## ua_matrix: unconfirmed track을 고려한 통합 비용 행렬
+        #####################################################################################################
+        # metric_cost = self.metric_cost(self.tracks, detections)
+        metric_cost = self.metric_cost(self.tracks, detections, unmatched_track_idxes, strong_det_idxes)
+        dist_metric_cost, cmask = matcher.combine_cost_matrices(metric_cost, dist_cost, self.tracks, detections)
+        dist_metric_cost[cmask] = 9.99
+        if dna.DEBUG_PRINT_COST:
+            matcher.print_matrix(self.tracks, detections, metric_cost, 1, unmatched_track_idxes, strong_det_idxes)
+            matcher.print_matrix(self.tracks, detections, dist_metric_cost, 9.98, unmatched_track_idxes, strong_det_idxes)
+
+        hung_matcher = matcher.HungarianMatcher(dist_metric_cost, None)
+
+        #####################################################################################################
+        ################ Hot track에 한정해서 강한 threshold를 사용해서  matching 실시
+        ################ Tentative track에 비해 2배 이상 먼거리를 갖는 경우에는 matching을 하지 않도록 함.
+        #####################################################################################################
+        if hot_track_idxes and strong_det_idxes:
+            if dna.DEBUG_PRINT_COST:
+                matcher.print_matrix(self.tracks, detections, dist_metric_cost, COMBINED_THRESHOLD_TIGHT,
+                                        hot_track_idxes, strong_det_idxes)
+            matches0, _, strong_det_idxes \
+                = hung_matcher.match_threshold(COMBINED_THRESHOLD_TIGHT, hot_track_idxes, strong_det_idxes)
+            if matches0:
+                if LOGGER.isEnabledFor(logging.DEBUG):
+                    LOGGER.debug(f"hot, strong, combined_tight: {self.matches_str(matches0)}")
+                matches += matches0
+                unmatched_track_idxes = utils.subtract(unmatched_track_idxes, utils.project(matches0, 0))
+
+        #####################################################################################################
+        ################ Tentative track에 한정해서 강한 threshold를 사용해서  matching 실시
+        #####################################################################################################
+        if tentative_track_idxes and strong_det_idxes:
+            matches0, _, strong_det_idxes \
+                = hung_matcher.match_threshold(COMBINED_THRESHOLD_TIGHT, tentative_track_idxes, strong_det_idxes)
+            if matches0:
+                if dna.DEBUG_PRINT_COST:
+                    LOGGER.debug(f"tentative, strong, combined_tight: {self.matches_str(matches0)}")
+                matches += matches0
+                unmatched_track_idxes = utils.subtract(unmatched_track_idxes, utils.project(matches0, 0))
+
+        #####################################################################################################
+        ################ 전체 track에 대해 matching 실시
+        #####################################################################################################
+        if unmatched_track_idxes and strong_det_idxes:
+            if dna.DEBUG_PRINT_COST:
+                matcher.print_matrix(self.tracks, detections, dist_metric_cost, COMBINED_THRESHOLD_LOOSE,
+                                        unmatched_track_idxes, strong_det_idxes)
+
+            matches0, unmatched_track_idxes, strong_det_idxes \
+                = hung_matcher.match_threshold(COMBINED_THRESHOLD_LOOSE, unmatched_track_idxes, strong_det_idxes)
+            if matches0:
+                if LOGGER.isEnabledFor(logging.DEBUG):
+                    LOGGER.debug(f"all, strong, combined_normal): {self.matches_str(matches0)}")
+                matches += matches0
+
+        return matches, unmatched_track_idxes, strong_det_idxes
+
     ###############################################################################################################
     # kwlee
-    def metric_cost(self, tracks, detections):
-        features = np.array([det.feature for det in detections])
-        targets = np.array([track.track_id for track in tracks])
-        return self.metric.distance(features, targets)
+    # def metric_cost(self, tracks, detections):
+    #     features = np.array([det.feature for det in detections])
+    #     targets = np.array([track.track_id for track in tracks])
+    #     return self.metric.distance(features, targets)
+
+    def metric_cost(self, tracks:List[Track], detections:List[Detection], track_idxes, det_idxes):
+        targets = [tracks[idx].track_id for idx in track_idxes]
+        features = np.array([detections[idx].feature for idx in det_idxes])
+        reduced_matrix = self.metric.distance(features, targets)
+
+        cost_matrix = np.ones((len(tracks), len(detections)))
+        for row_idx, t_idx in enumerate(track_idxes):
+            for col_idx, d_idx in enumerate(det_idxes):
+                cost_matrix[t_idx, d_idx] = reduced_matrix[row_idx, col_idx]
+        return cost_matrix
 
     # kwlee
     def distance_cost(self, tracks, detections):
@@ -302,7 +319,9 @@ class Tracker:
         if len(tracks) > 0 and len(detections) > 0:
             measurements = np.asarray([det.bbox.to_xyah() for det in detections])
             for row, track in enumerate(tracks):
-                dist_matrix[row, :] = self.kf.gating_distance(track.mean, track.covariance, measurements)
+                mahalanovis_dist = self.kf.gating_distance(track.mean, track.covariance, measurements)
+                dist_matrix[row, :] = mahalanovis_dist * (1 + 0.75*(track.time_since_update-1))
+                # dist_matrix[row, :] = self.kf.gating_distance(track.mean, track.covariance, measurements)
         return dist_matrix
 
     def matches_str(self, matches):
@@ -320,3 +339,101 @@ class Tracker:
             print(f"{track_str}: {dist_str}")
 
     ###############################################################################################################
+
+    
+    def match_with_iou_dist(self, detections:List[Detection], dist_cost:np.array, iou_cost:np.array):
+        hot_track_idxes = [i for i, t in enumerate(self.tracks) if t.is_confirmed() and t.time_since_update <= 3]
+        tentative_track_idxes = [i for i, t in enumerate(self.tracks) if not t.is_confirmed()]
+        strong_det_idxes = [idx for idx, det in enumerate(detections) if det.score >= self.detection_threshold]
+        weak_det_idxes = [idx for idx, det in enumerate(detections) if det.score < self.detection_threshold]
+        matches = []
+
+        #####################################################################################################
+        ### Hot track과 tentative track들에 한정해서 tight한 distance threshold를 사용해서 matching 실시.
+        ### Hot track과 tentative track들은 바로 이전 frame에서 성공적으로 detection과 binding되었기 때문에,
+        ### 이번 frame에서의 position prediction이 상당히 정확할 것으로 예상되므로, 이들과 아주 가깝게
+        ### 위치한 detection들은 해당 track이 확률이 매우 크다.
+        #####################################################################################################
+        tight_iou_dist_matcher = Matcher.chain(ReciprocalCostMatcher(iou_cost, IOU_THRESHOLD_TIGHT),
+                                                ReciprocalCostMatcher(dist_cost, DIST_THRESHOLD_TIGHT))
+        matches0, _, strong_det_idxes = tight_iou_dist_matcher.match(hot_track_idxes+tentative_track_idxes, strong_det_idxes)
+        if matches0:
+            matches += matches0
+            matched_track_idxes = utils.project(matches, 0)
+            hot_track_idxes = utils.subtract(hot_track_idxes, matched_track_idxes)
+            tentative_track_idxes = utils.subtract(tentative_track_idxes, matched_track_idxes)
+            if LOGGER.isEnabledFor(logging.DEBUG):
+                LOGGER.debug(f"(very-tight) hot+teta, strong, "
+                            f"iou[{IOU_THRESHOLD_TIGHT}]+dist[{DIST_THRESHOLD_TIGHT}]): {self.matches_str(matches0)}")
+            
+        #####################################################################################################
+        ### Hot track에 한정해서 distance 정보를 사용해서 matching 실시.
+        #####################################################################################################
+        iou_matcher = ReciprocalCostMatcher(iou_cost, IOU_THRESHOLD)
+        dist_matcher = ReciprocalCostMatcher(dist_cost, DIST_THRESHOLD)
+        iou_dist_matcher = Matcher.chain(iou_matcher, dist_matcher)
+
+        #----------------------------------------------------------------------------------------------------
+        # 각 hot track을 기준으로 다음과 같은 조건을 만족하는 high-scored (=strong) detection과 matching시킨다.
+        #----------------------------------------------------------------------------------------------------
+        matches0, hot_track_idxes, strong_det_idxes = iou_dist_matcher.match(hot_track_idxes, strong_det_idxes)
+        if matches0:
+            matches += matches0
+            if LOGGER.isEnabledFor(logging.DEBUG):
+                LOGGER.debug(f"hot, strong, iou({IOU_THRESHOLD})+dist({DIST_THRESHOLD}): {self.matches_str(matches0)}")
+        
+        #----------------------------------------------------------------------------------------------------
+        # Hot track 중에서 match되지 못한 것이 존재하는 경우에는 weak detection들과 match를 시도한다.
+        #----------------------------------------------------------------------------------------------------
+        if hot_track_idxes and weak_det_idxes:
+            matches0, hot_track_idxes, weak_det_idxes = iou_dist_matcher.match(hot_track_idxes, weak_det_idxes)
+            if matches0:
+                matches += matches0
+                if LOGGER.isEnabledFor(logging.DEBUG):
+                    LOGGER.debug(f"hot, weak, iou({IOU_THRESHOLD})+dist({DIST_THRESHOLD}): {self.matches_str(matches0)}")
+            
+        #####################################################################################################
+        ### Tentative track에 한정해서 tight한 distance 정보를 사용해서 matching 실시.
+        ### Tentative track도 바로 이전 frame까지도 track되던 이동체이기 때문에 motion 정보만 활용한 matching을 실시함
+        #####################################################################################################
+        if tentative_track_idxes and strong_det_idxes:
+            matches0, tentative_track_idxes, strong_det_idxes \
+                = iou_dist_matcher.match(tentative_track_idxes, strong_det_idxes)
+            if matches0:
+                matches += matches0
+                if LOGGER.isEnabledFor(logging.DEBUG):
+                    LOGGER.debug(f"tentative, strong, iou({IOU_THRESHOLD})+dist({DIST_THRESHOLD}): "
+                                f"{self.matches_str(matches0)}")
+        #----------------------------------------------------------------------------------------------------
+        # Tentative track 중에서 match되지 못한 것이 존재하는 경우에는 weak detection들과 match를 시도한다.
+        # 다만, ghost detection에 따른 track 생성의 가능성을 낮추기 위해 weak detection들과는 tight한 distance를 사용함.
+        #----------------------------------------------------------------------------------------------------
+        if tentative_track_idxes and weak_det_idxes:
+            matches0, tentative_track_idxes, weak_det_idxes \
+                = tight_iou_dist_matcher.match(tentative_track_idxes, weak_det_idxes)
+            if matches0:
+                matches += matches0
+                if LOGGER.isEnabledFor(logging.DEBUG):
+                    LOGGER.debug(f"tentative, weak, iou({IOU_THRESHOLD_TIGHT})+dist({DIST_THRESHOLD_TIGHT}): "
+                                f"{self.matches_str(matches0)}")
+            
+        #####################################################################################################
+        ###  지금까지 match되지 못한 strong detection들 중에서 이미 matching된 detection들과 많이 겹치는 경우,
+        ###  해당 detection을 제외시킨다. 이를 통해 실체 이동체 주변에 여러개 잡히는 ghost detection으로 인한
+        ###  새 track 생성 가능성을 낮춘다.
+        #####################################################################################################
+        if strong_det_idxes:
+            d_boxes = [det.bbox for det in detections]
+            matched_boxes = [d_boxes[idx] for idx in utils.project(matches, 1)]
+            for m_box in matched_boxes:
+                strong_det_idxes = [bidx for bidx in strong_det_idxes
+                                            if max(m_box.overlap_ratios(d_boxes[bidx])) <= self.params.max_overlap_ratio]
+                if len(strong_det_idxes) == 0:
+                    break
+
+        unmatched_track_idxes = utils.subtract(utils.all_indices(self.tracks), utils.project(matches, 0))
+        # if LOGGER.isEnabledFor(logging.INFO) and matches:
+        #     track_ids = [self.tracks[tidx].track_id for tidx in unmatched_track_idxes]
+        #     LOGGER.info(f"(motion-only) hot+tentative, dist+iou: {self.matches_str(matches)}")
+
+        return matches, unmatched_track_idxes, strong_det_idxes+weak_det_idxes

@@ -1,3 +1,3 @@
-from .dna_track import TrackState, DNATrack
+from .dna_track import TrackState, IDNATrack
 from .tracker import ObjectTracker
 from .track_pipeline import TrackProcessor, TrackingPipeline

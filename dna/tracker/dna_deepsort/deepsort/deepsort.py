@@ -1,28 +1,27 @@
 from typing import List
 from re import L
-from dna import detect
-from cv2 import determinant
+from pathlib import Path
+
+import numpy as np
+from scipy.stats import multivariate_normal
+import cv2
+import matplotlib.pyplot as plt
+import torch
+import torchvision
+
 import dna
-from dna import Size2d
+from dna import detect, Box, color, Size2d, plot_utils
 from dna.utils import draw_ds_detections, draw_ds_tracks
+
 import nn_matching
-from .tracker import Tracker 
+from .tracker import Tracker
+from .utils import track_to_box
 from application_util import preprocessing as prep
 from application_util import visualization
 from detection import Detection
 
-import numpy as np
-import cv2
-import matplotlib.pyplot as plt
-
-import torch
-import torchvision
-from scipy.stats import multivariate_normal
-
-from dna import Box, color
 import logging
 LOGGER = logging.getLogger('dna.tracker.deepsort')
-
 
 def get_gaussian_mask():
 	#128 is image size
@@ -42,7 +41,7 @@ def get_gaussian_mask():
 	return mask
 
 class deepsort_rbc():
-	def __init__(self, domain: Box, wt_path, params):
+	def __init__(self, domain: Box, wt_path:Path, detection_threshold:float, params):
 		self.domain = domain
 
 		#loading this encoder is slow, should be done only once.	
@@ -53,7 +52,7 @@ class deepsort_rbc():
 		LOGGER.info(f"DeepSORT model from {wt_path}")
 
 		self.metric = nn_matching.NearestNeighborDistanceMetric("cosine", params.metric_threshold , 100)
-		self.tracker = Tracker(domain, self.metric, params=params)
+		self.tracker = Tracker(domain, detection_threshold, self.metric, params=params)
 
 		self.gaussian_mask = get_gaussian_mask().cuda()
 		self.transforms = torchvision.transforms.Compose([ \
@@ -62,26 +61,30 @@ class deepsort_rbc():
 							torchvision.transforms.ToTensor()])
 
 	def run_deep_sort(self, frame, bboxes: List[Box], scores: List[float]):
+		self.tracker.predict()
+
 		if len(bboxes) > 0:
 			tlwh_list = [b.to_tlwh() for b in bboxes]
 			features = self.extract_features(frame, tlwh_list)
 			dets = [Detection(bbox, score, feature)	for bbox, score, feature in zip(bboxes, scores, features)]
 			outboxes = np.array(tlwh_list)
-			outscores = np.array([d.confidence for d in dets])
+			outscores = np.array([d.score for d in dets])
 			indices = prep.non_max_suppression(outboxes, 0.8, outscores)
-			dets = [dets[i] for i in indices]
+			dets:List[Detection] = [dets[i] for i in indices]
+
+			convas = frame.copy()
+			for idx, det in enumerate(dets):
+				if det.score < self.tracker.detection_threshold:
+					convas = plot_utils.draw_label(convas, str(idx), det.bbox.br.astype(int), color.WHITE, color.RED, 1)
+					convas = det.bbox.draw(convas, color.RED, line_thickness=1) 
+			for idx, det in enumerate(dets):
+				if det.score >= self.tracker.detection_threshold:
+					convas = plot_utils.draw_label(convas, str(idx), det.bbox.br.astype(int), color.WHITE, color.BLUE, 1)
+					convas = det.bbox.draw(convas, color.BLUE, line_thickness=1)
+			cv2.imshow('detections', convas)
+			cv2.waitKey(1)
 		else:
 			dets = []
-
-		##################################################################################
-		# kwlee
-		if dna.DEBUG_SHOW_IMAGE:
-			convas = draw_ds_detections(frame.copy(), dets, color.GREEN, color.BLACK, line_thickness=1)
-			cv2.imshow("dets", convas)
-			cv2.waitKey(1)
-		##################################################################################
-
-		self.tracker.predict()
 
 		##################################################################################
 		# kwlee
@@ -92,7 +95,7 @@ class deepsort_rbc():
 			cv2.waitKey(1)
 		##################################################################################
 
-		deleteds = self.tracker.update(dets)
+		deleteds = self.tracker.update(dets, frame.copy())
 
 		return self.tracker, deleteds
 

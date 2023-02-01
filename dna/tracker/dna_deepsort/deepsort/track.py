@@ -14,6 +14,7 @@ class TrackState:
     Confirmed = 2
     Deleted = 3
     STATE_NAME = ['NONE', 'Tentative', 'Confirmed', 'Deleted']
+    STATE_ABBR = ['N', 'T', 'C', 'D']
 
 
 class Track:
@@ -174,3 +175,9 @@ class Track:
         tlwh = self.to_tlwh()
         return (f"{state_str}[{self.track_id}, age={self.age}({self.time_since_update}), "
                 f"loc=({tlwh[0]:.0f},{tlwh[1]:.0f}):{tlwh[2]:.0f}x{tlwh[3]:.0f}")
+        
+    # kwlee
+    @property
+    def short_repr(self) -> str:
+        state_str = TrackState.STATE_ABBR[self.state]
+        return f"{self.track_id}({state_str}:{self.age}:{self.time_since_update-1})"

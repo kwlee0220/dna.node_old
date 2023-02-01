@@ -23,14 +23,14 @@ def draw_line_string(convas:Image, pts: List[Point], color:BGR, line_thickness: 
     return draw_line_string_raw(convas, [pt.xy.astype(int) for pt in pts], color, line_thickness)
 
 def draw_label(convas:Image, label:str, tl, color: BGR=WHITE, fill_color: Optional[BGR]=None,
-                thickness: int=2) -> Image:
+                thickness: int=2, font_scale=0.4) -> Image:
     txt_thickness = max(thickness - 1, 1)
-    scale = thickness / 4
+    # font_scale = thickness / 4
 
-    txt_size = cv2.getTextSize(label, 0, fontScale=scale, thickness=thickness)[0]
+    txt_size = cv2.getTextSize(label, 0, fontScale=font_scale, thickness=thickness)[0]
     br = (tl[0] + txt_size[0], tl[1] - txt_size[1] - 3)
     convas = cv2.rectangle(convas, tl, br, fill_color, -1, cv2.LINE_AA)  # filled
-    return cv2.putText(convas, label, (tl[0], tl[1] - 2), 0, scale, color, thickness=txt_thickness,
+    return cv2.putText(convas, label, (tl[0], tl[1] - 2), 0, font_scale, color, thickness=txt_thickness,
                         lineType=cv2.LINE_AA)
     
 def draw_polygon(convas:Image, coords:List[Union[Tuple[float,float],List[float]]], color, thickness) -> Image:

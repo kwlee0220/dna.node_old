@@ -9,7 +9,7 @@ platform:
 
 tracker:
   # detector: yolov4
-  min_detection_score: 0
+  detection_threshold: 0
   n_init: 3
   metric_threshold: 0.55
   max_iou_distance: 0.85

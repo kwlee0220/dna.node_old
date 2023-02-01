@@ -1,20 +1,26 @@
-from collections import namedtuple
-from typing import List, Union, Tuple
+from typing import List, Tuple, Sequence, Iterable, Generator
 
 import numpy as np
 
 from dna import Box, Size2d
+from .track import Track
 
-def all_indices(values):
+def all_indices(values:Sequence):
     return list(range(len(values)))
 
-def intersection(coll1, coll2):
+def intersection(coll1:Iterable, coll2:List) -> List:
     return [v for v in coll1 if v in coll2]
 
-def subtract(coll1, coll2):
+def subtract(coll1:Iterable, coll2:List) -> List:
     return [v for v in coll1 if v not in coll2]
 
-def track_to_box(track, epsilon=0.00001):
+def project(tuples: Iterable[Tuple], elm_idx: int) -> List:
+    return [t[elm_idx] for t in tuples]
+
+def get_items(values:List, idxes:List[int]) -> List:
+    return [values[idx] for idx in idxes]
+
+def track_to_box(track:Track, epsilon:float=0.00001) -> Box:
     box = Box.from_tlbr(track.to_tlbr())
     if not box.is_valid():
         tl = box.top_left()
@@ -22,23 +28,9 @@ def track_to_box(track, epsilon=0.00001):
         box = Box.from_points(tl, br)
     return box
 
-# 'candidate_boxes'에 포함된 box들과 'box' 사이의 겹침 정보를 반환한다.
-def _overlaps(box, candidate_boxes, candidate_idxs=None) -> List[Tuple[int,Tuple[float,float,float]]]:
-    if candidate_idxs is None:
-        candidate_idxs = all_indices(candidate_boxes)
-    return [(idx, box.overlap_ratios(candidate_boxes[idx])) for idx in candidate_idxs]
-
-def filter_overlaps(box, candidate_boxes, cond, candidate_idxs=None) -> List[Tuple[int,float]]:
-    return [(idx, ov) for idx, ov in _overlaps(box, candidate_boxes, candidate_idxs) if cond(ov)]
-
-def split_tuples(tuples: List[Tuple]):
-    firsts = []
-    seconds = []
-    for t in tuples:
-        firsts.append(t[0])
-        seconds.append(t[1])
-
-    return firsts, seconds
-
-def project(tuples: List[Tuple], idx: int):
-    return [t[idx] for t in tuples]
+def overlap_boxes(target:Box, boxes:List[Box], box_indices:List[int]=None) \
+    -> List[Tuple[int, Tuple[float,float,float]]]:
+    if box_indices is None:
+        return ((idx, target.overlap_ratios(box)) for idx, box in enumerate(boxes))
+    else:
+        return ((idx, target.overlap_ratios(boxes[idx])) for idx in box_indices)

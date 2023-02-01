@@ -12,6 +12,7 @@ from omegaconf import OmegaConf
 
 import dna
 from dna import Size2d, Image, Frame
+from dna.support.func import Option
 from .camera import Camera, ImageCapture
 
 class OpenCvCamera(Camera):
@@ -119,8 +120,8 @@ class OpenCvVideFile(OpenCvCamera):
         size = Size2d.from_conf(size_conf) if size_conf is not None else None
 
         sync = conf.get('sync', True)
-        begin_frame = conf.get('begin_frame', 1)
-        end_frame = conf.get('end_frame', None)
+        begin_frame = Option.ofNullable(conf.get('begin_frame')).getOrElse(1)
+        end_frame = Option.ofNullable(conf.get('end_frame')).getOrNone()
 
         return cls(uri, size, sync, begin_frame, end_frame)
 
