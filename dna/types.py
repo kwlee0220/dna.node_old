@@ -143,8 +143,8 @@ class Size2d:
             raise ValueError(f'invalid Size2d expression: {expr}')
 
     def to_tuple(self) -> Tuple[Union[int, float],Union[int, float]]:
-        return tuple(np.rint(self.wh).astype(int))
-        # return tuple(self.__wh)
+        # return tuple(np.rint(self.wh).astype(int))
+        return tuple(self.__wh)
 
     def is_valid(self) -> bool:
         return self.__wh[0] >= 0 and self.__wh[1] >= 0

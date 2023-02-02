@@ -17,8 +17,11 @@ def subtract(coll1:Iterable, coll2:List) -> List:
 def project(tuples: Iterable[Tuple], elm_idx: int) -> List:
     return [t[elm_idx] for t in tuples]
 
-def get_items(values:List, idxes:List[int]) -> List:
-    return [values[idx] for idx in idxes]
+def get_items(values:List, idxes:Iterable[int]) -> Generator:
+    return (values[idx] for idx in idxes)
+
+def get_indexed_items(values:List, idxes:Iterable[int]) -> Generator:
+    return ((idx, values[idx]) for idx in idxes)
 
 def track_to_box(track:Track, epsilon:float=0.00001) -> Box:
     box = Box.from_tlbr(track.to_tlbr())

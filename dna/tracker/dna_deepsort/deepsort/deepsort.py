@@ -61,25 +61,16 @@ class deepsort_rbc():
 							torchvision.transforms.Resize((128,128)),\
 							torchvision.transforms.ToTensor()])
 
-	# from dna import Image
-	# def xxx(self, frame:Image, detections:List[Detection], det_idxes:List[int]):
-	# 	tlwh_list = [detections[d_idx].to_tlwl() for d_idx in det_idxes]
-	# 	features = self.extract_features(frame, tlwh_list)
-	# 	for idx, feature in enumerate(features):
-	# 		detections[det_idxes[idx]].feature = feature[idx]
-
 	def run_deep_sort(self, frame:Frame, detections: List[Detection]):
 		self.tracker.predict()
 
 		if detections:
-			tlwh_list = [det.bbox.to_tlwh() for det in detections]
-			features = self.extract_features(frame.image, tlwh_list)
-			for det, feature in zip(detections, features):
-				det.feature = feature
-			outboxes = np.array(tlwh_list)
-			outscores = np.array([d.score for d in detections])
+			self.attach_features(frame.image, detections)
+
+			outboxes = np.array([det.bbox.to_tlwh() for det in detections])
+			outscores = np.array([det.score for det in detections])
 			indices = prep.non_max_suppression(outboxes, 0.8, outscores)
-			detections = utils.get_items(detections, indices)
+			detections = list(utils.get_items(detections, indices))
 
 			self.draw_detections('detections', frame.image.copy(), detections)
 		else:
@@ -109,6 +100,12 @@ class deepsort_rbc():
 				convas = det.bbox.draw(convas, color.BLUE, line_thickness=line_thickness)
 		cv2.imshow(title, convas)
 		cv2.waitKey(1)
+
+	def attach_features(self, image:Image, detections: List[Detection]):
+		tlwh_list = [det.bbox.to_tlwh() for det in detections]
+		features = self.extract_features(image, tlwh_list)
+		for det, feature in zip(detections, features):
+			det.feature = feature
 
 	def extract_features(self, frame, tlwhs):
 		processed_crops = self.pre_process(frame, tlwhs).cuda()

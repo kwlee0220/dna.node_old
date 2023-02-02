@@ -233,11 +233,15 @@ class Tracker:
         return Track(mean, covariance, self._next_id, self.params.n_init, self.params.max_age, detection)
 
     def match_with_metric(self, detections:List[Detection], dist_cost:np.array, unmatched_track_idxes:List[int],
-                            strong_det_idxes:List[int]):
+                            unmatched_det_idxes:List[int]):
         hot_track_idxes = [idx for idx in unmatched_track_idxes \
                                 if self.tracks[idx].is_confirmed() and self.tracks[idx].time_since_update <= 3]
         tentative_track_idxes = [idx for idx in unmatched_track_idxes if not self.tracks[idx].is_confirmed()]
         matches = []
+
+        def is_large_for_metric(det:Detection) -> bool:
+            return min(det.bbox.size().to_tuple()) >= 50
+        large_det_idxes = [idx for idx in unmatched_det_idxes if is_large_for_metric(detections[idx])]
 
         #####################################################################################################
         ########## 통합 비용 행렬을 생성한다.
@@ -246,12 +250,12 @@ class Tracker:
         ########## ua_matrix: unconfirmed track을 고려한 통합 비용 행렬
         #####################################################################################################
         # metric_cost = self.metric_cost(self.tracks, detections)
-        metric_cost = self.metric_cost(self.tracks, detections, unmatched_track_idxes, strong_det_idxes)
+        metric_cost = self.metric_cost(self.tracks, detections, unmatched_track_idxes, large_det_idxes)
         dist_metric_cost, cmask = matcher.combine_cost_matrices(metric_cost, dist_cost, self.tracks, detections)
         dist_metric_cost[cmask] = 9.99
         if dna.DEBUG_PRINT_COST:
-            matcher.print_matrix(self.tracks, detections, metric_cost, 1, unmatched_track_idxes, strong_det_idxes)
-            matcher.print_matrix(self.tracks, detections, dist_metric_cost, 9.98, unmatched_track_idxes, strong_det_idxes)
+            matcher.print_matrix(self.tracks, detections, metric_cost, 1, unmatched_track_idxes, large_det_idxes)
+            matcher.print_matrix(self.tracks, detections, dist_metric_cost, 9.98, unmatched_track_idxes, large_det_idxes)
 
         hung_matcher = matcher.HungarianMatcher(dist_metric_cost, None)
 
@@ -259,12 +263,12 @@ class Tracker:
         ################ Hot track에 한정해서 강한 threshold를 사용해서  matching 실시
         ################ Tentative track에 비해 2배 이상 먼거리를 갖는 경우에는 matching을 하지 않도록 함.
         #####################################################################################################
-        if hot_track_idxes and strong_det_idxes:
+        if hot_track_idxes and large_det_idxes:
             if dna.DEBUG_PRINT_COST:
                 matcher.print_matrix(self.tracks, detections, dist_metric_cost, COMBINED_THRESHOLD_TIGHT,
-                                        hot_track_idxes, strong_det_idxes)
-            matches0, _, strong_det_idxes \
-                = hung_matcher.match_threshold(COMBINED_THRESHOLD_TIGHT, hot_track_idxes, strong_det_idxes)
+                                        hot_track_idxes, large_det_idxes)
+            matches0, _, large_det_idxes \
+                = hung_matcher.match_threshold(COMBINED_THRESHOLD_TIGHT, hot_track_idxes, large_det_idxes)
             if matches0:
                 if LOGGER.isEnabledFor(logging.DEBUG):
                     LOGGER.debug(f"hot, strong, combined_tight: {self.matches_str(matches0)}")
@@ -274,9 +278,9 @@ class Tracker:
         #####################################################################################################
         ################ Tentative track에 한정해서 강한 threshold를 사용해서  matching 실시
         #####################################################################################################
-        if tentative_track_idxes and strong_det_idxes:
-            matches0, _, strong_det_idxes \
-                = hung_matcher.match_threshold(COMBINED_THRESHOLD_TIGHT, tentative_track_idxes, strong_det_idxes)
+        if tentative_track_idxes and large_det_idxes:
+            matches0, _, large_det_idxes \
+                = hung_matcher.match_threshold(COMBINED_THRESHOLD_TIGHT, tentative_track_idxes, large_det_idxes)
             if matches0:
                 if dna.DEBUG_PRINT_COST:
                     LOGGER.debug(f"tentative, strong, combined_tight: {self.matches_str(matches0)}")
@@ -286,19 +290,21 @@ class Tracker:
         #####################################################################################################
         ################ 전체 track에 대해 matching 실시
         #####################################################################################################
-        if unmatched_track_idxes and strong_det_idxes:
+        if unmatched_track_idxes and large_det_idxes:
             if dna.DEBUG_PRINT_COST:
                 matcher.print_matrix(self.tracks, detections, dist_metric_cost, COMBINED_THRESHOLD_LOOSE,
-                                        unmatched_track_idxes, strong_det_idxes)
+                                        unmatched_track_idxes, large_det_idxes)
 
-            matches0, unmatched_track_idxes, strong_det_idxes \
-                = hung_matcher.match_threshold(COMBINED_THRESHOLD_LOOSE, unmatched_track_idxes, strong_det_idxes)
+            matches0, unmatched_track_idxes, large_det_idxes \
+                = hung_matcher.match_threshold(COMBINED_THRESHOLD_LOOSE, unmatched_track_idxes, large_det_idxes)
             if matches0:
                 if LOGGER.isEnabledFor(logging.DEBUG):
                     LOGGER.debug(f"all, strong, combined_normal): {self.matches_str(matches0)}")
                 matches += matches0
 
-        return matches, unmatched_track_idxes, strong_det_idxes
+        unmatched_det_idxes = utils.subtract(unmatched_det_idxes, utils.project(matches, 1))
+
+        return matches, unmatched_track_idxes, unmatched_det_idxes
 
     ###############################################################################################################
     # kwlee
@@ -309,7 +315,8 @@ class Tracker:
 
     def metric_cost(self, tracks:List[Track], detections:List[Detection], track_idxes, det_idxes):
         targets = [tracks[idx].track_id for idx in track_idxes]
-        features = np.array([detections[idx].feature for idx in det_idxes])
+        # features = np.array([detections[idx].feature for idx in det_idxes])
+        features = np.array([det.feature for det in utils.get_items(detections, det_idxes)])
         reduced_matrix = self.metric.distance(features, targets)
 
         cost_matrix = np.ones((len(tracks), len(detections)))
