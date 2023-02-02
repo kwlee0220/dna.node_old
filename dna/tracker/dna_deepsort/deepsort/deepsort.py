@@ -10,7 +10,7 @@ import torch
 import torchvision
 
 import dna
-from dna import Box, color, Frame, plot_utils
+from dna import Box, color, Frame, Image, plot_utils
 from dna.detect import Detection
 from dna.utils import draw_ds_detections, draw_ds_tracks
 
@@ -68,7 +68,6 @@ class deepsort_rbc():
 	# 	for idx, feature in enumerate(features):
 	# 		detections[det_idxes[idx]].feature = feature[idx]
 
-
 	def run_deep_sort(self, frame:Frame, detections: List[Detection]):
 		self.tracker.predict()
 
@@ -82,17 +81,7 @@ class deepsort_rbc():
 			indices = prep.non_max_suppression(outboxes, 0.8, outscores)
 			detections = utils.get_items(detections, indices)
 
-			convas = frame.image.copy()
-			for idx, det in enumerate(detections):
-				if det.score < self.tracker.detection_threshold:
-					convas = plot_utils.draw_label(convas, str(idx), det.bbox.br.astype(int), color.WHITE, color.RED, 1)
-					convas = det.bbox.draw(convas, color.RED, line_thickness=1) 
-			for idx, det in enumerate(detections):
-				if det.score >= self.tracker.detection_threshold:
-					convas = plot_utils.draw_label(convas, str(idx), det.bbox.br.astype(int), color.WHITE, color.BLUE, 1)
-					convas = det.bbox.draw(convas, color.BLUE, line_thickness=1)
-			cv2.imshow('detections', convas)
-			cv2.waitKey(1)
+			self.draw_detections('detections', frame.image.copy(), detections)
 		else:
 			detections = []
 
@@ -108,6 +97,18 @@ class deepsort_rbc():
 		deleteds = self.tracker.update(detections, frame)
 
 		return self.tracker, deleteds
+
+	def draw_detections(self, title:str, convas:Image, detections:List[Detection], line_thickness=1):
+		for idx, det in enumerate(detections):
+			if det.score < self.tracker.detection_threshold:
+				convas = plot_utils.draw_label(convas, str(idx), det.bbox.br.astype(int), color.WHITE, color.RED, 1)
+				convas = det.bbox.draw(convas, color.RED, line_thickness=line_thickness) 
+		for idx, det in enumerate(detections):
+			if det.score >= self.tracker.detection_threshold:
+				convas = plot_utils.draw_label(convas, str(idx), det.bbox.br.astype(int), color.WHITE, color.BLUE, 1)
+				convas = det.bbox.draw(convas, color.BLUE, line_thickness=line_thickness)
+		cv2.imshow(title, convas)
+		cv2.waitKey(1)
 
 	def extract_features(self, frame, tlwhs):
 		processed_crops = self.pre_process(frame, tlwhs).cuda()

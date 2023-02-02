@@ -160,13 +160,6 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
     def last_frame_detections(self) -> List[Detection]:
         return self.__last_frame_detections
 
-    def __replace_detection_label(self, det) -> Union[Detection,None]:
-        label = self.det_dict.get(det.label, None)
-        if label:
-            return Detection(det.bbox, label, det.score)
-        else:
-            return None
-
     def track(self, frame: Frame) -> List[IDNATrack]:
         # detector를 통해 match 대상 detection들을 얻는다.
         dets:List[Detection] = self.detector.detect(frame)
@@ -192,12 +185,3 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
         active_tracks = [DeepSORTTrack(ds_track, frame.index, frame.ts) for ds_track in tracker.tracks]
         deleted_tracks = [DeepSORTTrack(ds_track, frame.index, frame.ts) for ds_track in deleted_tracks]
         return active_tracks + deleted_tracks
-
-    def split_boxes_scores(self, det_list) -> Tuple[List[Box], List[float]]:
-        boxes = []
-        scores = []
-        for det in det_list:
-            boxes.append(det.bbox)
-            scores.append(det.score)
-        
-        return np.array(boxes), scores
