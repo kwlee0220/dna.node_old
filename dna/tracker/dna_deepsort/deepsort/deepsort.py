@@ -10,15 +10,16 @@ import torch
 import torchvision
 
 import dna
-from dna import detect, Box, color, Size2d, plot_utils
+from dna import Box, color, Frame, plot_utils
+from dna.detect import Detection
 from dna.utils import draw_ds_detections, draw_ds_tracks
 
 import nn_matching
+from . import utils
 from .tracker import Tracker
 from .utils import track_to_box
 from application_util import preprocessing as prep
 from application_util import visualization
-from detection import Detection
 
 import logging
 LOGGER = logging.getLogger('dna.tracker.deepsort')
@@ -60,42 +61,51 @@ class deepsort_rbc():
 							torchvision.transforms.Resize((128,128)),\
 							torchvision.transforms.ToTensor()])
 
-	def run_deep_sort(self, frame, bboxes: List[Box], scores: List[float]):
+	# from dna import Image
+	# def xxx(self, frame:Image, detections:List[Detection], det_idxes:List[int]):
+	# 	tlwh_list = [detections[d_idx].to_tlwl() for d_idx in det_idxes]
+	# 	features = self.extract_features(frame, tlwh_list)
+	# 	for idx, feature in enumerate(features):
+	# 		detections[det_idxes[idx]].feature = feature[idx]
+
+
+	def run_deep_sort(self, frame:Frame, detections: List[Detection]):
 		self.tracker.predict()
 
-		if len(bboxes) > 0:
-			tlwh_list = [b.to_tlwh() for b in bboxes]
-			features = self.extract_features(frame, tlwh_list)
-			dets = [Detection(bbox, score, feature)	for bbox, score, feature in zip(bboxes, scores, features)]
+		if detections:
+			tlwh_list = [det.bbox.to_tlwh() for det in detections]
+			features = self.extract_features(frame.image, tlwh_list)
+			for det, feature in zip(detections, features):
+				det.feature = feature
 			outboxes = np.array(tlwh_list)
-			outscores = np.array([d.score for d in dets])
+			outscores = np.array([d.score for d in detections])
 			indices = prep.non_max_suppression(outboxes, 0.8, outscores)
-			dets:List[Detection] = [dets[i] for i in indices]
+			detections = utils.get_items(detections, indices)
 
-			convas = frame.copy()
-			for idx, det in enumerate(dets):
+			convas = frame.image.copy()
+			for idx, det in enumerate(detections):
 				if det.score < self.tracker.detection_threshold:
 					convas = plot_utils.draw_label(convas, str(idx), det.bbox.br.astype(int), color.WHITE, color.RED, 1)
 					convas = det.bbox.draw(convas, color.RED, line_thickness=1) 
-			for idx, det in enumerate(dets):
+			for idx, det in enumerate(detections):
 				if det.score >= self.tracker.detection_threshold:
 					convas = plot_utils.draw_label(convas, str(idx), det.bbox.br.astype(int), color.WHITE, color.BLUE, 1)
 					convas = det.bbox.draw(convas, color.BLUE, line_thickness=1)
 			cv2.imshow('detections', convas)
 			cv2.waitKey(1)
 		else:
-			dets = []
+			detections = []
 
 		##################################################################################
 		# kwlee
 		if dna.DEBUG_SHOW_IMAGE:
-			convas = draw_ds_tracks(frame.copy(), self.tracker.tracks, color.RED, color.BLACK, 1,
+			convas = draw_ds_tracks(frame.image.copy(), self.tracker.tracks, color.RED, color.BLACK, 1,
 									dna.DEBUG_TARGET_TRACKS)
 			cv2.imshow("predictions", convas)
 			cv2.waitKey(1)
 		##################################################################################
 
-		deleteds = self.tracker.update(dets, frame.copy())
+		deleteds = self.tracker.update(detections, frame)
 
 		return self.tracker, deleteds
 

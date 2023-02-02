@@ -7,9 +7,9 @@ from numpy.linalg import det
 from shapely import geometry
 
 import dna
-from .detection import Detection
+from dna import Box, Size2d, Frame
+from dna.detect import Detection
 from . import matcher, utils
-from dna.types import Box, Size2d
 import kalman_filter
 import linear_assignment
 import iou_matching
@@ -42,6 +42,8 @@ class Tracker:
         self.tracks:List[Track] = []
         self._next_id = 1
 
+        self.current_frame = None
+
     def predict(self):
         """Propagate track state distributions one time step forward.
 
@@ -50,13 +52,16 @@ class Tracker:
         for track in self.tracks:
             track.predict(self.kf)
 
-    def update(self, detections:List[Detection], convas):
+    def update(self, detections:List[Detection], frame: Frame):
+        self.current_frame = frame
+
         # Run matching cascade.
         matches, unmatched_track_idxs, unmatched_detections = self._match(detections)
 
         #########################################################################################################################
         ### kwlee
         import cv2
+        convas = frame.image.copy()
         if len(matches) > 0:
             from dna import plot_utils, color
             for t_idx, d_idx in matches:

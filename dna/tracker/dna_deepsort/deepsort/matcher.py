@@ -8,8 +8,8 @@ from scipy.optimize import linear_sum_assignment
 
 import dna
 from dna import Box
+from dna.detect import Detection
 from . import utils
-from .detection import Detection
 from .track import Track
 
 import logging

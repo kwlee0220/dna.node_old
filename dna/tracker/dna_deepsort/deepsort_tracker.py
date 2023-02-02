@@ -185,10 +185,9 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
         detections = [det for det in dets if is_valid_detection(det)]
 
         self.__last_frame_detections = detections
-        bboxes, scores = self.split_boxes_scores(self.__last_frame_detections)
         # kwlee
         print(f"{frame.index}: ------------------------------------------------------")
-        tracker, deleted_tracks = self.deepsort.run_deep_sort(frame.image.astype(np.uint8), bboxes, scores)
+        tracker, deleted_tracks = self.deepsort.run_deep_sort(frame, detections)
 
         active_tracks = [DeepSORTTrack(ds_track, frame.index, frame.ts) for ds_track in tracker.tracks]
         deleted_tracks = [DeepSORTTrack(ds_track, frame.index, frame.ts) for ds_track in deleted_tracks]

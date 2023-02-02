@@ -7,7 +7,7 @@ from pathlib import Path
 
 from dna import color, Frame
 from dna.camera import ImageProcessor, FrameProcessor
-from .object_detector import ObjectDetector, Detection
+from . import ObjectDetector, Detection
 
 
 class DetectingProcessor(FrameProcessor):

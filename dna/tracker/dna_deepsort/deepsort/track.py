@@ -1,5 +1,5 @@
 # vim: expandtab:ts=4:sw=4
-from detection import Detection
+from dna.detect import Detection
 
 class TrackState:
     """
