@@ -53,7 +53,7 @@ class deepsort_rbc():
 		LOGGER.info(f"DeepSORT model from {wt_path}")
 
 		self.metric = nn_matching.NearestNeighborDistanceMetric("cosine", params.metric_threshold , 100)
-		self.tracker = Tracker(domain, detection_threshold, self.metric, params=params)
+		self.tracker = Tracker(domain, self.metric, params=params)
 
 		self.gaussian_mask = get_gaussian_mask().cuda()
 		self.transforms = torchvision.transforms.Compose([ \
@@ -71,19 +71,19 @@ class deepsort_rbc():
 			outscores = np.array([det.score for det in detections])
 			indices = prep.non_max_suppression(outboxes, 0.8, outscores)
 			detections = list(utils.get_items(detections, indices))
-
-			self.draw_detections('detections', frame.image.copy(), detections)
+			if dna.DEBUG_SHOW_IMAGE:
+				self.draw_detections('detections', frame.image.copy(), detections)
 		else:
 			detections = []
 
-		##################################################################################
-		# kwlee
-		if dna.DEBUG_SHOW_IMAGE:
-			convas = draw_ds_tracks(frame.image.copy(), self.tracker.tracks, color.RED, color.BLACK, 1,
-									dna.DEBUG_TARGET_TRACKS)
-			cv2.imshow("predictions", convas)
-			cv2.waitKey(1)
-		##################################################################################
+		# ##################################################################################
+		# # kwlee
+		# if dna.DEBUG_SHOW_IMAGE:
+		# 	convas = draw_ds_tracks(frame.image.copy(), self.tracker.tracks, color.RED, color.BLACK, 1,
+		# 							dna.DEBUG_TARGET_TRACKS)
+		# 	cv2.imshow("predictions", convas)
+		# 	cv2.waitKey(1)
+		# ##################################################################################
 
 		deleteds = self.tracker.update(detections, frame)
 
@@ -91,11 +91,11 @@ class deepsort_rbc():
 
 	def draw_detections(self, title:str, convas:Image, detections:List[Detection], line_thickness=1):
 		for idx, det in enumerate(detections):
-			if det.score < self.tracker.detection_threshold:
+			if det.score < self.tracker.params.detection_threshold:
 				convas = plot_utils.draw_label(convas, str(idx), det.bbox.br.astype(int), color.WHITE, color.RED, 1)
 				convas = det.bbox.draw(convas, color.RED, line_thickness=line_thickness) 
 		for idx, det in enumerate(detections):
-			if det.score >= self.tracker.detection_threshold:
+			if det.score >= self.tracker.params.detection_threshold:
 				convas = plot_utils.draw_label(convas, str(idx), det.bbox.br.astype(int), color.WHITE, color.BLUE, 1)
 				convas = det.bbox.draw(convas, color.BLUE, line_thickness=line_thickness)
 		cv2.imshow(title, convas)

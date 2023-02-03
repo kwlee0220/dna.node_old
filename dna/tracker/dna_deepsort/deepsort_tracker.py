@@ -26,6 +26,9 @@ from .deepsort.deepsort import deepsort_rbc
 from .deepsort.track import Track as DSTrack
 from .deepsort.track import TrackState as DSTrackState
 
+import logging
+LOGGER = logging.getLogger('dna.tracker.dnasort')
+
 DEFAULT_DETECTION_THRESHOLD = 0
 DEFAULT_METRIC_THRESHOLD = 0.55
 DEFAULT_MAX_IOU_DISTANCE = 0.85
@@ -39,6 +42,7 @@ DEFAULT_DET_MAPPING = {'car':'car', 'bus':'car', 'truck':'car'}
 from dataclasses import dataclass, field
 @dataclass(frozen=True, eq=True)    # slots=True
 class DeepSORTParams:
+    detection_threshold: float
     metric_threshold: float
     max_iou_distance: float
     n_init: int
@@ -92,13 +96,14 @@ class DeepSORTTrack(IDNATrack):
         convas = loc.draw(convas, color, line_thickness=line_thickness)
         convas = cv2.circle(convas, loc.center().xy.astype(int), 4, color, thickness=-1, lineType=cv2.LINE_AA)
         if label_color:
-            if self.__state == TrackState.Confirmed:
-                label = f"{self.id}({self.state.abbr})"
-            elif self.__state == TrackState.TemporarilyLost:
-                label = f"{self.id}({self.ds_track.time_since_update})"
-            elif self.__state == TrackState.Tentative:
-                remains = self.ds_track.hits - self.ds_track._n_init
-                label = f"{self.id}({remains})"
+            label = self.ds_track.short_repr
+            # if self.__state == TrackState.Confirmed:
+            #     label = f"{self.id}({self.state.abbr})"
+            # elif self.__state == TrackState.TemporarilyLost:
+            #     label = f"{self.id}({self.ds_track.time_since_update})"
+            # elif self.__state == TrackState.Tentative:
+            #     # remains = self.ds_track.hits - self.ds_track._n_init
+            #     label = f"{self.id}({self.ds_track.promotion_remains})"
             convas = plot_utils.draw_label(convas, label, loc.tl.astype('int32'), label_color, color, 2)
         return convas
 
@@ -108,7 +113,7 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
 
         self.__detector = detector
         self.det_dict = tracker_conf.get('det_mapping', DEFAULT_DET_MAPPING)
-        self.__detection_threshold = tracker_conf.get('detection_threshold', DEFAULT_DETECTION_THRESHOLD)
+        detection_threshold = tracker_conf.get('detection_threshold', DEFAULT_DETECTION_THRESHOLD)
 
         model_file = tracker_conf.get('model_file', 'models/deepsort/model640.pt')
         model_file = Path(model_file).resolve()
@@ -136,7 +141,8 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
             # stable_zones = [Box.from_tlbr(np.array(zone, dtype=np.int32)) for zone in stable_zones]
             stable_zones = [geometry.Polygon([tuple(c) for c in zone]) for zone in stable_zones]
 
-        self.params = DeepSORTParams(metric_threshold=metric_threshold,
+        self.params = DeepSORTParams(detection_threshold=detection_threshold,
+                                    metric_threshold=metric_threshold,
                                     max_iou_distance=max_iou_distance,
                                     max_age=max_age,
                                     n_init=n_init,
@@ -157,7 +163,7 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
         
     @property
     def detection_threshold(self) -> float:
-        return self.__detection_threshold
+        return self.params.detection_threshold
 
     def last_frame_detections(self) -> List[Detection]:
         return self.__last_frame_detections
@@ -181,7 +187,8 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
 
         self.__last_frame_detections = detections
         # kwlee
-        print(f"{frame.index}: ------------------------------------------------------")
+        if LOGGER.isEnabledFor(logging.DEBUG):
+            LOGGER.debug(f"{frame.index}: ------------------------------------------------------")
         tracker, deleted_tracks = self.deepsort.run_deep_sort(frame, detections)
 
         active_tracks = [DeepSORTTrack(ds_track, frame.index, frame.ts) for ds_track in tracker.tracks]

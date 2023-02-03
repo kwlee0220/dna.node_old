@@ -9,6 +9,7 @@ from scipy.optimize import linear_sum_assignment
 import dna
 from dna import Box
 from dna.detect import Detection
+from dna.tracker.matcher import Matcher, ChainedMatcher
 from . import utils
 from .track import Track
 
@@ -34,18 +35,6 @@ def create_matrix(matrix, threshold, mask=None):
     new_matrix[new_matrix > threshold] = threshold + 0.00001
     return new_matrix
 
-def _area_ratios(tracks, detections):
-    det_areas = [det.bbox.area() for det in detections]
-    area_ratios = np.zeros((len(tracks), len(detections)))
-    for tidx, track in enumerate(tracks):
-        tlwh = track.to_tlwh()
-        t_area = max(tlwh[2], 20) * max(tlwh[3], 20)
-        for didx, _ in enumerate(detections):
-            ratio = det_areas[didx] / t_area
-            area_ratios[tidx,didx] = ratio if ratio <= 1 else 1/ratio
-
-    return area_ratios
-
 def hot_unconfirmed_mask(cmatrix, threshold, track_indices, detection_indices):
     mask = np.zeros(cmatrix.shape, dtype=bool)
     
@@ -67,18 +56,6 @@ def size_class(tlwh):
         return 'S'
 
 import math
-# def combine_cost_matrices(metric_costs, dist_costs, tracks:List[Track], detections:List[Detection]):
-#     dist_mask = dist_costs > 500
-#     for t_idx, track in enumerate(tracks):
-#         for d_idx, det in enumerate(detections):
-#             if dist_mask[t_idx, d_idx]:
-#                 box_dist = utils.track_to_box(tracks[t_idx]).min_distance_to(detections[d_idx].bbox)
-#                 dist_mask[t_idx, d_idx] = box_dist > 200
-#                 dist_costs[t_idx, d_idx] = 500
-#     metric_mask = metric_costs >= 1
-#     combined_cost = (0.2 * (dist_costs / 500)) + (0.8 * metric_costs)
-#     combined_cost[dist_mask | metric_mask] = 1
-#     return combined_cost
 def gate_metric_cost(metric_costs, dist_costs, tracks:List[Track], detections:List[Detection]):
     mask = dist_costs > 500
     for t_idx, track in enumerate(tracks):
@@ -89,34 +66,6 @@ def gate_metric_cost(metric_costs, dist_costs, tracks:List[Track], detections:Li
     copied_metric = metric_costs.copy()
     copied_metric[mask] = 1
     return copied_metric
-
-
-    # mask = _area_ratios(tracks, detections) < 0.1
-    # matrix = np.zeros((len(tracks), len(detections)))
-    # for didx, det in enumerate(detections):
-    #     w, h = det.bbox.size().to_tuple()
-    #     if w >= _LARGE and h >= _LARGE: # large detections
-    #         # detection 크기가 크면 metric cost에 많은 가중치를 주어, 외형을 보다 많이 고려한다.
-    #         # 또한 외형에 많은 가중치를 주기 때문에 gate용 distance 한계도 넉넉하게 (300) 주는 대신,
-    #         # gate용 metric thresholds는 다른 경우보다 작게 (0.45) 준다.
-    #         dists_mod = dist_costs[:,didx] / _COMBINED_DIST_THRESHOLD_4L
-    #         matrix[:,didx] = 0.8*metric_costs[:,didx] + 0.2*dists_mod
-    #         mask[:,didx] = np.logical_or(mask[:,didx], dists_mod > 1.0,
-    #                                     metric_costs[:,didx] > _COMBINED_METRIC_THRESHOLD_4L)
-    #     elif w >= _MEDIUM and h >= _MEDIUM: # medium detections
-    #         dists_mod = dist_costs[:,didx] / _COMBINED_DIST_THRESHOLD_4M
-    #         matrix[:,didx] = 0.7*metric_costs[:,didx] + 0.3*dists_mod
-    #         mask[:,didx] = np.logical_or(mask[:,didx], dists_mod > 1.0,
-    #                                     metric_costs[:,didx] > _COMBINED_METRIC_THRESHOLD_4M)
-    #     else: # small detections
-    #         # detection의 크기가 작으면 외형을 이용한 검색이 의미가 작으므로, track과 detection사이의 거리
-    #         # 정보에 보다 많은 가중치를 부여한다.
-    #         dists_mod = dist_costs[:,didx] / _COMBINED_DIST_THRESHOLD_4S
-    #         matrix[:,didx] = 0.2*metric_costs[:,didx] + 0.8*dists_mod
-    #         mask[:,didx] = np.logical_or(mask[:,didx], dists_mod > 1.0,
-    #                                     metric_costs[:,didx] > _COMBINED_METRIC_THRESHOLD_4S)
-
-    # return matrix, mask
 
 def print_matrix(tracks, detections, matrix, threshold, track_indice, detection_indices):
     def pattern(v):
@@ -322,36 +271,26 @@ def overlap_cost(tracks, detections, track_indices, detention_indices):
             ovr_matrix[tidx, didx] = max(t_box.overlap_ratios(det_boxes[didx]))
 
     return ovr_matrix
-
-def iou_matrix(tracks, detections, track_indices, detention_indices):
-    iou_matrix = np.zeros((len(tracks), len(detections)))
-    for tidx in track_indices:
-        t_box = utils.track_to_box(tracks[tidx])
-        for didx in detention_indices:
-            iou_matrix[tidx, didx] = t_box.overlap_ratios(detections[didx].bbox)[2]
-
-    return iou_matrix
-
-def iou_cost_matrix(tracks, detections, track_indices=None, detention_indices=None, margin_ratio=1.3):
-    if track_indices is None:
-        track_indices = utils.all_indices(tracks)
-    if detention_indices is None:
-        detention_indices = utils.all_indices(detections)
     
-    iou_matrix = np.ones((len(tracks), len(detections)))
-    for tidx in track_indices:
-        t_box = utils.track_to_box(tracks[tidx])
-        area = t_box.area()
-        margin = area * margin_ratio
-        lower, upper = area - margin, area + margin
-        for didx in detention_indices:
-            d_box = detections[didx].bbox
-            d_area = d_box.area()
-            if d_area >= lower and d_area <= upper:
-                iou_matrix[tidx, didx] = 1 - t_box.overlap_ratios(d_box)[2]
-            else:
-                iou_matrix[tidx, didx]  = 1
-    return iou_matrix
+def iou_cost_matrix(tracks, detections) -> np.array:
+    d_boxes = [det.bbox for det in detections]
+    
+    matrix = np.zeros((len(tracks), len(detections)))
+    for t_idx, track in enumerate(tracks):
+        t_box = utils.track_to_box(track)
+        for d_idx, det in enumerate(detections):
+            matrix[t_idx,d_idx] = 1 - t_box.overlap_ratios(d_boxes[d_idx])[2]
+    return matrix
+
+def track_det_gate(tracks:List[Track], detections:List[Detection], size_ratio=np.array([0.3,2.8])):
+    det_areas = np.array([det.bbox.area() for det in detections])
+    gate = np.zeros((len(tracks), len(detections)), dtype=bool)
+    for t_idx, track in enumerate(tracks):
+        t_area = utils.track_to_box(track).area()
+        range = size_ratio * t_area
+        gate[t_idx,:] = (det_areas >= range[0]) & (det_areas <= range[1])
+        
+    return gate
 
 def overlap_cost_matrix(tracks:List[Track], detections:List[Detection], ov_idx:int,
                         track_indices:List[int], detention_indices:List[int]):
@@ -380,47 +319,47 @@ def match_dist_iou_costs(dist_cost, iou_cost, dist_threshold, iou_threshold, exc
 
 
 
-from abc import ABCMeta, abstractmethod
-class Matcher(metaclass=ABCMeta):
-    @abstractmethod
-    def match(self, row_idxes:Optional[List[int]]=None, column_idxes:Optional[List[int]]=None) \
-        -> Tuple[List[Tuple[int,int]], List[int], List[int]]: pass
+# from abc import ABCMeta, abstractmethod
+# class Matcher(metaclass=ABCMeta):
+#     @abstractmethod
+#     def match(self, row_idxes:Optional[List[int]]=None, column_idxes:Optional[List[int]]=None) \
+#         -> Tuple[List[Tuple[int,int]], List[int], List[int]]: pass
         
-    @staticmethod
-    def chain(*matchers) -> Matcher:
-        return ChainedMatcher(*matchers)
+#     @staticmethod
+#     def chain(*matchers) -> Matcher:
+#         return ChainedMatcher(*matchers)
 
-    @staticmethod
-    def update_matches(matches:List[Tuple[int,int]], unmatched_row_idxes:List[int], unmatched_col_idxes:List[int],
-                       matches0:List[Tuple[int,int]]) \
-        -> Tuple[List[Tuple[int,int]], List[int], List[int]]:
-        return ( matches+matches0,
-                utils.subtract(unmatched_row_idxes, utils.project(matches0, 0)),
-                utils.subtract(unmatched_col_idxes, utils.project(matches0, 1)) )
+#     @staticmethod
+#     def update_matches(matches:List[Tuple[int,int]], unmatched_row_idxes:List[int], unmatched_col_idxes:List[int],
+#                        matches0:List[Tuple[int,int]]) \
+#         -> Tuple[List[Tuple[int,int]], List[int], List[int]]:
+#         return ( matches+matches0,
+#                 utils.subtract(unmatched_row_idxes, utils.project(matches0, 0)),
+#                 utils.subtract(unmatched_col_idxes, utils.project(matches0, 1)) )
 
 
-class ChainedMatcher(Matcher):
-    def __init__(self, *matchers):
-        self.matchers = matchers
+# class ChainedMatcher(Matcher):
+#     def __init__(self, *matchers):
+#         self.matchers = matchers
         
-    def match(self, row_idxes:Optional[List[int]]=None, column_idxes:Optional[List[int]]=None) \
-        -> Tuple[List[Tuple[int,int]], List[int], List[int]]:
+#     def match(self, row_idxes:Optional[List[int]]=None, column_idxes:Optional[List[int]]=None) \
+#         -> Tuple[List[Tuple[int,int]], List[int], List[int]]:
 
-        row_idxes = range(self.matrix.shape[0]) if row_idxes is None else row_idxes
-        column_idxes = range(self.matrix.shape[1]) if column_idxes is None else column_idxes
+#         row_idxes = range(self.matrix.shape[0]) if row_idxes is None else row_idxes
+#         column_idxes = range(self.matrix.shape[1]) if column_idxes is None else column_idxes
         
-        unmatched_row_idxes = row_idxes.copy()
-        unmatched_col_idxes = column_idxes.copy()
+#         unmatched_row_idxes = row_idxes.copy()
+#         unmatched_col_idxes = column_idxes.copy()
         
-        matches = []
-        for matcher in self.matchers:
-            if not (unmatched_row_idxes and unmatched_col_idxes):
-                break
+#         matches = []
+#         for matcher in self.matchers:
+#             if not (unmatched_row_idxes and unmatched_col_idxes):
+#                 break
             
-            matches0, unmatched_row_idxes, unmatched_col_idxes = matcher.match(unmatched_row_idxes, unmatched_col_idxes)
-            if matches0:
-                matches += matches0
-        return matches, unmatched_row_idxes, unmatched_col_idxes
+#             matches0, unmatched_row_idxes, unmatched_col_idxes = matcher.match(unmatched_row_idxes, unmatched_col_idxes)
+#             if matches0:
+#                 matches += matches0
+#         return matches, unmatched_row_idxes, unmatched_col_idxes
 
 
 class HungarianMatcher(Matcher):
@@ -438,7 +377,10 @@ class HungarianMatcher(Matcher):
 
 
 class ReciprocalCostMatcher(Matcher):
-    def __init__(self, matrix, threshold:float) -> None:
+    def __init__(self, matrix, threshold:float, gate_matrix=None, gate_threshold:Optional[float]=None) -> None:
+        if gate_matrix is not None and gate_threshold is not None:
+            matrix = matrix.copy()
+            matrix[gate_matrix > gate_threshold] = threshold + 0.1
         self.matrix = matrix
         self.threshold = threshold
         
@@ -612,3 +554,29 @@ class CostMatrixBasedMatcher(Matcher):
         else:
             closest, closest2 = row[closest_idx], row[idx_ranks[1]]
             return closest_idx if closest * 2 < closest2 else None
+
+
+def cosine_distance(a, b, data_is_normalized=False):
+    """Compute pair-wise cosine distance between points in `a` and `b`.
+
+    Parameters
+    ----------
+    a : array_like
+        An NxM matrix of N samples of dimensionality M.
+    b : array_like
+        An LxM matrix of L samples of dimensionality M.
+    data_is_normalized : Optional[bool]
+        If True, assumes rows in a and b are unit length vectors.
+        Otherwise, a and b are explicitly normalized to lenght 1.
+
+    Returns
+    -------
+    ndarray
+        Returns a matrix of size len(a), len(b) such that eleement (i, j)
+        contains the squared distance between `a[i]` and `b[j]`.
+
+    """
+    if not data_is_normalized:
+        a = np.asarray(a) / np.linalg.norm(a, axis=1, keepdims=True)
+        b = np.asarray(b) / np.linalg.norm(b, axis=1, keepdims=True)
+    return 1. - np.dot(a, b.T)

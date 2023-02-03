@@ -82,7 +82,7 @@ class Track:
         if detection is not None and detection.feature is not None:
             self.features.append(detection.feature)
 
-        self._n_init = n_init
+        self.time_to_promote = n_init-1
         self._max_age = max_age
 
     def to_tlwh(self):
@@ -125,7 +125,7 @@ class Track:
         self.age += 1
         self.time_since_update += 1
 
-    def update(self, kf, detection: Detection, max_feature_count:int) -> None:
+    def update(self, kf, detection: Detection, track_params) -> None:
         """Perform Kalman filter measurement update step and update the feature
         cache.
 
@@ -140,14 +140,18 @@ class Track:
         self.mean, self.covariance = kf.update(self.mean, self.covariance, detection.bbox.to_xyah())
         if utils.is_large_detection_for_metric(detection):
             self.features.append(detection.feature)
-            if len(self.features) > max_feature_count:
-                self.features = self.features[-max_feature_count:]
+            if len(self.features) > track_params.max_feature_count:
+                self.features = self.features[-track_params.max_feature_count:]
         self.last_detection = detection
         
         self.hits += 1
         self.time_since_update = 0
-        if self.state == TrackState.Tentative and self.hits >= self._n_init:
-            self.state = TrackState.Confirmed
+
+        if self.state == TrackState.Tentative:
+            if detection.score >= track_params.detection_threshold:
+                self.time_to_promote -= 1
+                if self.time_to_promote == 0:
+                    self.state = TrackState.Confirmed
 
     def mark_missed(self):
         """Mark this track as missed (no association at the current time step).
@@ -179,12 +183,22 @@ class Track:
     # kwlee
     def __repr__(self) -> str:
         state_str = TrackState.STATE_NAME[self.state]
+        promote_str = f', ttp={self.time_to_promote}' if self.state == TrackState.Tentative else ""
         tlwh = self.to_tlwh()
-        return (f"{state_str}[{self.track_id}, age={self.age}({self.time_since_update}), "
+        return (f"{state_str}[{self.track_id}, age={self.age}({self.time_since_update}){promote_str}, "
                 f"loc=({tlwh[0]:.0f},{tlwh[1]:.0f}):{tlwh[2]:.0f}x{tlwh[3]:.0f}")
         
     # kwlee
     @property
     def short_repr(self) -> str:
-        state_str = TrackState.STATE_ABBR[self.state]
-        return f"{self.track_id}({state_str}:{self.age}:{self.time_since_update-1})"
+        if self.state == TrackState.Confirmed:
+            if self.time_since_update == 0:
+                return f"{self.track_id}(C)"
+            else:
+                return f"{self.track_id}({self.time_since_update})"
+        elif self.state == TrackState.Tentative:
+            return f"{self.track_id}(-{self.time_to_promote})"
+        elif self.state == TrackState.Deleted:
+            return f"{self.track_id}(D)"
+        else:
+            raise ValueError("Shold not be here")
