@@ -25,8 +25,7 @@ DIST_THRESHOLD = 50
 IOU_THRESHOLD_TIGHT = 0.3
 IOU_THRESHOLD = 0.55
 IOU_THRESHOLD_LOOSE = 0.8
-COMBINED_THRESHOLD_TIGHT = 0.2
-# COMBINED_THRESHOLD = 0.5
+COMBINED_THRESHOLD_TIGHT = 0.25
 COMBINED_THRESHOLD_LOOSE = 0.75
 
 
@@ -79,7 +78,7 @@ class Tracker:
 
         # Update locations of matched tracks
         for tidx, didx in matches:
-            self.tracks[tidx].update(self.kf, detections[didx])
+            self.tracks[tidx].update(self.kf, detections[didx], self.params.max_feature_count)
 
         # get bounding-boxes of all tracks
         t_boxes = [utils.track_to_box(track) for track in self.tracks]
@@ -153,20 +152,6 @@ class Tracker:
         deleted_tracks = [t for t in self.tracks if t.is_deleted() and t.age > 1]
         self.tracks = [t for t in self.tracks if not t.is_deleted()]
 
-        # Update distance metric.
-        confirmed_tracks = [t for t in self.tracks if t.is_confirmed()]
-        features, targets = [], []
-        for track in confirmed_tracks:
-            features += track.features
-            targets += [track.track_id for _ in track.features]
-
-            # # 왜 이전 feature들을 유지하지 않지?
-            track.features = [track.features[-1]] #Retain most recent feature of the track.
-            # track.features = track.features[-5:]
-
-        active_targets = [t.track_id for t in confirmed_tracks]
-        self.metric.partial_fit(np.asarray(features), np.asarray(targets), active_targets)
-
         return deleted_tracks
                 
     # 반환값
@@ -212,12 +197,13 @@ class Tracker:
         #####################################################################################################
         ### 아직 match되지 못한 track이 존재하면, weak detection들과 IoU에 기반한 Hungarian 방식으로 matching을 시도함.
         #####################################################################################################
-        if unmatched_track_idxes and strong_det_idxes:
+        if unmatched_track_idxes:
             last_resort_matcher = matcher.HungarianMatcher(iou_cost, IOU_THRESHOLD_LOOSE)
-            matches0, _, _, = last_resort_matcher.match(unmatched_track_idxes, strong_det_idxes)
+            matches0, _, _, = last_resort_matcher.match(unmatched_track_idxes, unmatched_det_idxes)
             if matches0:
                 matches += matches0
                 unmatched_track_idxes = utils.subtract(utils.all_indices(self.tracks), utils.project(matches, 0))
+                strong_det_idxes = utils.subtract(strong_det_idxes, utils.project(matches, 1))
                 if LOGGER.isEnabledFor(logging.DEBUG):
                     LOGGER.debug(f"all, strong, last_resort[iou={IOU_THRESHOLD_LOOSE}]: {self.matches_str(matches0)}")
 
@@ -237,11 +223,8 @@ class Tracker:
         hot_track_idxes = [idx for idx in unmatched_track_idxes \
                                 if self.tracks[idx].is_confirmed() and self.tracks[idx].time_since_update <= 3]
         tentative_track_idxes = [idx for idx in unmatched_track_idxes if not self.tracks[idx].is_confirmed()]
+        large_det_idxes = [idx for idx in unmatched_det_idxes if utils.is_large_detection_for_metric(detections[idx])]
         matches = []
-
-        def is_large_for_metric(det:Detection) -> bool:
-            return min(det.bbox.size().to_tuple()) >= 50
-        large_det_idxes = [idx for idx in unmatched_det_idxes if is_large_for_metric(detections[idx])]
 
         #####################################################################################################
         ########## 통합 비용 행렬을 생성한다.
@@ -249,15 +232,13 @@ class Tracker:
         ########## cmatrix: 통합 비용 행렬
         ########## ua_matrix: unconfirmed track을 고려한 통합 비용 행렬
         #####################################################################################################
-        # metric_cost = self.metric_cost(self.tracks, detections)
         metric_cost = self.metric_cost(self.tracks, detections, unmatched_track_idxes, large_det_idxes)
-        dist_metric_cost, cmask = matcher.combine_cost_matrices(metric_cost, dist_cost, self.tracks, detections)
-        dist_metric_cost[cmask] = 9.99
+        gated_metric_cost = matcher.gate_metric_cost(metric_cost, dist_cost, self.tracks, detections)
         if dna.DEBUG_PRINT_COST:
             matcher.print_matrix(self.tracks, detections, metric_cost, 1, unmatched_track_idxes, large_det_idxes)
-            matcher.print_matrix(self.tracks, detections, dist_metric_cost, 9.98, unmatched_track_idxes, large_det_idxes)
+            matcher.print_matrix(self.tracks, detections, gated_metric_cost, 1, unmatched_track_idxes, large_det_idxes)
 
-        hung_matcher = matcher.HungarianMatcher(dist_metric_cost, None)
+        hung_matcher = matcher.HungarianMatcher(gated_metric_cost, None)
 
         #####################################################################################################
         ################ Hot track에 한정해서 강한 threshold를 사용해서  matching 실시
@@ -265,7 +246,7 @@ class Tracker:
         #####################################################################################################
         if hot_track_idxes and large_det_idxes:
             if dna.DEBUG_PRINT_COST:
-                matcher.print_matrix(self.tracks, detections, dist_metric_cost, COMBINED_THRESHOLD_TIGHT,
+                matcher.print_matrix(self.tracks, detections, gated_metric_cost, COMBINED_THRESHOLD_TIGHT,
                                         hot_track_idxes, large_det_idxes)
             matches0, _, large_det_idxes \
                 = hung_matcher.match_threshold(COMBINED_THRESHOLD_TIGHT, hot_track_idxes, large_det_idxes)
@@ -292,7 +273,7 @@ class Tracker:
         #####################################################################################################
         if unmatched_track_idxes and large_det_idxes:
             if dna.DEBUG_PRINT_COST:
-                matcher.print_matrix(self.tracks, detections, dist_metric_cost, COMBINED_THRESHOLD_LOOSE,
+                matcher.print_matrix(self.tracks, detections, gated_metric_cost, COMBINED_THRESHOLD_LOOSE,
                                         unmatched_track_idxes, large_det_idxes)
 
             matches0, unmatched_track_idxes, large_det_idxes \
@@ -314,15 +295,22 @@ class Tracker:
     #     return self.metric.distance(features, targets)
 
     def metric_cost(self, tracks:List[Track], detections:List[Detection], track_idxes, det_idxes):
-        targets = [tracks[idx].track_id for idx in track_idxes]
-        # features = np.array([detections[idx].feature for idx in det_idxes])
+        reduced_tracks = list(utils.get_items(self.tracks, track_idxes))
         features = np.array([det.feature for det in utils.get_items(detections, det_idxes)])
-        reduced_matrix = self.metric.distance(features, targets)
+        reduced_matrix = self.build_metric_matrix(reduced_tracks, features)
 
         cost_matrix = np.ones((len(tracks), len(detections)))
         for row_idx, t_idx in enumerate(track_idxes):
             for col_idx, d_idx in enumerate(det_idxes):
                 cost_matrix[t_idx, d_idx] = reduced_matrix[row_idx, col_idx]
+        return cost_matrix
+        
+    def build_metric_matrix(self, tracks, features):
+        cost_matrix = np.zeros((len(tracks), len(features)))
+        for i, track in enumerate(tracks):
+            samples = track.features
+            if samples and len(features) > 0:
+                cost_matrix[i, :] = self.metric._metric(samples, features)
         return cost_matrix
 
     # kwlee
@@ -333,7 +321,6 @@ class Tracker:
             for row, track in enumerate(tracks):
                 mahalanovis_dist = self.kf.gating_distance(track.mean, track.covariance, measurements)
                 dist_matrix[row, :] = mahalanovis_dist * (1 + 0.75*(track.time_since_update-1))
-                # dist_matrix[row, :] = self.kf.gating_distance(track.mean, track.covariance, measurements)
         return dist_matrix
 
     def matches_str(self, matches):

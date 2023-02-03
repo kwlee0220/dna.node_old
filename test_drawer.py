@@ -13,9 +13,9 @@ from dna.utils import RectangleDrawer, PolygonDrawer
 img = None
 
 camera_conf = OmegaConf.create()
-camera_conf.uri = "data/2022/crops/etri_05_crop.mp4"
+camera_conf.uri = "data/2022/crops/etri_06_crop.mp4"
 # camera_conf.uri = "output/result.jpg"
-camera_conf.begin_frame = 188
+camera_conf.begin_frame = 2242
 camera:Camera = create_camera_from_conf(camera_conf)
 
 coords_list = [
@@ -34,9 +34,8 @@ for coords in coords_list:
     img = plot_utils.draw_polygon(img, coords, color.ORANGE, 2)
 
 polygon = []
-polygon = [[1915, 26], [10, 22], [2, 625], [674, 367], [713, 322], [657, 299], [662, 200], [993, 241],
-        [1302, 301], [1682, 408], [1681, 542], [1547, 516], [1420, 534], [1346, 593], [1268, 796],
-        [347, 805], [5, 1038], [5, 1072], [1915, 1066]]
+polygon = [[129, 656], [744, 504], [952, 324], [1010, 323], [1056, 289], [1297, 496], [1847, 628], [1859, 1074], [1921, 1075],
+        [1920, 2], [0, -2], [1, 1076], [329, 1079], [302, 885], [146, 882]]
 coords = PolygonDrawer(img, polygon).run()
 print(coords)
 

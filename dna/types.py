@@ -332,6 +332,33 @@ class Box:
         dist = np.linalg.norm(np.concatenate([u, v]))
         return dist
 
+    def min_distance_to(self, box:Box) -> float:
+        y1, x1, y1b, x1b = tuple(self.tlbr)
+        y2, x2, y2b, x2b = tuple(box.tlbr)
+
+        left = x2b < x1
+        right = x1b < x2
+        bottom = y2b < y1
+        top = y1b < y2
+        if top and left:
+            return Point(x1, y1b).distance_to(Point(x2b, y2))
+        elif left and bottom:
+            return Point(x1, y1).distance_to(Point(x2b, y2b))
+        elif bottom and right:
+            return Point(x1b, y1).distance_to(Point(x2, y2b))
+        elif right and top:
+            return Point(x1b, y1b).distance_to(Point(x2, y2))
+        elif left:
+            return x1 - x2b
+        elif right:
+            return x2 - x1b
+        elif bottom:
+            return y1 - y2b
+        elif top:
+            return y2 - y1b
+        else:             # rectangles intersect
+            return 0.
+
     def contains(self,box:Box) -> bool:
         return self.tlbr[0] <= box.tlbr[0] and self.tlbr[1] <= box.tlbr[1] \
                 and self.tlbr[2] >= box.tlbr[2] and self.tlbr[3] >= box.tlbr[3]

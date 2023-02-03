@@ -2,7 +2,6 @@
 from typing import List, Union, Tuple, Any
 from datetime import datetime
 from pathlib import Path
-from dataclasses import dataclass
 import sys
 from enum import Enum
 
@@ -36,6 +35,8 @@ DEFAULT_MAX_OVERLAP_RATIO=0.75
 DEFAULT_MIN_SIZE=[30, 20]
 DEFAULT_DET_MAPPING = {'car':'car', 'bus':'car', 'truck':'car'}
 
+
+from dataclasses import dataclass, field
 @dataclass(frozen=True, eq=True)    # slots=True
 class DeepSORTParams:
     metric_threshold: float
@@ -47,6 +48,7 @@ class DeepSORTParams:
     blind_zones: List[geometry.Polygon]
     exit_zones: List[geometry.Polygon]
     stable_zones: List[geometry.Polygon]
+    max_feature_count: int = field(default=50)
     
 class DeepSORTTrack(IDNATrack):
     from .deepsort.track import Track as DSTrack

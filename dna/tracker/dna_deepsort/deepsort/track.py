@@ -1,5 +1,9 @@
 # vim: expandtab:ts=4:sw=4
+
+import numpy as np
+
 from dna.detect import Detection
+from dna.tracker.dna_deepsort.deepsort import utils
 
 class TrackState:
     """
@@ -121,7 +125,7 @@ class Track:
         self.age += 1
         self.time_since_update += 1
 
-    def update(self, kf, detection: Detection) -> None:
+    def update(self, kf, detection: Detection, max_feature_count:int) -> None:
         """Perform Kalman filter measurement update step and update the feature
         cache.
 
@@ -134,7 +138,10 @@ class Track:
 
         """
         self.mean, self.covariance = kf.update(self.mean, self.covariance, detection.bbox.to_xyah())
-        self.features.append(detection.feature)
+        if utils.is_large_detection_for_metric(detection):
+            self.features.append(detection.feature)
+            if len(self.features) > max_feature_count:
+                self.features = self.features[-max_feature_count:]
         self.last_detection = detection
         
         self.hits += 1

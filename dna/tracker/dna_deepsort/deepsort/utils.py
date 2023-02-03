@@ -3,6 +3,7 @@ from typing import List, Tuple, Sequence, Iterable, Generator
 import numpy as np
 
 from dna import Box, Size2d
+from dna.detect import Detection
 from .track import Track
 
 def all_indices(values:Sequence):
@@ -30,6 +31,9 @@ def track_to_box(track:Track, epsilon:float=0.00001) -> Box:
         br = tl + Size2d(epsilon, epsilon)
         box = Box.from_points(tl, br)
     return box
+
+def is_large_detection_for_metric(det:Detection) -> bool:
+    return min(det.bbox.size().to_tuple()) >= 50
 
 def overlap_boxes(target:Box, boxes:List[Box], box_indices:List[int]=None) \
     -> List[Tuple[int, Tuple[float,float,float]]]:
