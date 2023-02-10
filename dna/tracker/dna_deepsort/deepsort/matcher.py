@@ -9,7 +9,7 @@ from scipy.optimize import linear_sum_assignment
 import dna
 from dna import Box
 from dna.detect import Detection
-from dna.tracker.matcher import Matcher, ChainedMatcher
+from dna.tracker import matcher
 from . import utils
 from .track import Track
 
@@ -54,18 +54,6 @@ def size_class(tlwh):
         return 'M'
     else: # small detections
         return 'S'
-
-import math
-def gate_metric_cost(metric_costs, dist_costs, tracks:List[Track], detections:List[Detection]):
-    mask = dist_costs > 500
-    for t_idx, track in enumerate(tracks):
-        for d_idx, det in enumerate(detections):
-            if mask[t_idx, d_idx]:
-                box_dist = utils.track_to_box(tracks[t_idx]).min_distance_to(detections[d_idx].bbox)
-                mask[t_idx, d_idx] = box_dist > 200
-    copied_metric = metric_costs.copy()
-    copied_metric[mask] = 1
-    return copied_metric
 
 def print_matrix(tracks, detections, matrix, threshold, track_indice, detection_indices):
     def pattern(v):
@@ -171,65 +159,6 @@ def match_closest_dist(dist_matrix, threshold:float, exclusive:bool, track_indic
     return matches, unmatched_tracks, unmatched_detections
 #########################################################################################
 
-def match_iou_cost(tracks, detections, threshold, track_indices, det_indices) \
-    -> Tuple[
-        List[Tuple[int,int]],
-        List[int],
-        List[int]
-    ]:
-    matrix = iou_cost_matrix(tracks, detections, track_indices, det_indices)
-    return matching_by_hungarian(matrix, threshold, track_indices, det_indices)
-
-def matching_by_hungarian(cost_matrix, threshold, row_idxes, col_idxes):
-    def _remove_by_index(list, idx):
-        remains = list.copy()
-        removed = remains.pop(idx)
-        return removed, remains
-
-    n_rows, n_cols = len(row_idxes), len(col_idxes)
-    if n_rows == 0 or n_cols == 0:
-        return [], row_idxes, col_idxes
-
-    if n_rows == 1 and n_cols == 1:
-        if cost_matrix[row_idxes[0], col_idxes[0]] <= threshold:
-            return [(row_idxes[0], col_idxes[0])], [], []
-        else:
-            return [], row_idxes, col_idxes
-    elif n_cols == 1:   # track만 여러개
-        reduced = cost_matrix[:,col_idxes[0]][row_idxes]
-        tidx = np.argmin(reduced)
-        if reduced[tidx] <= threshold:
-            matched_track, unmatched_tracks = _remove_by_index(row_idxes, tidx)
-            return [(matched_track, col_idxes[0])], unmatched_tracks, []
-        else:
-            return [], row_idxes, col_idxes
-    elif n_rows == 1:       # detection만 여러개
-        reduced = cost_matrix[row_idxes[0],:][col_idxes]
-        didx = np.argmin(reduced)
-        if reduced[didx] <= threshold:
-            matched_det, unmatched_dets = _remove_by_index(col_idxes, didx)
-            return [(row_idxes[0], matched_det)], [], unmatched_dets
-        else:
-            return [], row_idxes, col_idxes
-
-    matrix = cost_matrix[np.ix_(row_idxes, col_idxes)]
-    indices = linear_sum_assignment(matrix)
-    indices = np.asarray(indices)
-    indices = np.transpose(indices)
-
-    matches = []
-    unmatched_tracks = row_idxes.copy()
-    unmatched_detections = col_idxes.copy()
-    for i, j in indices:
-        tidx = row_idxes[i]
-        didx = col_idxes[j]
-        if cost_matrix[tidx, didx] <= threshold:
-            matches.append((tidx, didx))
-            unmatched_tracks.remove(tidx)
-            unmatched_detections.remove(didx)
-    
-    return matches, unmatched_tracks, unmatched_detections
-
 def overlap_detections(target_indices:List[int], detection_indices:List[int], detections:List[Detection], threshold:float):
     boxes = [det.bbox for det in detections]
 
@@ -241,14 +170,6 @@ def overlap_detections(target_indices:List[int], detection_indices:List[int], de
                 overlaps.append((idx, ov[0], ov[1]))
     return overlaps
 
-def delete_overlapped_tentative_tracks(tracks, threshold):
-    confirmed_track_idxs = [i for i, t in enumerate(tracks) 
-                                if t.is_confirmed() and t.time_since_update == 1 and not t.is_deleted()]
-    unconfirmed_track_idxs = [i for i, t in enumerate(tracks)
-                                if not t.is_confirmed() and not t.is_deleted()]
-    if not (confirmed_track_idxs and unconfirmed_track_idxs):
-        return
-
     t_boxes = [utils.track_to_box(track) for track in tracks]
     for uc_idx in unconfirmed_track_idxs:
         for t_idx, ov in utils.overlap_boxes(t_boxes[uc_idx], t_boxes, confirmed_track_idxs):
@@ -259,7 +180,7 @@ def delete_overlapped_tentative_tracks(tracks, threshold):
                     ov_track_id = tracks[t_idx].track_id
                     ov_ratio = max(ov[1])
                     LOGGER.debug((f"delete tentative track[{uc_track_id}] because it is too close to track[{ov_track_id}], "
-                                    f"ratio={ov_ratio:.2f}, frame={dna.DEBUG_FRAME_IDX}"))
+                                    f"ratio={ov_ratio:.2f}, frame={dna.DEBUG_FRAME_INDEX}"))
                     break
 
 def overlap_cost(tracks, detections, track_indices, detention_indices):
@@ -271,16 +192,6 @@ def overlap_cost(tracks, detections, track_indices, detention_indices):
             ovr_matrix[tidx, didx] = max(t_box.overlap_ratios(det_boxes[didx]))
 
     return ovr_matrix
-    
-def iou_cost_matrix(tracks, detections) -> np.array:
-    d_boxes = [det.bbox for det in detections]
-    
-    matrix = np.zeros((len(tracks), len(detections)))
-    for t_idx, track in enumerate(tracks):
-        t_box = utils.track_to_box(track)
-        for d_idx, det in enumerate(detections):
-            matrix[t_idx,d_idx] = 1 - t_box.overlap_ratios(d_boxes[d_idx])[2]
-    return matrix
 
 def track_det_gate(tracks:List[Track], detections:List[Detection], size_ratio=np.array([0.3,2.8])):
     det_areas = np.array([det.bbox.area() for det in detections])
@@ -317,66 +228,7 @@ def match_dist_iou_costs(dist_cost, iou_cost, dist_threshold, iou_threshold, exc
     return matches, unmatched_track_idxes, unmatched_det_idxes
 
 
-
-
-# from abc import ABCMeta, abstractmethod
-# class Matcher(metaclass=ABCMeta):
-#     @abstractmethod
-#     def match(self, row_idxes:Optional[List[int]]=None, column_idxes:Optional[List[int]]=None) \
-#         -> Tuple[List[Tuple[int,int]], List[int], List[int]]: pass
-        
-#     @staticmethod
-#     def chain(*matchers) -> Matcher:
-#         return ChainedMatcher(*matchers)
-
-#     @staticmethod
-#     def update_matches(matches:List[Tuple[int,int]], unmatched_row_idxes:List[int], unmatched_col_idxes:List[int],
-#                        matches0:List[Tuple[int,int]]) \
-#         -> Tuple[List[Tuple[int,int]], List[int], List[int]]:
-#         return ( matches+matches0,
-#                 utils.subtract(unmatched_row_idxes, utils.project(matches0, 0)),
-#                 utils.subtract(unmatched_col_idxes, utils.project(matches0, 1)) )
-
-
-# class ChainedMatcher(Matcher):
-#     def __init__(self, *matchers):
-#         self.matchers = matchers
-        
-#     def match(self, row_idxes:Optional[List[int]]=None, column_idxes:Optional[List[int]]=None) \
-#         -> Tuple[List[Tuple[int,int]], List[int], List[int]]:
-
-#         row_idxes = range(self.matrix.shape[0]) if row_idxes is None else row_idxes
-#         column_idxes = range(self.matrix.shape[1]) if column_idxes is None else column_idxes
-        
-#         unmatched_row_idxes = row_idxes.copy()
-#         unmatched_col_idxes = column_idxes.copy()
-        
-#         matches = []
-#         for matcher in self.matchers:
-#             if not (unmatched_row_idxes and unmatched_col_idxes):
-#                 break
-            
-#             matches0, unmatched_row_idxes, unmatched_col_idxes = matcher.match(unmatched_row_idxes, unmatched_col_idxes)
-#             if matches0:
-#                 matches += matches0
-#         return matches, unmatched_row_idxes, unmatched_col_idxes
-
-
-class HungarianMatcher(Matcher):
-    def __init__(self, matrix, threshold:float) -> None:
-        self.matrix = matrix
-        self.threshold = threshold
-        
-    def match(self, row_idxes:Optional[List[int]]=None, column_idxes:Optional[List[int]]=None) \
-        -> Tuple[List[Tuple[int,int]], List[int], List[int]]:
-        return matching_by_hungarian(self.matrix, self.threshold, row_idxes, column_idxes)
-        
-    def match_threshold(self, threshold:float, row_idxes:Optional[List[int]]=None, column_idxes:Optional[List[int]]=None) \
-        -> Tuple[List[Tuple[int,int]], List[int], List[int]]:
-        return matching_by_hungarian(self.matrix, threshold, row_idxes, column_idxes)
-
-
-class ReciprocalCostMatcher(Matcher):
+class ReciprocalCostMatcher(matcher.Matcher):
     def __init__(self, matrix, threshold:float, gate_matrix=None, gate_threshold:Optional[float]=None) -> None:
         if gate_matrix is not None and gate_threshold is not None:
             matrix = matrix.copy()
@@ -455,105 +307,6 @@ class ReciprocalCostMatcher(Matcher):
         else:
             closest1, closest2 = column[top_idx1], column[top_idx2]
             return closest1 * 2 < closest2
-
-
-class CostMatrixBasedMatcher(Matcher):
-    def __init__(self, matrix, threshold:float, exclusive:bool=False,
-                    fast_match_threshold=0) -> None:
-        self.matrix = matrix
-        self.threshold = threshold
-        self.exclusive = exclusive
-        self.fast_match_threshold = fast_match_threshold
-        
-    def match(self, row_idxes:Optional[List[int]]=None, column_idxes:Optional[List[int]]=None) \
-        -> Tuple[List[Tuple[int,int]], List[int], List[int]]:
-        unmatched_row_idxes = list(range(self.matrix.shape[0])) if row_idxes is None else row_idxes.copy()
-        unmatched_col_idxes = list(range(self.matrix.shape[1])) if column_idxes is None else column_idxes.copy()
-        
-        matches = []
-        conflict = True
-        match_count = 1
-        while conflict and match_count > 0 and unmatched_col_idxes:
-            conflict = False
-            match_count = 0
-            
-            row_idxes = unmatched_row_idxes.copy()
-            for row_idx in row_idxes:
-                row = self.matrix[row_idx, :]
-                close_col_idxes = self.select_top2(row, self.threshold, unmatched_col_idxes)
-                if close_col_idxes:
-                    if row[close_col_idxes[0]] < self.fast_match_threshold:
-                        matches.append((row_idx, close_col_idxes[0]))
-                        unmatched_row_idxes.remove(row_idx)
-                        unmatched_col_idxes.remove(close_col_idxes[0])
-                        match_count += 1
-                        if len(unmatched_col_idxes) == 0:
-                            break
-                    else:
-                        closest_col_idx = self.select_excl_closest(row, close_col_idxes) if self.exclusive else close_col_idxes[0]
-                        if closest_col_idx is not None:
-                            # 가장 가까운 detection이 두번째로 가까운 detection보다 월등히 가까운 경우
-                            # 가장 가까운 detection을 기준으로 남은 track과의 거리를 구해서 
-                            # 'tidx' track이 다른 track들에 비해 월등히 가까운지 확인함.
-                            column = self.matrix[:, closest_col_idx]
-                            close_row_idxes = self.select_top2_le_threshold_indices(column, self.threshold, unmatched_row_idxes)
-                            closest_row_idx = self.select_excl_closest(column, close_row_idxes)
-                            if closest_row_idx == row_idx:
-                                # 가장 가까운 detection을 기준으로 월등히 가장 가까운 track이 바로 'tidx'인 경우
-                                # 이 두 track과 detection은 다른 어떤 track-detection 조합보다 가깝기 때문에
-                                # 이 둘을 match 시킨다.
-                                matches.append((row_idx, closest_col_idx))
-                                unmatched_row_idxes.remove(row_idx)
-                                unmatched_col_idxes.remove(closest_col_idx)
-                                match_count += 1
-                                if len(unmatched_col_idxes) == 0:
-                                    break
-                            else:
-                                conflict = True
-                        else:
-                            conflict = True
-                        
-        return matches, unmatched_row_idxes, unmatched_col_idxes
-    
-    def select_top2(self, values, threshold, idxes) -> List[int]:
-        selected_idxes = np.where(values <= threshold)[0]
-        selected_idxes = utils.intersection(selected_idxes, idxes)
-        
-        n_selecteds = len(selected_idxes)
-        if n_selecteds == 0: 
-            return []
-        elif n_selecteds == 1:
-            return selected_idxes
-        elif n_selecteds == 2:
-            first, second = values[selected_idxes[0]], values[selected_idxes[1]]
-            if first <= second:
-                return selected_idxes
-            else:
-                return [selected_idxes[1], selected_idxes[0]]
-        else:
-            selecteds = values[selected_idxes]
-            idxes = np.argpartition(selecteds, 2)
-            return [selected_idxes[idxes[0]], selected_idxes[idxes[1]]]
-    
-    def select_top2_le_threshold_indices(self, values, threshold, idxes) -> List[int]:
-        selected_idxes = np.where(values <= threshold)[0]
-        selected_idxes = utils.intersection(selected_idxes, idxes)
-        
-        n_selecteds = len(selected_idxes)
-        if n_selecteds == 0: 
-            return []
-        elif n_selecteds == 1:
-            return selected_idxes
-        else:
-            return topk_indices(values, 2, selected_idxes)
-
-    def select_excl_closest(self, row, idx_ranks:List[int]):
-        closest_idx = idx_ranks[0]
-        if len(idx_ranks) == 1:
-            return closest_idx
-        else:
-            closest, closest2 = row[closest_idx], row[idx_ranks[1]]
-            return closest_idx if closest * 2 < closest2 else None
 
 
 def cosine_distance(a, b, data_is_normalized=False):

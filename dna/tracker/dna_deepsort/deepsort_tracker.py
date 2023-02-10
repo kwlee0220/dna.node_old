@@ -11,6 +11,7 @@ from omegaconf.omegaconf import OmegaConf
 import shapely.geometry as geometry
 
 from dna import Frame, Image, BGR, color, plot_utils
+from dna.tracker import DNASORTParams
 
 FILE = Path(__file__).absolute()
 DEEPSORT_DIR = str(FILE.parents[0] / 'deepsort')
@@ -20,7 +21,7 @@ if not DEEPSORT_DIR in sys.path:
 import dna
 from dna import Box, Size2d
 from dna.detect import ObjectDetector, Detection
-from dna.tracker.dna_track import IDNATrack, TrackState
+from dna.tracker import IDNATrack, TrackState, IouDistThreshold
 from ..tracker import DetectionBasedObjectTracker
 from .deepsort.deepsort import deepsort_rbc
 from .deepsort.track import Track as DSTrack
@@ -29,30 +30,32 @@ from .deepsort.track import TrackState as DSTrackState
 import logging
 LOGGER = logging.getLogger('dna.tracker.dnasort')
 
-DEFAULT_DETECTION_THRESHOLD = 0
+DEFAULT_DETECTION_THRESHOLD = 0.35
+DEFAULT_DETECTION_MIN_SIZE = Size2d(20, 15)
+DEFAULT_DETECTION_MAX_SIZE = Size2d(768, 768)
+DEFAULT_DETECTIION_MAPPING = {'car':'car', 'bus':'car', 'truck':'car'}
+
+DEFAULT_IOU_DIST_THRESHOLD_TIGHT = IouDistThreshold(0.2, 7)
+DEFAULT_IOU_DIST_THRESHOLD = IouDistThreshold(0.80, 70)
+DEFAULT_IOU_DIST_THRESHOLD_LOOSE = IouDistThreshold(0.85, 90)
+DEFAULT_IOU_DIST_THRESHOLD_GATE = IouDistThreshold(0.85, 210)
+
+DEFAULT_METRIC_TIGHT_THRESHOLD = 0.3
 DEFAULT_METRIC_THRESHOLD = 0.55
-DEFAULT_MAX_IOU_DISTANCE = 0.85
-DEFAULT_MAX_AGE = 10
+DEFAULT_METRIC_GATE_DISTANCE = 500
+DEFAULT_METRIC_GATE_BOX_DISTANCE = 200
+DEFAULT_METRIC_MIN_DETECTION_SIZE = Size2d(40, 35)
+DEFAULT_MAX_FEATURE_COUNT = 50
+
 DEFAULT_N_INIT = 3
-DEFAULT_MAX_OVERLAP_RATIO=0.75
-DEFAULT_MIN_SIZE=[30, 20]
-DEFAULT_DET_MAPPING = {'car':'car', 'bus':'car', 'truck':'car'}
+DEFAULT_MAX_AGE = 10
+DEFAULT_MIN_NEW_TRACK_SIZE = [30, 20]
 
+DEFAULT_BLIND_ZONES = []
+DEFAULT_EXIT_ZONES = []
+DEFAULT_STABLE_ZONES = []
+DEFAULT_OVERLAP_SUPRESS_RATIO = 0.75
 
-from dataclasses import dataclass, field
-@dataclass(frozen=True, eq=True)    # slots=True
-class DeepSORTParams:
-    detection_threshold: float
-    metric_threshold: float
-    max_iou_distance: float
-    n_init: int
-    max_age: int
-    min_size: Size2d
-    max_overlap_ratio: float
-    blind_zones: List[geometry.Polygon]
-    exit_zones: List[geometry.Polygon]
-    stable_zones: List[geometry.Polygon]
-    max_feature_count: int = field(default=50)
     
 class DeepSORTTrack(IDNATrack):
     from .deepsort.track import Track as DSTrack
@@ -97,13 +100,6 @@ class DeepSORTTrack(IDNATrack):
         convas = cv2.circle(convas, loc.center().xy.astype(int), 4, color, thickness=-1, lineType=cv2.LINE_AA)
         if label_color:
             label = self.ds_track.short_repr
-            # if self.__state == TrackState.Confirmed:
-            #     label = f"{self.id}({self.state.abbr})"
-            # elif self.__state == TrackState.TemporarilyLost:
-            #     label = f"{self.id}({self.ds_track.time_since_update})"
-            # elif self.__state == TrackState.Tentative:
-            #     # remains = self.ds_track.hits - self.ds_track._n_init
-            #     label = f"{self.id}({self.ds_track.promotion_remains})"
             convas = plot_utils.draw_label(convas, label, loc.tl.astype('int32'), label_color, color, 2)
         return convas
 
@@ -112,8 +108,7 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
         super().__init__()
 
         self.__detector = detector
-        self.det_dict = tracker_conf.get('det_mapping', DEFAULT_DET_MAPPING)
-        detection_threshold = tracker_conf.get('detection_threshold', DEFAULT_DETECTION_THRESHOLD)
+        self.det_dict = tracker_conf.get('det_mapping', DEFAULT_DETECTIION_MAPPING)
 
         model_file = tracker_conf.get('model_file', 'models/deepsort/model640.pt')
         model_file = Path(model_file).resolve()
@@ -124,30 +119,51 @@ class DeepSORTTracker(DetectionBasedObjectTracker):
                 raise ValueError(f'Cannot find DeepSORT reid model: {model_file}')
         wt_path = Path(model_file)
 
+        detection_threshold = tracker_conf.get('detection_threshold', DEFAULT_DETECTION_THRESHOLD)
+        detection_min_size = Size2d.from_expr(tracker_conf.get('detection_min_size', DEFAULT_DETECTION_MIN_SIZE))
+        detection_max_size = Size2d.from_expr(tracker_conf.get('detection_max_size', DEFAULT_DETECTION_MAX_SIZE))
+
+        iou_dist_threshold_tight = tracker_conf.get('iou_dist_threshold_tight', DEFAULT_IOU_DIST_THRESHOLD_TIGHT)
+        iou_dist_threshold = tracker_conf.get('iou_dist_threshold', DEFAULT_IOU_DIST_THRESHOLD)
+        iou_dist_threshold_loose = tracker_conf.get('iou_dist_threshold_loose', DEFAULT_IOU_DIST_THRESHOLD_LOOSE)
+        iou_dist_threshold_gate = tracker_conf.get('iou_dist_threshold_gate', DEFAULT_IOU_DIST_THRESHOLD_GATE)
+
+        metric_tight_threshold = tracker_conf.get('metric_tight_threshold', DEFAULT_METRIC_TIGHT_THRESHOLD)
         metric_threshold = tracker_conf.get('metric_threshold', DEFAULT_METRIC_THRESHOLD)
-        max_iou_distance = tracker_conf.get('max_iou_distance', DEFAULT_MAX_IOU_DISTANCE)
-        max_age = int(tracker_conf.get('max_age', DEFAULT_MAX_AGE))
+        metric_gate_distance = tracker_conf.get('metric_gate_distance', DEFAULT_METRIC_GATE_DISTANCE)
+        metric_gate_box_distance = tracker_conf.get('metric_gate_box_distance', DEFAULT_METRIC_GATE_BOX_DISTANCE)
+        metric_min_detection_size = tracker_conf.get('metric_min_detection_size', DEFAULT_METRIC_MIN_DETECTION_SIZE)
+        max_feature_count = tracker_conf.get('max_feature_count', DEFAULT_MAX_FEATURE_COUNT)
+
         n_init = int(tracker_conf.get('n_init', DEFAULT_N_INIT))
-        max_overlap_ratio = tracker_conf.get('max_overlap_ratio', DEFAULT_MAX_OVERLAP_RATIO)
-        min_size = Size2d.from_np(np.array(tracker_conf.get('min_size', DEFAULT_MIN_SIZE)))
+        max_age = int(tracker_conf.get('max_age', DEFAULT_MAX_AGE))
+        overlap_supress_ratio = tracker_conf.get('overlap_supress_ratio', DEFAULT_OVERLAP_SUPRESS_RATIO)
+        min_new_track_size = Size2d.from_expr(tracker_conf.get('min_new_track_size', DEFAULT_MIN_NEW_TRACK_SIZE))
 
-        if blind_zones := tracker_conf.get("blind_zones", []):
+        if blind_zones := tracker_conf.get("blind_zones", DEFAULT_BLIND_ZONES):
             blind_zones = [geometry.Polygon([tuple(c) for c in zone]) for zone in blind_zones]
-
-        if exit_zones := tracker_conf.get("exit_zones", []):
+        if exit_zones := tracker_conf.get("exit_zones", DEFAULT_EXIT_ZONES):
             exit_zones = [geometry.Polygon([tuple(c) for c in zone]) for zone in exit_zones]
-
-        if stable_zones := tracker_conf.get("stable_zones", []):
-            # stable_zones = [Box.from_tlbr(np.array(zone, dtype=np.int32)) for zone in stable_zones]
+        if stable_zones := tracker_conf.get("stable_zones", DEFAULT_STABLE_ZONES):
             stable_zones = [geometry.Polygon([tuple(c) for c in zone]) for zone in stable_zones]
 
-        self.params = DeepSORTParams(detection_threshold=detection_threshold,
-                                    metric_threshold=metric_threshold,
-                                    max_iou_distance=max_iou_distance,
-                                    max_age=max_age,
+        self.params = DNASORTParams(detection_threshold=detection_threshold,
+                                    detection_min_size=detection_min_size,
+                                    detection_max_size=detection_max_size,
+                                    iou_dist_threshold_tight=iou_dist_threshold_tight,
+                                    iou_dist_threshold=iou_dist_threshold,
+                                    iou_dist_threshold_loose=iou_dist_threshold_loose,
+                                    iou_dist_threshold_gate=iou_dist_threshold_gate,
+                                    metric_threshold=metric_tight_threshold,
+                                    metric_threshold_loose=metric_threshold,
+                                    metric_gate_distance=metric_gate_distance,
+                                    metric_gate_box_distance=metric_gate_box_distance,
+                                    metric_min_detection_size=metric_min_detection_size,
+                                    max_feature_count=max_feature_count,
                                     n_init=n_init,
-                                    max_overlap_ratio=max_overlap_ratio,
-                                    min_size=min_size,
+                                    max_age=max_age,
+                                    overlap_supress_ratio=overlap_supress_ratio,
+                                    min_new_track_size=min_new_track_size,
                                     blind_zones=blind_zones,
                                     exit_zones=exit_zones,
                                     stable_zones=stable_zones)

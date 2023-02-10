@@ -1,9 +1,10 @@
 id: etri:05
 
 camera:
-  uri: data/2022/crops/etri_06_crop.mp4
+  # uri: data/2022/crops/etri_05_crop.mp4
+  uri: data/2021/etri_05.mp4
   # size: [1920, 1080]
-  sync: true
+  sync: False
   # begin_frame: 1250
 
 tracker:
@@ -27,7 +28,7 @@ tracker:
     # n_init: 3
     # metric_threshold: 0.55
     # max_iou_distance: 0.85
-    # max_overlap_ratio: 0.75
+    # overlap_supress_ratio: 0.75
     # max_age: 10
     # min_size: [30, 20]
     # det_mapping:

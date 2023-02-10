@@ -49,10 +49,13 @@ class KalmanFilter(object):
         # Motion and observation uncertainty are chosen relative to the current
         # state estimate. These weights control the amount of uncertainty in
         # the model. This is a bit hacky.
-        self._std_weight_position = 1. / 20
-        self._std_weight_velocity = 1. / 160
-        # self._std_weight_position = 1. / 10
-        # self._std_weight_velocity = 1. / 80
+        # self._std_weight_position = 1. / 50#20
+        # self._std_weight_velocity = 1. / 200#160
+        # kwlee
+        self._std_weight_position = 1. / 10
+        self._std_weight_velocity = 1. / 80
+        # self._std_weight_position = 1. / 100
+        # self._std_weight_velocity = 1. / 400
 
     def initiate(self, measurement):
         """Create track from unassociated measurement.
@@ -119,8 +122,7 @@ class KalmanFilter(object):
         motion_cov = np.diag(np.square(np.r_[std_pos, std_vel]))
 
         mean = np.dot(self._motion_mat, mean)
-        covariance = np.linalg.multi_dot((
-            self._motion_mat, covariance, self._motion_mat.T)) + motion_cov
+        covariance = np.linalg.multi_dot((self._motion_mat, covariance, self._motion_mat.T)) + motion_cov
 
         return mean, covariance
 
@@ -149,8 +151,7 @@ class KalmanFilter(object):
         innovation_cov = np.diag(np.square(std))
 
         mean = np.dot(self._update_mat, mean)
-        covariance = np.linalg.multi_dot((
-            self._update_mat, covariance, self._update_mat.T))
+        covariance = np.linalg.multi_dot((self._update_mat, covariance, self._update_mat.T))
         return mean, covariance + innovation_cov
 
     def update(self, mean, covariance, measurement):
@@ -175,24 +176,20 @@ class KalmanFilter(object):
         """
         projected_mean, projected_cov = self.project(mean, covariance)
 
-        chol_factor, lower = scipy.linalg.cho_factor(
-            projected_cov, lower=True, check_finite=False)
-        kalman_gain = scipy.linalg.cho_solve(
-            (chol_factor, lower), np.dot(covariance, self._update_mat.T).T,
-            check_finite=False).T
+        chol_factor, lower = scipy.linalg.cho_factor(projected_cov, lower=True, check_finite=False)
+        kalman_gain = scipy.linalg.cho_solve((chol_factor, lower), np.dot(covariance, self._update_mat.T).T,
+                                                check_finite=False).T
         innovation = measurement - projected_mean
 
         new_mean = mean + np.dot(innovation, kalman_gain.T)
-        new_covariance = covariance - np.linalg.multi_dot((
-            kalman_gain, projected_cov, kalman_gain.T))
+        new_covariance = covariance - np.linalg.multi_dot((kalman_gain, projected_cov, kalman_gain.T))
         return new_mean, new_covariance
 
-    def gating_distance(self, mean, covariance, measurements,
-                        only_position=False):
+    def gating_distance(self, mean, covariance, measurements, only_position=False):
         """Compute gating distance between state distribution and measurements.
 
-        A suitable distance threshold can be obtained from `chi2inv95`. If
-        `only_position` is False, the chi-square distribution has 4 degrees of
+        A suitable distance threshold can be obtained from `chi2inv95`.
+        If `only_position` is False, the chi-square distribution has 4 degrees of
         freedom, otherwise 2.
 
         Parameters
@@ -212,9 +209,8 @@ class KalmanFilter(object):
         Returns
         -------
         ndarray
-            Returns an array of length N, where the i-th element contains the
-            squared Mahalanobis distance between (mean, covariance) and
-            `measurements[i]`.
+            Returns an array of length N, where the i-th element contains the squared Mahalanobis distance
+            between (mean, covariance) and `measurements[i]`.
 
         """
         mean, covariance = self.project(mean, covariance)
@@ -224,8 +220,7 @@ class KalmanFilter(object):
 
         cholesky_factor = np.linalg.cholesky(covariance)
         d = measurements - mean
-        z = scipy.linalg.solve_triangular(
-            cholesky_factor, d.T, lower=True, check_finite=False,
-            overwrite_b=True)
+        z = scipy.linalg.solve_triangular(cholesky_factor, d.T, lower=True, check_finite=False,
+                                            overwrite_b=True)
         squared_maha = np.sum(z * z, axis=0)
         return squared_maha

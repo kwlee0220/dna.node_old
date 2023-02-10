@@ -24,20 +24,13 @@ def get_items(values:List, idxes:Iterable[int]) -> Generator:
 def get_indexed_items(values:List, idxes:Iterable[int]) -> Generator:
     return ((idx, values[idx]) for idx in idxes)
 
-def track_to_box(track:Track, epsilon:float=0.00001) -> Box:
-    box = Box.from_tlbr(track.to_tlbr())
-    if not box.is_valid():
-        tl = box.top_left()
-        br = tl + Size2d(epsilon, epsilon)
-        box = Box.from_points(tl, br)
-    return box
+# def track_to_box(track:Track, epsilon:float=0.00001) -> Box:
+#     box = Box.from_tlbr(track.to_tlbr())
+#     if not box.is_valid():
+#         tl = box.top_left()
+#         br = tl + Size2d(epsilon, epsilon)
+#         box = Box.from_points(tl, br)
+#     return box
 
 def is_large_detection_for_metric(det:Detection) -> bool:
     return min(det.bbox.size().to_tuple()) >= 50
-
-def overlap_boxes(target:Box, boxes:List[Box], box_indices:List[int]=None) \
-    -> List[Tuple[int, Tuple[float,float,float]]]:
-    if box_indices is None:
-        return ((idx, target.overlap_ratios(box)) for idx, box in enumerate(boxes))
-    else:
-        return ((idx, target.overlap_ratios(boxes[idx])) for idx in box_indices)

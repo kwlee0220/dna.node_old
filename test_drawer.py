@@ -34,8 +34,7 @@ for coords in coords_list:
     img = plot_utils.draw_polygon(img, coords, color.ORANGE, 2)
 
 polygon = []
-polygon = [[129, 656], [744, 504], [952, 324], [1010, 323], [1056, 289], [1297, 496], [1847, 628], [1859, 1074], [1921, 1075],
-        [1920, 2], [0, -2], [1, 1076], [329, 1079], [302, 885], [146, 882]]
+polygon = [[1017, 352], [998, 273], [1091, 272], [1098, 351]]
 coords = PolygonDrawer(img, polygon).run()
 print(coords)
 

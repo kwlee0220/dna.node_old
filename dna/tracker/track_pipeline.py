@@ -142,36 +142,36 @@ class TrackingPipeline(FrameProcessor):
         convas = frame.image
         if self.draw_zones:
             for zone in self.tracker.params.blind_zones:
-                convas = plot_utils.draw_polygon(convas, list(zone.exterior.coords), color.YELLOW, 2)
+                convas = plot_utils.draw_polygon(convas, list(zone.exterior.coords), color.YELLOW, 1)
             for zone in self.tracker.params.exit_zones:
-                convas = plot_utils.draw_polygon(convas, list(zone.exterior.coords), color.RED, 2)
+                convas = plot_utils.draw_polygon(convas, list(zone.exterior.coords), color.RED, 1)
             for poly in self.tracker.params.stable_zones:
-                convas = plot_utils.draw_polygon(convas, list(poly.exterior.coords), color.BLUE, 2)
+                convas = plot_utils.draw_polygon(convas, list(poly.exterior.coords), color.BLUE, 1)
 
         if self.draw_tracks:
             if self.is_detection_based:
                 threshold = self.tracker.detection_threshold
                 for det in self.tracker.last_frame_detections():
                     if det.score >= threshold:
-                        convas = det.draw(convas, color.WHITE, line_thickness=2)
+                        convas = det.draw(convas, color.WHITE, line_thickness=1)
 
             for track in tracks:
                 if track.is_tentative():
-                    convas = self.draw_track_trail(convas, track, color.RED, trail_color=color.BLUE)
+                    convas = self.draw_track_trail(convas, track, color.RED, trail_color=color.BLUE, line_thickness=1)
             for track in sorted(tracks, key=lambda t: t.id, reverse=True):
                 if not track.is_tentative():
                     if track.is_confirmed():
-                        convas = self.draw_track_trail(convas, track, color.BLUE, trail_color=color.RED)
+                        convas = self.draw_track_trail(convas, track, color.BLUE, trail_color=color.RED, line_thickness=1)
                     if track.is_temporarily_lost():
-                        convas = self.draw_track_trail(convas, track, color.BLUE, trail_color=color.LIGHT_GREY)
+                        convas = self.draw_track_trail(convas, track, color.BLUE, trail_color=color.LIGHT_GREY, line_thickness=1)
             return Frame(convas, frame.index, frame.ts)
         else:
             return frame
     
     def draw_track_trail(self, convas:Image, track: IDNATrack, color: color.BGR, label_color: BGR=color.WHITE,
-                        trail_color: Optional[BGR]=None) -> np.ndarray:
-        convas = track.draw(convas, color, label_color=label_color, line_thickness=2)
+                        trail_color: Optional[BGR]=None, line_thickness=2) -> np.ndarray:
+        convas = track.draw(convas, color, label_color=label_color, line_thickness=line_thickness)
 
         if trail_color:
             trail = self.trail_collector.get_trail(track.id)
-            return trail.draw(convas, trail_color)
+            return trail.draw(convas, trail_color, line_thickness=line_thickness)

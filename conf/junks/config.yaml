@@ -13,7 +13,7 @@ tracker:
   n_init: 3
   metric_threshold: 0.55
   max_iou_distance: 0.85
-  max_overlap_ratio: 0.75
+  overlap_supress_ratio: 0.75
   max_age: 20
   min_size: [30, 20]
   det_mapping:

@@ -63,7 +63,7 @@ class IDNATrack(metaclass=ABCMeta):
     def draw(self, convas:Image, color:BGR, label_color:BGR=None, line_thickness:int=2) -> Image:
         loc = self.location
         convas = loc.draw(convas, color, line_thickness=line_thickness)
-        convas = cv2.circle(convas, loc.center().xy.astype(int), 4, color, thickness=-1, lineType=cv2.LINE_AA)
+        convas = cv2.circle(convas, loc.center().xy.astype(int), 3, color, thickness=-1, lineType=cv2.LINE_AA)
         if label_color:
             label = f"{self.id}({self.state.abbr})"
             convas = plot_utils.draw_label(convas, label, loc.tl.astype(int), label_color, color, 2)

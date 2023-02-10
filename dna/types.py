@@ -1,7 +1,8 @@
 from __future__ import annotations
+from typing import List, NewType, Tuple, Optional, Union, Any
 
 from dataclasses import dataclass, field
-from typing import List, NewType, Tuple, Optional, Union
+from collections import Sequence, Iterable
 import math
 
 import numpy as np
@@ -125,22 +126,36 @@ class Size2d:
         return Size2d(wh[0], wh[1])
 
     @classmethod
+    def from_expr(cls, expr:Any) -> Size2d:
+        if isinstance(expr, Size2d):
+            return Size2d(expr.__wh[0], expr.__wh[1])
+        elif isinstance(expr, np.ndarray):
+            return Size2d.from_np(expr)
+        elif isinstance(expr, Sequence):
+            return Size2d(expr[0], expr[1])
+        elif isinstance(expr, Iterable):
+            t = tuple(expr)
+            return Size2d(t[0], t[1])
+        elif isinstance(expr, str):
+            return Size2d.parse_string(expr)
+
+    @classmethod
     def parse_string(cls, expr:str) -> Size2d:
         parts: List[int] = [int(p) for p in expr.split("x")]
         if len(parts) == 2:
             return Size2d(parts[0], parts[1])
         raise ValueError(f"invalid Size2d string: {expr}")
 
-    @staticmethod
-    def from_conf(expr:object) -> Size2d:
-        if isinstance(expr, str):
-            return Size2d.parse_string(expr)
-        elif isinstance(expr, Size2d):
-            return expr
-        elif hasattr(expr, "__getitem__"):
-            return Size2d(expr[0], expr[1])
-        else:
-            raise ValueError(f'invalid Size2d expression: {expr}')
+    # @staticmethod
+    # def from_conf(expr:object) -> Size2d:
+    #     if isinstance(expr, str):
+    #         return Size2d.parse_string(expr)
+    #     elif isinstance(expr, Size2d):
+    #         return expr
+    #     elif hasattr(expr, "__getitem__"):
+    #         return Size2d(expr[0], expr[1])
+    #     else:
+    #         raise ValueError(f'invalid Size2d expression: {expr}')
 
     def to_tuple(self) -> Tuple[Union[int, float],Union[int, float]]:
         # return tuple(np.rint(self.wh).astype(int))
@@ -374,9 +389,9 @@ class Box:
         else:
             return Box.from_tlbr(np.array([x1, y1, x2, y2]))
 
-    def iou(self,box:Box) -> float:
+    def iou(self, box:Box) -> float:
         inter_area = self.intersection(box).area()
-        area1, area2 = self.area(), self.area()
+        area1, area2 = self.area(), box.area()
         return inter_area / (area1 + area2 - inter_area)
 
     def iou_int(self,box:Box) -> float:

@@ -1,7 +1,7 @@
 id: etri:07
 
 camera:
-  uri: data/2022/crops/etri_071_crop.mp4
+  uri: data/2022/crops/etri_07_crop.mp4
   sync: False
 
 tracker:

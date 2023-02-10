@@ -1,10 +1,13 @@
 id: etri:04
 
 camera:
-  uri: data/2022/crops/etri_04_crop.mp4
+  uri: data/etri_04_hot.mp4
+  #uri: data/2022/crops/etri_04_crop.mp4
+  # uri: data/2021/etri_04.mp4
   # size: [1920, 1080]
   sync: False
-  # begin_frame: 2460
+  # begin_frame: 2080
+  # end_frame: 1000
 
 tracker:
   uri: dna.tracker.dna_deepsort
@@ -14,7 +17,9 @@ tracker:
     # detector: dna.detect.yolov4
     # detector: dna.detect.yolov4:score=0.1
     detector: dna.detect.yolov5:model=l6&score=0.01
-    detection_threshold: 0.35
+    # detection_threshold: 0.35
+    # metric_thresholds: [0.3, 0.55]
+    n_init: 3
     max_age: 15
     blind_zones:
       - [[1194, 397], [1078, 910], [4, 921], [0, 1078], [1920, 1075], [1920, 0],

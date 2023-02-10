@@ -36,8 +36,8 @@ def draw_label(convas:Image, label:str, tl, color: BGR=WHITE, fill_color: Option
 def draw_polygon(convas:Image, coords:List[Union[Tuple[float,float],List[float]]], color, thickness) -> Image:
     if len(coords) > 2:
         coords = np.array(coords).astype(int)
-        return cv2.polylines(convas, [coords], True, color, thickness)
+        return cv2.polylines(convas, [coords], True, color, thickness, lineType=cv2.LINE_AA)
     elif len(coords) == 2:
-        return cv2.line(convas, coords[0], coords[1], color, thickness)
+        return cv2.line(convas, coords[0], coords[1], color, thickness, lineType=cv2.LINE_AA)
     else:
         return convas

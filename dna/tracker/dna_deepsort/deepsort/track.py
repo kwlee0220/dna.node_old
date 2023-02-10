@@ -2,7 +2,10 @@
 
 import numpy as np
 
+import dna
+from dna import Box, Size2d
 from dna.detect import Detection
+from dna.tracker import DNASORTParams
 from dna.tracker.dna_deepsort.deepsort import utils
 
 class TrackState:
@@ -82,7 +85,8 @@ class Track:
         if detection is not None and detection.feature is not None:
             self.features.append(detection.feature)
 
-        self.time_to_promote = n_init-1
+        self.n_init = n_init
+        self.time_to_promote = n_init - 1
         self._max_age = max_age
 
     def to_tlwh(self):
@@ -125,7 +129,7 @@ class Track:
         self.age += 1
         self.time_since_update += 1
 
-    def update(self, kf, detection: Detection, track_params) -> None:
+    def update(self, kf, det: Detection, track_params:DNASORTParams) -> None:
         """Perform Kalman filter measurement update step and update the feature
         cache.
 
@@ -137,22 +141,26 @@ class Track:
             The associated detection.
 
         """
-        self.mean, self.covariance = kf.update(self.mean, self.covariance, detection.bbox.to_xyah())
-        if utils.is_large_detection_for_metric(detection):
-            self.features.append(detection.feature)
-            if len(self.features) > track_params.max_feature_count:
-                self.features = self.features[-track_params.max_feature_count:]
-        self.last_detection = detection
-        
         self.hits += 1
         self.time_since_update = 0
 
         if self.state == TrackState.Tentative:
-            if detection.score >= track_params.detection_threshold:
+            if track_params.is_strong_detection(det):
                 self.time_to_promote -= 1
-                if self.time_to_promote == 0:
+                if self.time_to_promote <= 0:
                     self.state = TrackState.Confirmed
+            else:
+                if self.hits - (self.n_init-self.time_to_promote) > 2:
+                    self.state = TrackState.Deleted
+                    return
 
+        self.mean, self.covariance = kf.update(self.mean, self.covariance, det.bbox.to_xyah())
+        if utils.is_large_detection_for_metric(det):
+            self.features.append(det.feature)
+            if len(self.features) > track_params.max_feature_count:
+                self.features = self.features[-track_params.max_feature_count:]
+        self.last_detection = det
+                
     def mark_missed(self):
         """Mark this track as missed (no association at the current time step).
         """
@@ -179,13 +187,23 @@ class Track:
     def is_deleted(self):
         """Returns True if this track is dead and should be deleted."""
         return self.state == TrackState.Deleted
+    
+    def is_hot(self):
+        self.is_confirmed() and self.time_since_update <= 3
+
+    def to_box(self, epsilon:float=0.00001) -> Box:
+        box = Box.from_tlbr(self.to_tlbr())
+        if not box.is_valid():
+            tl = box.top_left()
+            br = tl + Size2d(epsilon, epsilon)
+            box = Box.from_points(tl, br)
+        return box
 
     # kwlee
     def __repr__(self) -> str:
         state_str = TrackState.STATE_NAME[self.state]
-        promote_str = f', ttp={self.time_to_promote}' if self.state == TrackState.Tentative else ""
         tlwh = self.to_tlwh()
-        return (f"{state_str}[{self.track_id}, age={self.age}({self.time_since_update}){promote_str}, "
+        return (f"{state_str}[{self.track_id}, age={self.age}({self.time_since_update}), "
                 f"loc=({tlwh[0]:.0f},{tlwh[1]:.0f}):{tlwh[2]:.0f}x{tlwh[3]:.0f}")
         
     # kwlee

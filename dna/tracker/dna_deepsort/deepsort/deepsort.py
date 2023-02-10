@@ -13,11 +13,11 @@ import dna
 from dna import Box, color, Frame, Image, plot_utils
 from dna.detect import Detection
 from dna.utils import draw_ds_detections, draw_ds_tracks
+from dna.tracker import DNASORTParams
 
 import nn_matching
 from . import utils
 from .tracker import Tracker
-from .utils import track_to_box
 from application_util import preprocessing as prep
 from application_util import visualization
 
@@ -42,7 +42,7 @@ def get_gaussian_mask():
 	return mask
 
 class deepsort_rbc():
-	def __init__(self, domain: Box, wt_path:Path, detection_threshold:float, params):
+	def __init__(self, domain: Box, wt_path:Path, detection_threshold:float, params:DNASORTParams):
 		self.domain = domain
 
 		#loading this encoder is slow, should be done only once.	
@@ -52,7 +52,7 @@ class deepsort_rbc():
 		self.encoder = self.encoder.eval()
 		LOGGER.info(f"DeepSORT model from {wt_path}")
 
-		self.metric = nn_matching.NearestNeighborDistanceMetric("cosine", params.metric_threshold , 100)
+		self.metric = nn_matching.NearestNeighborDistanceMetric("cosine", params.metric_threshold_loose , 100)
 		self.tracker = Tracker(domain, self.metric, params=params)
 
 		self.gaussian_mask = get_gaussian_mask().cuda()
