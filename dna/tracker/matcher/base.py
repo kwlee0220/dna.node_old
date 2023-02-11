@@ -94,6 +94,9 @@ class MatchingSession:
     @property
     def unmatched_tentative_track_idxes(self) -> List[int]:
         return [i for i in self.unmatched_track_idxes if not self.tracks[i].is_confirmed()]
+    @property
+    def unmatched_confirmed_track_idxes(self) -> List[int]:
+        return [i for i in self.unmatched_track_idxes if self.tracks[i].is_confirmed()]
         
     @property
     def unmatched_strong_det_idxes(self) -> List[int]:

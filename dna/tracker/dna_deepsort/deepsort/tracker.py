@@ -1,40 +1,24 @@
 # vim: expandtab:ts=4:sw=4
 from __future__ import absolute_import
-from typing import List, Tuple
+from typing import List, Tuple, Set
 
 import numpy as np
 import numpy.typing as npt
 from numpy.linalg import det
-from shapely import geometry
+import cv2
 
 import dna
-from dna import Box, Size2d, Frame
+from dna import Box, Size2d, Frame, plot_utils, color, Image
 from dna.detect import Detection
 from dna.tracker import DNASORTParams, utils, IouDistThreshold
 from dna.tracker.matcher import Matcher, MatchingSession, chain, matches_str, match_str, \
                                 IoUDistanceCostMatcher, MetricCostMatcher, HungarianMatcher, \
                                 INVALID_DIST_DISTANCE, INVALID_IOU_DISTANCE, INVALID_METRIC_DISTANCE
-from .matcher import print_matrix
 import kalman_filter
 from track import Track
 
 import logging
 LOGGER = logging.getLogger('dna.tracker.dnasort')
-
-def remove_weak_overlaps(detections:List[Detection], params:DNASORTParams):
-    boxes = [det.bbox for det in detections]
-    strong_boxes = [det.bbox for det in detections if params.is_strong_detection(det)]
-    weak_idxes = {i for i, det in enumerate(detections) if not params.is_strong_detection(det)}
-
-    if weak_idxes:
-        for s_box in strong_boxes:
-            overlapped_idxes = {w_idx for w_idx in weak_idxes if s_box.iou(boxes[w_idx]) > params.overlap_supress_ratio}
-            if overlapped_idxes:
-                weak_idxes = weak_idxes.difference(overlapped_idxes)
-
-        return [det for i, det in enumerate(detections) if i in weak_idxes or params.is_strong_detection(det)]
-    else:
-        return detections
 
 
 class Tracker:
@@ -64,115 +48,66 @@ class Tracker:
         
         # Detection box 크기에 따라 invalid한 detection들을 제거한다.
         detections = [det for det in detections if self.params.is_valid_detection(det)]
+        
+        if dna.DEBUG_SHOW_IMAGE:
+            self.draw_detections('detections', frame.image.copy(), detections)
 
         # Run matching cascade.
-        matches, unmatched_track_idxs, unmatched_detections = self._match(detections)
+        matches, unmatched_track_idxs, unmatched_detections = self.match(detections)
         if LOGGER.isEnabledFor(logging.DEBUG):
             bindings = [(self.tracks[t_idx].track_id, d_idx) for t_idx, d_idx in matches]
             LOGGER.debug(f'matches={bindings}, unmatched: tracks={unmatched_track_idxs}, detections={unmatched_detections}')
 
         if dna.DEBUG_SHOW_IMAGE:
-            import cv2
-            convas = frame.image.copy()
-            if len(matches) > 0:
-                from dna import plot_utils, color
-                for t_idx, d_idx in matches:
-                    label = f'{self.tracks[t_idx].track_id}({d_idx})'
-                    det = detections[d_idx]
-                    if det.score >= self.params.detection_threshold:
-                        convas = plot_utils.draw_label(convas, label, det.bbox.br.astype(int), color.WHITE, color.RED, 1)
-                        convas = det.bbox.draw(convas, color.RED, line_thickness=1)
-                    if det.score < self.params.detection_threshold:
-                        convas = plot_utils.draw_label(convas, label, det.bbox.br.astype(int), color.WHITE, color.BLUE, 1)
-                        convas = det.bbox.draw(convas, color.BLUE, line_thickness=1)
-            cv2.imshow('detections', convas)
-            cv2.waitKey(1)
+            self.draw_matched_detections("detections", frame.image.copy(), matches, detections)
 
         # Update locations of matched tracks
         for tidx, didx in matches:
             self.tracks[tidx].update(self.kf, detections[didx], self.params)
 
-        # get bounding-boxes of all tracks
-        t_boxes = [track.to_box() for track in self.tracks]
-
         # track의 bounding-box가 exit_region에 포함된 경우는 delete시킨다.
-        for tidx in range(len(self.tracks)):
-            if dna.utils.find_any_centroid_cover(t_boxes[tidx], self.params.exit_zones) >= 0:
-                self.tracks[tidx].mark_deleted()
+        for track in self.tracks:
+            if dna.utils.find_any_centroid_cover(track.to_box(), self.params.exit_zones) >= 0:
+                track.mark_deleted()
         
         # unmatch된 track들 중에서 해당 box가 이미지 영역에서 1/4이상 넘어가면
         # lost된 것으로 간주한다.
         for tidx in unmatched_track_idxs:
-            track:Track = self.tracks[tidx]
+            track = self.tracks[tidx]
             if not track.is_deleted():
-                ratios = t_boxes[tidx].overlap_ratios(self.domain)
+                ratios = track.to_box().overlap_ratios(self.domain)
                 if ratios[0] < 0.85:
                     track.mark_deleted()
                 else:
                     track.mark_missed()
+                    
+        for didx in unmatched_detections:
+            box = detections[didx].bbox
 
-        # confirmed track과 너무 가까운 tentative track들을 제거한다.
-        # 일반적으로 이런 track들은 이전 frame에서 한 물체의 여러 detection 검출을 통해 track이 생성된
-        # 경우가 많아서 이를 제거하기 위함이다.
-        delete_overlapped_tentative_tracks(self.tracks, self.params.overlap_supress_ratio)
-        
-        if unmatched_detections:
-            new_track_idxs = unmatched_detections.copy()
-            d_boxes: List[Box] = [d.bbox for d in detections]
-            matched_det_idxes = utils.project(matches, 1)
-            det_idxes = [idx for idx, det in enumerate(detections) 
-                            if det.score >= self.params.detection_threshold or idx in matched_det_idxes]
+            # Exit 영역에 포함되는 detection들은 무시한다
+            if dna.utils.find_any_centroid_cover(box, self.params.exit_zones) >= 0:
+                continue
+
+            # Stable 영역에 포함되는 detection들은 무시한다.
+            # Stable 영역에서는 새로운 track이 생성되지 않도록 함.
+            if dna.utils.find_any_centroid_cover(box, self.params.stable_zones) >= 0:
+                continue
             
-            # 새로 추가될 track의 조건을 만족하지 않는 unmatched_detection들을 제거시킨다.
-            for didx in unmatched_detections:
-                box = d_boxes[didx]
-                
-                # 일정크기 이하의 unmatched_detections들은 제외시킴.
-                if box.width < self.params.min_new_track_size.width \
-                    or box.height < self.params.min_new_track_size.height:
-                    new_track_idxs.remove(didx)
-                    continue
-
-                # Stable 영역에 포함되는 detection들은 무시한다.
-                # Stable 영역에서는 새로운 track이 생성되지 않도록 함.
-                if dna.utils.find_any_centroid_cover(box, self.params.stable_zones) >= 0:
-                    new_track_idxs.remove(didx)
-                    continue
-
-                # Exit 영역에 포함되는 detection들은 무시한다
-                if dna.utils.find_any_centroid_cover(box, self.params.exit_zones) >= 0:
-                    new_track_idxs.remove(didx)
-                    if LOGGER.isEnabledFor(logging.DEBUG):
-                        LOGGER.debug((f"remove an unmatched detection contained in a blind region: "
-                                        f"removed={didx}, frame={frame.index}"))
-                    continue
-
-                # 이미 match된 detection과 겹치는 비율이 너무 크거나,
-                # 다른 unmatched detection과 겹치는 비율이 크면서 그 detection 영역보다 작은 경우 제외시킴.
-                for other_idx, ov in overlap_boxes(box, d_boxes, det_idxes):
-                    if other_idx != didx and max(ov) >= self.new_track_overlap_threshold:
-                        if other_idx in matched_det_idxes or d_boxes[other_idx].area() >= box.area():
-                            LOGGER.debug((f"remove overlapped detection: removed({didx}), better({other_idx}), "
-                                            f"ratios={max(ov):.2f}"))
-                            new_track_idxs.remove(didx)
-                            break
-
-            # 조건을 통과한 unmatched detection들은 새로 생성된 track으로 설정한다.
-            for didx in new_track_idxs:
-                track = self._initiate_track(detections[didx])
-                self.tracks.append(track)
-                self._next_id += 1
+            track = self._initiate_track(detections[didx])
+            self.tracks.append(track)
+            self._next_id += 1
 
         deleted_tracks = [t for t in self.tracks if t.is_deleted() and t.age > 1]
         self.tracks = [t for t in self.tracks if not t.is_deleted()]
 
         return deleted_tracks
 
-                
-    def _match(self, detections:List[Detection]) -> Tuple[List[Tuple[int,int]],List[int],List[int]]:
+    def match(self, detections:List[Detection]) -> Tuple[List[Tuple[int,int]],List[int],List[int]]:
+        session = MatchingSession(self.tracks, detections, self.params)
+        
         if not(detections and self.tracks):
             # Detection 작업에서 아무런 객체를 검출하지 못한 경우.
-            return [], utils.all_indices(self.tracks), utils.all_indices(detections)
+            return session.matches, session.unmatched_track_idxes, session.unmatched_strong_det_idxes
 
         ###########################################################################################################
         ### 이전 track 객체와 새로 detection된 객체사이의 거리 값을 기준으로 cost matrix를 생성함.
@@ -181,8 +116,6 @@ class Tracker:
         if dna.DEBUG_PRINT_COST:
             self.print_dist_cost(iou_cost, 1)
             self.print_dist_cost(dist_cost, 999)
-
-        session = MatchingSession(self.tracks, detections, self.params)
 
         iou_dist_matcher = IoUDistanceCostMatcher(self.tracks, detections, self.params, iou_cost, dist_cost, LOGGER)
         matches0 = iou_dist_matcher.match(session.unmatched_track_idxes, session.unmatched_det_idxes)
@@ -247,12 +180,58 @@ class Tracker:
                         LOGGER.debug(f"all, strong, last_resort[{last_resort_matcher}]: "
                                     f"{matches_str(self.tracks, matches0)}")
                         
-        self._yield_strong_tentative_matches(iou_dist_matcher.matcher, session, detections)
+        # if session.unmatched_confirmed_track_idxes or session.unmatched_strong_det_idxes:
+        self.revise_matches(iou_dist_matcher.matcher, session, detections)
+        # self._yield_strong_tentative_matches(iou_dist_matcher.matcher, session, detections)
 
-        if session.unmatched_strong_det_idxes:
-            self._rematch(iou_dist_matcher.matcher, session, detections)
+        # if session.unmatched_strong_det_idxes:
+        #     self._rematch(iou_dist_matcher.matcher, session, detections)
 
         return session.matches, session.unmatched_track_idxes, session.unmatched_strong_det_idxes
+    
+    def revise_matches(self, matcher:Matcher, session:MatchingSession, detection: Detection):
+        # tentative track과 strong detection 사이의 match들을 검색한다.
+        tent_strong_matches = [m for m in session.matches \
+                                    if self.tracks[m[0]].is_tentative() and self.params.is_strong_detection(detection[m[1]])]
+        strong_det_idxes = session.unmatched_strong_det_idxes + utils.project(tent_strong_matches, 1)
+        if not strong_det_idxes:
+            return
+        
+        # weak detection들과 match된 non-tentative track들을 검색함
+        track_idxes = [m[0] for m in session.matches \
+                                    if not self.tracks[m[0]].is_tentative() \
+                                        and not self.params.is_strong_detection(detection[m[1]])]
+        # Matching되지 못했던 confirmed track들을 추가한다
+        track_idxes += session.unmatched_confirmed_track_idxes
+        if not track_idxes:
+            return
+        
+        matches0 = matcher.match(track_idxes, strong_det_idxes)
+        if matches0:
+            deprived_track_idxes = []
+            for match in matcher.match(track_idxes, strong_det_idxes):
+                old_weak_match = session.find_match_by_track(match[0])
+                old_strong_match = session.find_match_by_det(match[1])
+                if old_weak_match:
+                    session.pull_out(old_weak_match)
+                    deprived_track_idxes.append(old_weak_match[0])
+                if old_strong_match:
+                    session.pull_out(old_strong_match)
+                    deprived_track_idxes.append(old_strong_match[0])
+                    
+                session.update([match])
+                deprived_track_idxes.remove(match[0])
+                if LOGGER.isEnabledFor(logging.DEBUG):
+                    old_weak_str = [match_str(self.tracks, old_weak_match)] if old_weak_match else []
+                    old_strong_str = [match_str(self.tracks, old_strong_match)] if old_strong_match else []
+                    old_str = ', '.join(old_weak_str+old_strong_str)
+                    LOGGER.debug(f'rematch: {old_str} -> {match_str(self.tracks, match)}')
+                          
+            matches1 = matcher.match(deprived_track_idxes, session.unmatched_det_idxes)
+            if matches1:
+                session.update(matches1)
+                if LOGGER.isEnabledFor(logging.DEBUG):
+                    LOGGER.debug(f"rematch yielding tracks, {matcher}: {matches_str(self.tracks, matches1)}")
     
     def _yield_strong_tentative_matches(self, matcher:Matcher, session:MatchingSession,  detection: Detection):
         # strong detection들과 match된 tentative track을 검색함.
@@ -298,6 +277,32 @@ class Tracker:
     def _initiate_track(self, detection: Detection):
         mean, covariance = self.kf.initiate(detection.bbox.to_xyah())
         return Track(mean, covariance, self._next_id, self.params.n_init, self.params.max_age, detection)
+            
+    def draw_matched_detections(self, title:str, convas:Image, matches:List[Tuple[int,int]], detections:List[Detection]):
+        if matches:
+            for t_idx, d_idx in matches:
+                label = f'{self.tracks[t_idx].track_id}({d_idx})'
+                det = detections[d_idx]
+                if det.score >= self.params.detection_threshold:
+                    convas = plot_utils.draw_label(convas, label, det.bbox.br.astype(int), color.WHITE, color.BLUE, 1)
+                    convas = det.bbox.draw(convas, color.RED, line_thickness=1)
+                if det.score < self.params.detection_threshold:
+                    convas = plot_utils.draw_label(convas, label, det.bbox.br.astype(int), color.WHITE, color.RED, 1)
+                    convas = det.bbox.draw(convas, color.BLUE, line_thickness=1)
+        cv2.imshow(title, convas)
+        cv2.waitKey(1)
+
+    def draw_detections(self, title:str, convas:Image, detections:List[Detection], line_thickness=1):
+        for idx, det in enumerate(detections):
+            if det.score < self.params.detection_threshold:
+                convas = plot_utils.draw_label(convas, str(idx), det.bbox.br.astype(int), color.WHITE, color.RED, 1)
+                convas = det.bbox.draw(convas, color.RED, line_thickness=line_thickness) 
+        for idx, det in enumerate(detections):
+            if det.score >= self.params.detection_threshold:
+                convas = plot_utils.draw_label(convas, str(idx), det.bbox.br.astype(int), color.WHITE, color.BLUE, 1)
+                convas = det.bbox.draw(convas, color.BLUE, line_thickness=line_thickness)
+        cv2.imshow(title, convas)
+        cv2.waitKey(1)
 
     ###############################################################################################################
     # kwlee
@@ -392,14 +397,6 @@ class Tracker:
             print(f"{track_str}: {dist_str}")
 
     ###############################################################################################################
-
-def delete_overlapped_tentative_tracks(tracks, threshold):
-    confirmed_track_idxs = [i for i, t in enumerate(tracks) 
-                                if t.is_confirmed() and t.time_since_update == 1 and not t.is_deleted()]
-    unconfirmed_track_idxs = [i for i, t in enumerate(tracks)
-                                if not t.is_confirmed() and not t.is_deleted()]
-    if not (confirmed_track_idxs and unconfirmed_track_idxs):
-        return
 
 def overlap_boxes(target:Box, boxes:List[Box], box_indices:List[int]=None) \
     -> List[Tuple[int, Tuple[float,float,float]]]:

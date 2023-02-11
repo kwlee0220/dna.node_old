@@ -71,8 +71,8 @@ class deepsort_rbc():
 			outscores = np.array([det.score for det in detections])
 			indices = prep.non_max_suppression(outboxes, 0.8, outscores)
 			detections = list(utils.get_items(detections, indices))
-			if dna.DEBUG_SHOW_IMAGE:
-				self.draw_detections('detections', frame.image.copy(), detections)
+			# if dna.DEBUG_SHOW_IMAGE:
+			# 	self.draw_detections('detections', frame.image.copy(), detections)
 		else:
 			detections = []
 
