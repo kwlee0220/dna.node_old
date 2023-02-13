@@ -267,8 +267,7 @@ class Box:
         return Box(self.tlbr + delta)
 
     def is_valid(self) -> bool:
-        wh = self.wh
-        return wh[0] >= 0 and wh[1] >= 0
+        return self.tlbr[0] <= self.tlbr[2] and self.tlbr[1] <= self.tlbr[3]
 
     def to_tlwh(self) -> np.ndarray:
         tlwh = self.tlbr.copy()
@@ -384,10 +383,11 @@ class Box:
         x2 = min(self.tlbr[2], bbox.tlbr[2])
         y2 = min(self.tlbr[3], bbox.tlbr[3])
         
-        if x1 >= x2 or y1 >= y2:
-            return EMPTY_BOX
-        else:
-            return Box.from_tlbr(np.array([x1, y1, x2, y2]))
+        return Box.from_tlbr(np.array([x1, y1, x2, y2]))
+        # if x1 >= x2 or y1 >= y2:
+        #     return EMPTY_BOX
+        # else:
+        #     return Box.from_tlbr(np.array([x1, y1, x2, y2]))
 
     def iou(self, box:Box) -> float:
         inter_area = self.intersection(box).area()
@@ -424,7 +424,7 @@ class Box:
     def __repr__(self):
         return '{}:{}'.format(self.top_left(), self.size())
 
-EMPTY_BOX:Box = Box(np.array([-1,-1,0,0]))
+EMPTY_BOX:Box = Box(np.array([0,0,-1,-1]))
 
 
 @dataclass(frozen=True, eq=True)    # slots=True

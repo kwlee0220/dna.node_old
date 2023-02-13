@@ -48,7 +48,7 @@ class MetricAssistedCostMatcher(Matcher):
         min_col_idx = np.argmin(weighted_row)
 
         if self.logger.isEnabledFor(logging.DEBUG):
-            track_id = self.tracks[row_idx].track_id
+            track_id = self.tracks[row_idx].id
             cols_str = ", ".join([f'{i}({c1:.2f},{c2:.2f})' \
                                     for i, c1, c2 in zip(qualified_det_idxes, self.cost_matrix[row_idx, qualified_det_idxes],
                                                             weighted_row)])

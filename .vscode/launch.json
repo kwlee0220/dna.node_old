@@ -39,11 +39,11 @@
             "args": [
                 // "--camera", "data/2022/crops/etri_061_crop.mp4", "--sync",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
-                "--conf", "conf/etri_06.yaml",
+                "--conf", "conf/etri_04.yaml",
                 // "--output", "output/etri_04_track.csv",   // -o <file>
-                "--output_video", "output/track_hot_06.mp4",   // -v <file>
-                // "--show", //"1280x720",
-                "--show_progress",  // -p
+                // "--output_video", "output/track_hot_04.mp4",   // -v <file>
+                "--show", //"1280x720",
+                // "--show_progress",  // -p
                 // "--pause_on_eos",    // -k
             ],
             "justMyCode": true

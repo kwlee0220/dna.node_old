@@ -8,9 +8,10 @@ from .base import Matcher
 
 
 class HungarianMatcher(Matcher):
-    def __init__(self, cost_matrix:np.ndarray, threshold:float, invalid_value:float) -> None:
+    def __init__(self, cost_matrix:np.ndarray, threshold:float, invalid_value:float, threshold_name:Optional[str]=None) -> None:
         self.cost_matrix = cost_matrix
         self.threshold = threshold
+        self.threshold_name = threshold_name
         self.invalid_value = invalid_value
         
     def match(self, row_idxes:Optional[Iterable[int]]=None, column_idxes:Optional[Iterable[int]]=None) \
@@ -74,4 +75,5 @@ class HungarianMatcher(Matcher):
         return matches
 
     def __repr__(self) -> str:
-        return f'hungarian({self.threshold})'
+        threshold_str = f'{self.threshold_name}={self.threshold}' if self.threshold_name else f'{self.threshold}'
+        return f'hungarian({threshold_str})'

@@ -1,11 +1,13 @@
+from __future__ import annotations
 from typing import List, Optional, Tuple, Sequence, Iterable, Generator, TypeVar
+from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
 
+from dna import Box, Frame
 from dna.detect import Detection
-from dna.tracker import DNASORTParams
-from dna.tracker.dna_deepsort.deepsort.track import Track
+from dna.tracker import DNASORTParams, ObjectTrack, TrackState, ObjectTracker
 
 
 T = TypeVar("T")
@@ -27,47 +29,80 @@ def get_items(values:Iterable[T], idxes:Iterable[int]) -> Generator[T,None,None]
 
 def get_indexed_items(values:Iterable[T], idxes:Iterable[int]) -> Generator[T,None,None]:
     return ((idx, values[idx]) for idx in idxes)
-
-
-
-# def unmatched_track_idxes(tracks:List[Track], matches:List[Tuple[int,int]], track_idxes:Optional[List[int]]=None) -> List[int]:
-#     matched_track_idxes = set(project(matches, 0))
-#     if track_idxes:
-#         return [idx for idx in track_idxes if idx not in matched_track_idxes]
-#     else:
-#         return [idx for idx, _ in enumerate(tracks) if idx not in matched_track_idxes]
-
-# def hot_track_idxes(tracks:List[Track], matches:List[Tuple[int,int]], track_idxes:Optional[List[int]]=None) -> List[int]:
-#     matched_track_idxes = set(project(matches, 0))
-#     track_ids = (i for i in track_idxes) if track_idxes else (i for i in range(len(tracks)))
-#     return [i for i in track_ids \
-#                 if i not in matched_track_idxes and (t:=tracks[i]).is_confirmed() and t.time_since_update <= 3]
-
-# def tentative_track_idxes(tracks:List[Track], matches:List[Tuple[int,int]], track_idxes:Optional[List[int]]=None) -> List[int]:
-#     matched_track_idxes = set(project(matches, 0))
-#     track_ids = (i for i in track_idxes) if track_idxes else (i for i in range(len(tracks)))
-#     return  [i for i in track_ids \
-#                     if i not in matched_track_idxes and not tracks[i].is_confirmed()]
-
-# def unmatched_det_idxes(detections:List[Detection], matches:List[Tuple[int,int]], det_idxes:Optional[List[int]]=None) -> List[int]:
-#     matched_det_idxes = set(project(matches, 1))
-#     det_ids = (i for i in det_idxes) if det_idxes else (i for i in range(len(detections)))
-#     return [i for i in det_ids if i not in matched_det_idxes]
-
-# def strong_det_idxes(detections:List[Detection], matches:List[Tuple[int,int]], detection_threshold:float,
-#                      det_idxes:Optional[List[int]]=None) -> List[int]:
-#     matched_det_idxes = set(project(matches, 1))
-#     det_ids = (i for i in det_idxes) if det_idxes else (i for i in range(len(detections)))
-#     return [i for i in det_ids if i not in matched_det_idxes and detections[i].score >= detection_threshold]
-
-# def weak_det_idxes(detections:List[Detection], matches:List[Tuple[int,int]], detection_threshold:float,
-#                      det_idxes:Optional[List[int]]=None) -> List[int]:
-#     matched_det_idxes = set(project(matches, 1))
-#     det_ids = (i for i in det_idxes) if det_idxes else (i for i in range(len(detections)))
-#     return [i for i in det_ids if i not in matched_det_idxes and detections[i].score < detection_threshold]
     
-# def metric_det_idxes(detections:List[Detection], matches:List[Tuple[int,int]], params:DNASORTParams,
-#                      det_idxes:Optional[List[int]]=None) -> List[int]:
-#     matched_det_idxes = set(project(matches, 1))
-#     det_ids = (i for i in det_idxes) if det_idxes else (i for i in range(len(detections)))
-#     return [i for i in det_ids if i not in matched_det_idxes and params.is_large_detection_for_metric(detections[i])]
+def cosine_distance(a:npt.ArrayLike, b:npt.ArrayLike, data_is_normalized=False):
+    if not data_is_normalized:
+        a = np.asarray(a) / np.linalg.norm(a, axis=1, keepdims=True)
+        b = np.asarray(b) / np.linalg.norm(b, axis=1, keepdims=True)
+    return 1. - np.dot(a, b.T)
+
+class SimpleTrack(ObjectTrack):
+    def __init__(self, id:int, state:TrackState, location:Box, frame_index:int, timestamp:float) -> None:
+        super().__init__(id=id, state=state, location=location, frame_index=frame_index, timestamp=timestamp)
+    
+    @staticmethod
+    def from_csv(csv) -> SimpleTrack:
+        parts = csv.split(',')
+
+        frame_idx = int(parts[0])
+        track_id = int(parts[1])
+        tlbr = np.array(parts[2:6]).astype('int32')
+        bbox = Box.from_tlbr(tlbr)
+        state = TrackState(int(parts[6]))
+        ts = int(parts[7]) / 1000
+        return SimpleTrack(id=track_id, state=state, location=bbox, frame_index=frame_idx, timestamp=ts)
+
+
+class LogFileBasedObjectTracker(ObjectTracker):
+    def __init__(self, track_file: Path) -> None:
+        """[Create an ObjectTracker object that issues tracking events from a tracking log file.]
+
+        Args:
+            det_file (Path): Path to the detection file.
+        """
+        self.__file = open(track_file, 'r')
+        self.look_ahead = self._look_ahead()
+        self._tracks:List[ObjectTrack] = []
+
+    @property
+    def file(self) -> Path:
+        return self.__file
+
+    def track(self, frame: Frame) -> List[ObjectTrack]:
+        self._tracks = []
+
+        if not self.look_ahead:
+            return self._tracks
+
+        if self.look_ahead.frame_index > frame.index:
+            return self._tracks
+
+        # throw track event lines upto target_idx -
+        while self.look_ahead.frame_index < frame.index:
+            self.look_ahead = self._look_ahead()
+
+        while self.look_ahead.frame_index == frame.index:
+            self._tracks.append(self.look_ahead)
+
+            # read next line
+            self.look_ahead = self._look_ahead()
+            if self.look_ahead is None:
+                break
+
+        return self._tracks
+
+    @property
+    def tracks(self) -> List[ObjectTrack]:
+        return self._tracks
+        
+    def _look_ahead(self) -> ObjectTrack:
+        csv = self.__file.readline().rstrip()
+        if csv:
+            return SimpleTrack.from_csv(csv)
+        else:
+            self.__file.close()
+            return None
+
+    def __repr__(self) -> str:
+        current_idx = int(self.look_ahead[0]) if self.look_ahead else -1
+        return f"{self.__class__.__name__}: frame_idx={current_idx}, from={self.__file.name}"

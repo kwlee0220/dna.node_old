@@ -6,7 +6,7 @@ camera:
   # size: [1920, 1080]
 
 tracker:
-  uri: dna.tracker.dna_deepsort
+  uri: dna.tracker.dna_sort
 
   dna_deepsort:
     detector: dna.detect.yolov4

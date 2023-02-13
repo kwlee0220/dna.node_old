@@ -6,7 +6,7 @@ camera:
   sync: false
 
 tracker:
-  uri: dna.tracker.dna_deepsort
+  uri: dna.tracker.dna_sort
   # uri: dna.tracker.cnu_siammot
   # draw_tracks: true
   draw_zones: True

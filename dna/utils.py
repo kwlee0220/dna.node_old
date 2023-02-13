@@ -56,14 +56,14 @@ def _draw_ds_track(convas, track, box_color:BGR, label_color:BGR, line_thickness
     box = Box.from_tlbr(track.tlbr)
     box.draw(convas, box_color)
     if label_color:
-        msg = f"{track.track_id}[{track.state}]"
+        msg = f"{track.id}[{track.state}]"
         mat = plot_utils.draw_label(convas, msg, box.br.astype(int), label_color, box_color, 2)
     return convas
 
 def draw_ds_tracks(convas, tracks, box_color, label_color=None, line_thickness=2, track_indices=None):
     if track_indices:
         tracks = [tracks[i] for i in track_indices]
-    tracks = sorted(tracks, key=lambda t: t.track_id, reverse=True)
+    tracks = sorted(tracks, key=lambda t: t.id, reverse=True)
 
     for track in tracks:
         if track.is_tentative():
@@ -83,7 +83,7 @@ def draw_ds_detections(convas, dets, box_color, label_color=None, line_thickness
     return convas
 
 def find_track_index(track_id, tracks):
-    return next((idx for idx, track in enumerate(tracks) if track[idx].track_id == track_id), None)
+    return next((idx for idx, track in enumerate(tracks) if track[idx].id == track_id), None)
 
 
 def gdown_file(url:str, file: Path, force: bool=False):

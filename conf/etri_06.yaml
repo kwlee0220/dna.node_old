@@ -8,7 +8,7 @@ camera:
   # begin_frame: 3000
 
 tracker:
-  uri: dna.tracker.dna_deepsort
+  uri: dna.tracker.dna_sort
   draw_zones: True
   
   dna_deepsort:

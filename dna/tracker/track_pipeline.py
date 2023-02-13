@@ -8,8 +8,7 @@ import numpy as np
 import cv2
 
 from dna import plot_utils, color, Point, BGR, Image, Frame
-from .dna_track import IDNATrack, TrackState
-from .tracker import ObjectTracker, TrackProcessor, DetectionBasedObjectTracker
+from .type import ObjectTrack, TrackState, ObjectTracker, TrackProcessor
 
 
 class TrackWriter(TrackProcessor):
@@ -34,7 +33,7 @@ class TrackWriter(TrackProcessor):
 
         super().track_stopped(tracker)
 
-    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[IDNATrack]) -> None:
+    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[ObjectTrack]) -> None:
         for track in tracks:
             self.out_handle.write(track.to_string() + '\n')
 
@@ -45,10 +44,10 @@ class Trail:
         self.__tracks = []
 
     @property
-    def tracks(self) -> List[IDNATrack]:
+    def tracks(self) -> List[ObjectTrack]:
         return self.__tracks
 
-    def append(self, track: IDNATrack) -> None:
+    def append(self, track: ObjectTrack) -> None:
         self.__tracks.append(track)
 
     def draw(self, convas: np.ndarray, color: color.BGR, line_thickness=2) -> np.ndarray:
@@ -70,7 +69,7 @@ class TrailCollector(TrackProcessor):
     def track_started(self, tracker: ObjectTracker) -> None: pass
     def track_stopped(self, tracker: ObjectTracker) -> None: pass
 
-    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[IDNATrack]) -> None:      
+    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[ObjectTrack]) -> None:      
         for track in tracks:
             if track.state == TrackState.Confirmed  \
                 or track.state == TrackState.TemporarilyLost    \
@@ -82,7 +81,8 @@ class TrailCollector(TrackProcessor):
 
 from dna.camera import ImageProcessor, FrameProcessor
 class TrackingPipeline(FrameProcessor):
-    __slots__ = ( 'tracker', 'is_detection_based', 'trail_collector', 'track_processors', 'draw_tracks', 'show_zones' )
+    __slots__ = ( 'tracker', 'is_detection_based', 'trail_collector', 'track_processors',
+                 'draw_tracks', 'show_zones' )
 
     @classmethod
     def load(cls, img_proc: ImageProcessor, tracker_conf: OmegaConf,
@@ -112,7 +112,6 @@ class TrackingPipeline(FrameProcessor):
         super().__init__()
 
         self.tracker = tracker
-        self.is_detection_based = isinstance(self.tracker, DetectionBasedObjectTracker)
         self.trail_collector = TrailCollector()
         self.track_processors = processors + [self.trail_collector]
         self.draw_tracks = draw_tracks
@@ -149,26 +148,26 @@ class TrackingPipeline(FrameProcessor):
                 convas = plot_utils.draw_polygon(convas, list(poly.exterior.coords), color.BLUE, 1)
 
         if self.draw_tracks:
-            if self.is_detection_based:
-                threshold = self.tracker.detection_threshold
-                for det in self.tracker.last_frame_detections():
-                    if det.score >= threshold:
+            tracks = self.tracker.tracks
+            for track in tracks:
+                if hasattr(track, 'last_detection'):
+                    det = track.last_detection
+                    if det:
                         convas = det.draw(convas, color.WHITE, line_thickness=1)
 
             for track in tracks:
                 if track.is_tentative():
                     convas = self.draw_track_trail(convas, track, color.RED, trail_color=color.BLUE, line_thickness=1)
             for track in sorted(tracks, key=lambda t: t.id, reverse=True):
-                if not track.is_tentative():
-                    if track.is_confirmed():
-                        convas = self.draw_track_trail(convas, track, color.BLUE, trail_color=color.RED, line_thickness=1)
-                    if track.is_temporarily_lost():
-                        convas = self.draw_track_trail(convas, track, color.BLUE, trail_color=color.LIGHT_GREY, line_thickness=1)
+                if track.is_confirmed():
+                    convas = self.draw_track_trail(convas, track, color.BLUE, trail_color=color.RED, line_thickness=1)
+                if track.is_temporarily_lost():
+                    convas = self.draw_track_trail(convas, track, color.BLUE, trail_color=color.LIGHT_GREY, line_thickness=1)
             return Frame(convas, frame.index, frame.ts)
         else:
             return frame
     
-    def draw_track_trail(self, convas:Image, track: IDNATrack, color: color.BGR, label_color: BGR=color.WHITE,
+    def draw_track_trail(self, convas:Image, track: ObjectTrack, color: color.BGR, label_color: BGR=color.WHITE,
                         trail_color: Optional[BGR]=None, line_thickness=2) -> np.ndarray:
         convas = track.draw(convas, color, label_color=label_color, line_thickness=line_thickness)
 

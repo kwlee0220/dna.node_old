@@ -4,7 +4,7 @@ camera:
   uri: data/etri/etri_072.mp4
 
 tracker:
-  uri: dna.tracker.dna_deepsort
+  uri: dna.tracker.dna_sort
   dna_deepsort:
     detector: dna.detect.yolov4
     blind_zones:

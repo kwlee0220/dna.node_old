@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 
-from dna import BGR, Box, Size2d, Image
+from dna import BGR, Box, Size2d, Image, Point
 from dna.utils import plot_utils
 
 
@@ -16,16 +16,20 @@ class Detection:
         self.score = score
         self.feature = None
 
-    def draw(self, convas: Image, color:BGR, label_color:Optional[BGR]=None, show_score:bool=True,
+    def draw(self, convas: Image, color:BGR,
+            label:Optional[str]=None,
+            label_color:Optional[BGR]=None,
+            label_tl:Optional[Point]=None,
             line_thickness:int=2) -> Image:
         loc = self.bbox
-        convas = loc.draw(convas, color=color, line_thickness=line_thickness)
         if label_color:
-            msg = f"{self.label}({self.score:.3f})" if show_score else self.label
-            convas = plot_utils.draw_label(convas=convas, label=msg, tl=loc.tl.astype(int),
+            if not label:
+                label = f"{self.label}({self.score:.3f})"
+            if not label_tl:
+                label_tl = Point.from_np(loc.tl.astype(int))
+            convas = plot_utils.draw_label(convas=convas, label=label, tl=label_tl,
                                             color=label_color, fill_color=color, thickness=2)
-
-        return convas
+        return loc.draw(convas, color=color, line_thickness=line_thickness)
 
     def __truediv__(self, rhs) -> Detection:
         if isinstance(rhs, Size2d):

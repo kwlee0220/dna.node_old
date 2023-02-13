@@ -13,7 +13,7 @@ def matches_str(tracks, matches):
     return ",".join([f'{match_str(tracks, m)}' for m in matches])
 
 def match_str(tracks, match):
-    return f'({tracks[match[0]].track_id}, {match[1]})'
+    return f'({tracks[match[0]].id}, {match[1]})'
 
 
 from abc import ABCMeta, abstractmethod
@@ -50,9 +50,9 @@ class ChainedMatcher(Matcher):
 def chain(*matchers) -> Matcher:
     return ChainedMatcher(*matchers)
 
-from dna.tracker.utils import DNASORTParams
+from dna.tracker import DNASORTParams, ObjectTrack
 class MatchingSession:
-    def __init__(self, tracks, detections, params:DNASORTParams, track_idxes=None, det_idxes=None) -> None:
+    def __init__(self, tracks:List[ObjectTrack], detections, params:DNASORTParams, track_idxes=None, det_idxes=None) -> None:
         self.tracks = tracks
         self.detections = detections
         self.params = params
@@ -111,8 +111,8 @@ class MatchingSession:
         return [i for i in self.unmatched_det_idxes if self.params.is_large_detection_for_metric(self.detections[i])]
 
     def __repr__(self) -> str:
-        bindings = [(self.tracks[t_idx].track_id, d_idx) for t_idx, d_idx in self.matches]
-        um_track_idxes = [self.tracks[t_idx].track_id for t_idx in self.unmatched_track_idxes]
+        bindings = [(self.tracks[t_idx].id, d_idx) for t_idx, d_idx in self.matches]
+        um_track_idxes = [self.tracks[t_idx].id for t_idx in self.unmatched_track_idxes]
         return (f'matches={bindings}, unmatched: tracks={um_track_idxes}, det_idxes={self.unmatched_det_idxes}')
     
          
