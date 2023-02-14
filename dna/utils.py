@@ -52,36 +52,6 @@ from dna import color, plot_utils
 import cv2
 import numpy as np
 
-def _draw_ds_track(convas, track, box_color:BGR, label_color:BGR, line_thickness:int):
-    box = Box.from_tlbr(track.tlbr)
-    box.draw(convas, box_color)
-    if label_color:
-        msg = f"{track.id}[{track.state}]"
-        mat = plot_utils.draw_label(convas, msg, box.br.astype(int), label_color, box_color, 2)
-    return convas
-
-def draw_ds_tracks(convas, tracks, box_color, label_color=None, line_thickness=2, track_indices=None):
-    if track_indices:
-        tracks = [tracks[i] for i in track_indices]
-    tracks = sorted(tracks, key=lambda t: t.id, reverse=True)
-
-    for track in tracks:
-        if track.is_tentative():
-            convas = _draw_ds_track(convas, track, box_color, label_color, line_thickness)
-    for track in tracks:
-        if not track.is_tentative():
-            convas = _draw_ds_track(convas, track, box_color, label_color, line_thickness)
-    return convas
-
-def draw_ds_detections(convas, dets, box_color, label_color=None, line_thickness=2):
-    for idx, det in enumerate(dets):
-        box = det.bbox
-        box.draw(convas, box_color, line_thickness=line_thickness)
-        if label_color:
-            msg = f"{idx:02d}"
-            mat = plot_utils.draw_label(convas, msg, box.br.astype(int), label_color, box_color, 2)
-    return convas
-
 def find_track_index(track_id, tracks):
     return next((idx for idx, track in enumerate(tracks) if track[idx].id == track_id), None)
 

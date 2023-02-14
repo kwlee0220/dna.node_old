@@ -102,5 +102,5 @@ class DNATrack(ObjectTrack):
         
     def __repr__(self) -> str:
         millis = int(round(self.timestamp * 1000))
-        return (f'{self.state_str}, location={self.location}, age={self.age}, '
+        return (f'{self.state_str}, location={self.location}, age={self.age}({self.time_since_update}), '
                 f'frame={self.frame_index}, ts={millis}')

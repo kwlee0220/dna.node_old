@@ -1,47 +1,26 @@
 id: etri:05
 
 camera:
-  # uri: data/2022/crops/etri_05_crop.mp4
-  uri: data/2021/etri_05.mp4
+  uri: data/2022/crops/etri_05_crop.mp4
+  # uri: data/2021/etri_05.mp4
   # size: [1920, 1080]
   sync: False
   # begin_frame: 1250
 
 tracker:
-  uri: dna.tracker.dna_sort
-  # uri: dna.tracker.cnu_siammot
-  # draw_tracks: true
   draw_zones: True
   # output: C:/Temp/data/track_output.csv
 
   # cnu_siammot:
   #   model: models/person_vehicle/models.pth
   #   detector: configs/CenterNet_siammot.yaml
-
-  dna_deepsort:
-    # detector: dna.detect.yolov4
-    detector: dna.detect.yolov5:model=l6&score=0.01
-    # detector: dna.detect.yolov5:model=m&score=0.45
-    # detector: dna.detect.rcnn50_fpn
-    # detector: file:videos/etri/etri_051_det.txt
-    detection_threshold: 0.35
-    # n_init: 3
-    # metric_threshold: 0.55
-    # max_iou_distance: 0.85
-    # new_track_min_size: 0.75
-    # max_age: 10
-    # min_size: [30, 20]
-    # det_mapping:
-    #   car: car
-    #   bus: car
-    #   truck: car
-    blind_zones:
-      - [[1915, 26], [10, 22], [2, 625], [674, 367], [713, 322], [646, 296], [632, 198], [993, 241], [1302, 301], [1806, 461],
-        [1764, 562], [1547, 516], [1420, 534], [1346, 593], [1224, 839], [305, 841], [5, 1038], [5, 1072], [1915, 1066]]
-    # exit_zones:
-    #   - [[265, 520], [385, 888], [284, 1079], [0, 1080], [2, 521]]
-    #   - [[1916, 394], [1914, 632], [1693, 608], [1693, 388]]
-    #   - [[706, 183], [706, 320], [551, 316], [552, 178]]
+  blind_zones:
+    - [[1915, 26], [10, 22], [2, 625], [674, 367], [713, 322], [646, 296], [632, 198], [993, 241], [1302, 301], [1806, 461],
+      [1764, 562], [1547, 516], [1420, 534], [1346, 593], [1224, 839], [305, 841], [5, 1038], [5, 1072], [1915, 1066]]
+  # exit_zones:
+  #   - [[265, 520], [385, 888], [284, 1079], [0, 1080], [2, 521]]
+  #   - [[1916, 394], [1914, 632], [1693, 608], [1693, 388]]
+  #   - [[706, 183], [706, 320], [551, 316], [552, 178]]
 
 publishing:
   min_path_length: 10

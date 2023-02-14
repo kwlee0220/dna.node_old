@@ -26,9 +26,9 @@ class IoUDistanceCostMatcher(Matcher):
         self.logger = logger
 
         IOU_DIST_THRESHOLD = params.iou_dist_threshold
-        self.rematcher = ReciprocalCostMatcher(dist_cost, IOU_DIST_THRESHOLD.distance, name='dist', logger=self.logger)
+        dist_matcher = ReciprocalCostMatcher(dist_cost, IOU_DIST_THRESHOLD.distance, name='dist', logger=self.logger)
         iou_matcher = ReciprocalCostMatcher(iou_cost, IOU_DIST_THRESHOLD.iou, name='iou', logger=self.logger)
-        self.matcher = chain(self.rematcher, iou_matcher)
+        self.matcher = chain(dist_matcher, iou_matcher)
 
     def match(self, track_idxes:Iterable[int], det_idxes:Iterable[int]) -> List[Tuple[int,int]]:
         session = MatchingSession(self.tracks, self.detections, self.params, track_idxes, det_idxes)

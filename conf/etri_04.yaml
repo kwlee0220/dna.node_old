@@ -1,12 +1,12 @@
 id: etri:04
 
 camera:
-  uri: data/etri_04_hot.mp4
-  #uri: data/2022/crops/etri_04_crop.mp4
+  # uri: data/etri_04_hot.mp4
+  uri: data/2022/crops/etri_04_crop.mp4
   # uri: data/2021/etri_04.mp4
   # size: [1920, 1080]
   sync: False
-  begin_frame: 2090
+  # begin_frame: 1580
   # end_frame: 1000
 
 tracker:

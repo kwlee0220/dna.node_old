@@ -171,7 +171,7 @@ class Tracker:
                         self.logger.debug(f"all, strong, last_resort[{last_resort_matcher}]: "
                                     f"{matches_str(self.tracks, matches0)}")
                         
-        self.revise_matches(iou_dist_matcher.rematcher, session, detections)
+        self.revise_matches(iou_dist_matcher.matcher, session, detections)
 
         return session
 

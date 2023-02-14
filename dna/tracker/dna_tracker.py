@@ -62,6 +62,8 @@ class DNATracker(ObjectTracker):
 
         # 불필요한 detection들을 제거하고, 영상에서 각 detection별로 feature를 추출하여 부여한다.
         detections = self._prepare_detections(frame.image, detections)
+        if dna.DEBUG_SHOW_IMAGE:
+            self.draw_detections(frame.image.copy(), 'detections', detections)
 
         if LOGGER.isEnabledFor(logging.DEBUG):
             LOGGER.debug(f"{frame.index}: ------------------------------------------------------")
@@ -83,8 +85,8 @@ class DNATracker(ObjectTracker):
             return True
         detections = [det for det in detections if is_valid_detection(det)]
             
-        if dna.DEBUG_SHOW_IMAGE:
-            self.draw_detections(image.copy(), 'detections', detections)
+        # if dna.DEBUG_SHOW_IMAGE:
+        #     self.draw_detections(image.copy(), 'detections', detections)
 
         # Detection끼리 너무 많이 겹치는 경우 low-score detection을 제거한다.
         def supress_overlaps(detections:List[Detection]) -> List[Detection]:
@@ -100,9 +102,6 @@ class DNATracker(ObjectTracker):
         
         for det, feature in zip(detections, self.feature_extractor.extract(image, detections)):
             det.feature = feature
-            
-        if dna.DEBUG_SHOW_IMAGE:
-            self.draw_detections(image.copy(), 'detections', detections)
 
         return detections
 

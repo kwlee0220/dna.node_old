@@ -5,14 +5,10 @@ camera:
   sync: False
 
 tracker:
-  uri: dna.tracker.dna_sort
   draw_zones: True
   
   dna_deepsort:
-    # detector: dna.detect.yolov4
-    detector: dna.detect.yolov5:model=l6&score=0.01
-    detection_threshold: 0.35
-    max_age: 30
+    # max_age: 30
     blind_zones:
       - [[199, 467], [531, 509], [800, 460], [1136, 308], [1284, 311], [1317, 268], [1425, 273], [1399, 513],
         [1518, 587], [1673, 632], [1683, 1078], [1919, 1076], [1918, 6], [2, 6], [4, 710], [49, 711], [153, 584], [85, 526]]

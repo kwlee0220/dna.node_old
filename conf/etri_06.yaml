@@ -1,17 +1,16 @@
 id: etri:06
 
 camera:
-  uri: data/etri_06_hot.mp4
-  # uri: data/2022/crops/etri_06_crop.mp4
+  # uri: data/etri_06_hot.mp4
+  uri: data/2022/crops/etri_06_crop.mp4
   # uri: data/2021/etri_06.mp4
   sync: False
-  # begin_frame: 3000
+  # begin_frame: 2975
 
 tracker:
   draw_zones: True
-  
   detector: dna.detect.yolov5:model=l6&score=0.01
-  detection_threshold: 0.35
+  detection_threshold: 0.30
   n_init: 5
   max_age: 15
   blind_zones:
