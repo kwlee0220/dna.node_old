@@ -1,12 +1,10 @@
-# vim: expandtab:ts=4:sw=4
-
 import numpy as np
 import cv2
 
-import dna
 from dna import Box, Size2d, Image, BGR, Point, plot_utils, Frame
 from dna.detect import Detection
-from dna.tracker import DNASORTParams, ObjectTrack, TrackState
+from dna.tracker import ObjectTrack, TrackState
+from .dna_track_params import DNATrackParams
 
 
 def to_tlbr(xyah:np.ndarray) -> Box:
@@ -47,26 +45,21 @@ class DNATrack(ObjectTrack):
         self.time_to_promote = n_init - 1
         self._max_age = max_age
 
-    def to_tlwh(self) -> np.ndarray:
-        ret = self.mean[:4].copy()
-        ret[2] *= ret[3]
-        ret[:2] -= ret[2:] / 2
-        return ret
-
-    def to_tlbr(self) -> np.ndarray:
-        ret = self.to_tlwh()
-        ret[2:] = ret[:2] + ret[2:]
-        return ret
-
     def predict(self, kf) -> None:
         self.mean, self.covariance = kf.predict(self.mean, self.covariance)
-        self.location = Box.from_tlbr(self.to_tlbr())
+        self.location = to_box(to_tlbr(self.mean[:4]))
+        self.last_detection = None
         self.age += 1
         self.time_since_update += 1
 
-    def update(self, kf, frame:Frame, det: Detection, track_params:DNASORTParams) -> None:
+    def update(self, kf, frame:Frame, det: Detection, track_params:DNATrackParams) -> None:
+        self.mean, self.covariance = kf.update(self.mean, self.covariance, det.bbox.to_xyah())
+        self.location = to_box(to_tlbr(self.mean[:4]))
+        self.last_detection = det
         self.hits += 1
         self.time_since_update = 0
+        self.frame_index = frame.index
+        self.timestamp = frame.ts
 
         if self.state == TrackState.Tentative:
             if track_params.is_strong_detection(det):
@@ -77,17 +70,11 @@ class DNATrack(ObjectTrack):
                 if self.hits - (self.n_init-self.time_to_promote) > 2:
                     self.state = TrackState.Deleted
                     return
-
-        self.mean, self.covariance = kf.update(self.mean, self.covariance, det.bbox.to_xyah())
-        self.location = to_box(self.to_tlbr())
         
         if track_params.is_large_detection_for_metric(det):
             self.features.append(det.feature)
             if len(self.features) > track_params.max_feature_count:
                 self.features = self.features[-track_params.max_feature_count:]
-        self.last_detection = det
-        self.frame_index = frame.index
-        self.timestamp = frame.ts
                 
     def mark_missed(self) -> None:
         if self.state == TrackState.Tentative:
@@ -96,11 +83,9 @@ class DNATrack(ObjectTrack):
             self.mark_deleted()
         else:
             self.state = TrackState.TemporarilyLost
-        self.last_detection = None
 
     def mark_deleted(self) -> None:
         self.state = TrackState.Deleted
-        self.last_detection = None
         
     @property
     def state_str(self) -> str:

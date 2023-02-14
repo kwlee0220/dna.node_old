@@ -10,7 +10,7 @@ camera:
   # end_frame: 1000
 
 tracker:
-  uri: dna.tracker.dna_deepsort
+  # uri: dna.tracker
   draw_zones: True
 
   # detector: dna.detect.yolov4

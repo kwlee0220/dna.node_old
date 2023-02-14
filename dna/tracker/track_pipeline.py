@@ -87,7 +87,7 @@ class TrackingPipeline(FrameProcessor):
     @classmethod
     def load(cls, img_proc: ImageProcessor, tracker_conf: OmegaConf,
                             track_processors: List[TrackProcessor]=[]) -> TrackingPipeline:
-        tracker_uri = tracker_conf.get("uri", "dna.tracker.dna_deepsort")
+        tracker_uri = tracker_conf.get("uri", "dna.tracker")
         parts = tracker_uri.split(':', 1)
         id, query = tuple(parts) if len(parts) > 1 else (tracker_uri, "")
 
@@ -96,7 +96,7 @@ class TrackingPipeline(FrameProcessor):
         
         import importlib
         tracker_module = importlib.import_module(id)
-        tracker = tracker_module.load(domain, tracker_conf)
+        tracker = tracker_module.load_dna_tracker(domain, tracker_conf)
 
         draw_tracks = img_proc.is_drawing() and tracker_conf.get("draw_tracks", True)
         draw_zones = img_proc.is_drawing() and tracker_conf.get("draw_zones", False)

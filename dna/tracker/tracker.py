@@ -10,11 +10,12 @@ import cv2
 import dna
 from dna import Box, Size2d, Frame, plot_utils, color, Image, Point
 from dna.detect import Detection
-from dna.tracker import DNASORTParams, utils
+from dna.tracker import utils
 from dna.tracker.matcher import Matcher, MatchingSession, chain, matches_str, match_str, \
                                 IoUDistanceCostMatcher, MetricCostMatcher, HungarianMatcher, \
                                 INVALID_DIST_DISTANCE, INVALID_IOU_DISTANCE, INVALID_METRIC_DISTANCE
 from . import kalman_filter
+from .dna_track_params import DNATrackParams
 from .dna_track import DNATrack
 
 import logging
@@ -22,7 +23,7 @@ LOGGER = logging.getLogger('dna.tracker.dnasort')
 
 
 class Tracker:
-    def __init__(self, domain, params:DNASORTParams):
+    def __init__(self, domain, params:DNATrackParams):
         self.domain = domain
         self.metric_distance = utils.cosine_distance
         self.params = params

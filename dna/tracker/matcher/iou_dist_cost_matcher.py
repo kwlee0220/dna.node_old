@@ -8,15 +8,16 @@ import numpy.typing as npt
 import dna
 from dna import Box
 from dna.detect import Detection
-from dna.tracker import utils, DNASORTParams, IouDistThreshold
+from dna.tracker import utils
 from dna.tracker.matcher import MatchingSession, matches_str
+from ..dna_track_params import DNATrackParams
 from .base import Matcher, chain
 from .reciprocal_cost_matcher2 import ReciprocalCostMatcher
 
 
 class IoUDistanceCostMatcher(Matcher):
     def __init__(self, tracks:List, detections:List[Detection],
-                 params:DNASORTParams,
+                 params:DNATrackParams,
                  iou_cost:np.ndarray, dist_cost:np.ndarray,
                  logger:Optional[logging.Logger]=None) -> None:
         self.tracks = tracks

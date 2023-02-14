@@ -8,7 +8,8 @@ from scipy.optimize import linear_sum_assignment
 
 import dna
 from dna.detect import Detection
-from dna.tracker import utils, DNASORTParams
+from dna.tracker import utils
+from ..dna_track_params import DNATrackParams
 from .base import Matcher, chain, MatchingSession, matches_str
 from .hungarian_matcher import HungarianMatcher
 from dna.tracker.dna_track import DNATrack
@@ -16,7 +17,7 @@ from dna.tracker.dna_track import DNATrack
 
 class MetricCostMatcher(Matcher):
     def __init__(self, tracks:List[DNATrack], detections:List[Detection],
-                 params:DNASORTParams,
+                 params:DNATrackParams,
                  metric_cost:np.ndarray, dist_cost:np.ndarray,
                  logger:Optional[logging.Logger]=None) -> None:
         self.tracks = tracks

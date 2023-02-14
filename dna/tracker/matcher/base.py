@@ -2,7 +2,8 @@
 from __future__ import annotations
 from typing import Tuple, Iterable, Optional, List
 
-from dna.tracker import utils
+from dna.tracker import ObjectTrack, utils
+from ..dna_track_params import DNATrackParams
 
 INVALID_DIST_DISTANCE = 9999
 INVALID_IOU_DISTANCE = 1
@@ -50,9 +51,8 @@ class ChainedMatcher(Matcher):
 def chain(*matchers) -> Matcher:
     return ChainedMatcher(*matchers)
 
-from dna.tracker import DNASORTParams, ObjectTrack
 class MatchingSession:
-    def __init__(self, tracks:List[ObjectTrack], detections, params:DNASORTParams, track_idxes=None, det_idxes=None) -> None:
+    def __init__(self, tracks:List[ObjectTrack], detections, params:DNATrackParams, track_idxes=None, det_idxes=None) -> None:
         self.tracks = tracks
         self.detections = detections
         self.params = params

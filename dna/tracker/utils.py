@@ -7,7 +7,7 @@ import numpy.typing as npt
 
 from dna import Box, Frame
 from dna.detect import Detection
-from dna.tracker import DNASORTParams, ObjectTrack, TrackState, ObjectTracker
+from dna.tracker import ObjectTrack, TrackState, ObjectTracker
 
 
 T = TypeVar("T")
@@ -55,11 +55,6 @@ class SimpleTrack(ObjectTrack):
 
 class LogFileBasedObjectTracker(ObjectTracker):
     def __init__(self, track_file: Path) -> None:
-        """[Create an ObjectTracker object that issues tracking events from a tracking log file.]
-
-        Args:
-            det_file (Path): Path to the detection file.
-        """
         self.__file = open(track_file, 'r')
         self.look_ahead = self._look_ahead()
         self._tracks:List[ObjectTrack] = []
