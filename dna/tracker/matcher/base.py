@@ -95,12 +95,12 @@ class MatchingSession:
     @property
     def unmatched_hot_track_idxes(self) -> List[int]:
         idx_tracks = ((i, self.tracks[i]) for i in self.unmatched_track_idxes)
-        return [i for i, t in idx_tracks if t.is_confirmed() and t.time_since_update <= 3]
+        return [i for i, t in idx_tracks if t.is_confirmed() or (t.is_temporarily_lost() and t.time_since_update <= 3)]
 
     @property
     def unmatched_tlost_track_idxes(self) -> List[int]:
         idx_tracks = ((i, self.tracks[i]) for i in self.unmatched_track_idxes)
-        return [i for i, t in idx_tracks if t.is_confirmed() and t.time_since_update > 3]
+        return [i for i, t in idx_tracks if t.is_temporarily_lost() and t.time_since_update > 3]
 
     @property
     def unmatched_tentative_track_idxes(self) -> List[int]:
