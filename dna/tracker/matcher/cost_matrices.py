@@ -4,6 +4,7 @@ from typing import List, Tuple, Set
 import numpy as np
 import numpy.typing as npt
 
+import dna
 from dna.detect import Detection
 from dna.tracker import ObjectTrack, utils
 from ..kalman_filter import KalmanFilter
@@ -40,7 +41,7 @@ def build_dist_iou_cost(kf:KalmanFilter, tracks:List[ObjectTrack], detections:Li
     return dist_cost, iou_cost
 
 
-_AREA_RATIO_LIMITS = (0.3, 2.8)
+_AREA_RATIO_LIMITS = (0.43, 2.8)
 def build_task_det_ratio_mask(tracks:List[ObjectTrack], detections:List[Detection],
                                 area_ratio_limits:npt.ArrayLike=_AREA_RATIO_LIMITS):
     det_areas = np.array([det.bbox.area() for det in detections])
