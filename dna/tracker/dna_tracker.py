@@ -26,11 +26,11 @@ from .dna_track import DNATrack
 from .tracker import Tracker
 
 import logging
-LOGGER = logging.getLogger('dna.tracker.dnasort')
+LOGGER = logging.getLogger('dna.tracker')
 
 
 class DNATracker(ObjectTracker):
-    def __init__(self, detector:ObjectDetector, domain:Box, tracker_conf:OmegaConf) -> None:
+    def __init__(self, detector:ObjectDetector, tracker_conf:OmegaConf) -> None:
         super().__init__()
 
         self.detector = detector
@@ -48,13 +48,15 @@ class DNATracker(ObjectTracker):
   
         #loading this encoder is slow, should be done only once.
         self.feature_extractor = FeatureExtractor(wt_path, LOGGER)
-        self.tracker = Tracker(domain, self.params)
+        self.tracker = Tracker(self.params, LOGGER)
 
     @property
     def tracks(self) -> List[DNATrack]:
         return self.tracker.tracks
 
     def track(self, frame: Frame) -> List[DNATrack]:
+        dna.DEBUG_FRAME_INDEX = frame.index
+
         # detector를 통해 match 대상 detection들을 얻는다.
         detections = self.detector.detect(frame)
 
@@ -74,9 +76,7 @@ class DNATracker(ObjectTracker):
         # Detection box 크기에 따라 invalid한 detection들을 제거한다.
         # 일정 점수 이하의 detection들과 blind zone에 포함된 detection들은 무시한다.
         def is_valid_detection(det:Detection) -> bool:
-            size = det.bbox.size()
-            if size.width < self.params.detection_min_size.width or size.width > self.params.detection_max_size.width \
-                or size.height < self.params.detection_min_size.height or size.height > self.params.detection_max_size.height:
+            if not self.params.is_valid_size(det.bbox.size()):
                 return False
             if dna.utils.find_any_centroid_cover(det.bbox, self.params.blind_zones) >= 0:
                 return False
@@ -93,7 +93,7 @@ class DNATracker(ObjectTracker):
             while remains:
                 head = remains.pop(0)
                 supresseds.append(head)
-                remains = [det for det in remains if head.bbox.iou(det.bbox) < 0.8]
+                remains = [det for det in remains if head.bbox.iou(det.bbox) < self.params.max_nms_score]
                 pass
             return supresseds
         detections = supress_overlaps(detections)

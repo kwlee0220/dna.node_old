@@ -11,7 +11,7 @@ formatters:
 handlers:
     console:
         class: logging.StreamHandler
-        level: INFO
+        level: DEBUG
         formatter: standard
         stream: ext://sys.stdout
 
@@ -47,7 +47,7 @@ loggers:
         level: INFO
         handlers: [console]
         propagate: no
-    dna.tracker.dnasort:
+    dna.tracker:
         level: DEBUG
         handlers: [console]
         propagate: no

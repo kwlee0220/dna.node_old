@@ -90,13 +90,10 @@ class TrackingPipeline(FrameProcessor):
         tracker_uri = tracker_conf.get("uri", "dna.tracker")
         parts = tracker_uri.split(':', 1)
         id, query = tuple(parts) if len(parts) > 1 else (tracker_uri, "")
-
-        from dna import Box
-        domain = Box.from_size(img_proc.capture.size)
         
         import importlib
         tracker_module = importlib.import_module(id)
-        tracker = tracker_module.load_dna_tracker(domain, tracker_conf)
+        tracker = tracker_module.load_dna_tracker(tracker_conf)
 
         draw_tracks = img_proc.is_drawing() and tracker_conf.get("draw_tracks", True)
         draw_zones = img_proc.is_drawing() and tracker_conf.get("draw_zones", False)
@@ -161,7 +158,7 @@ class TrackingPipeline(FrameProcessor):
             for track in sorted(tracks, key=lambda t: t.id, reverse=True):
                 if track.is_confirmed():
                     convas = self.draw_track_trail(convas, track, color.BLUE, trail_color=color.RED, line_thickness=1)
-                if track.is_temporarily_lost():
+                elif track.is_temporarily_lost():
                     convas = self.draw_track_trail(convas, track, color.BLUE, trail_color=color.LIGHT_GREY, line_thickness=1)
             return Frame(convas, frame.index, frame.ts)
         else:

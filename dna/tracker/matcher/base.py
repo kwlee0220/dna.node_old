@@ -1,7 +1,8 @@
 
 from __future__ import annotations
-from typing import Tuple, Iterable, Optional, List
+from typing import Tuple, List, Optional
 
+from dna.detect import Detection
 from dna.tracker import ObjectTrack, utils
 from ..dna_track_params import DNATrackParams
 
@@ -20,7 +21,7 @@ def match_str(tracks, match):
 from abc import ABCMeta, abstractmethod
 class Matcher(metaclass=ABCMeta):
     @abstractmethod
-    def match(self, track_idxes:Iterable[int], det_idxes:Iterable[int]) -> List[Tuple[int,int]]:
+    def match(self, track_idxes:List[int], det_idxes:List[int]) -> List[Tuple[int,int]]:
         pass
 
 
@@ -28,7 +29,7 @@ class ChainedMatcher(Matcher):
     def __init__(self, *matchers):
         self.matchers = matchers
         
-    def match(self, track_idxes:Iterable[int], det_idxes:Iterable[int]) -> List[Tuple[int,int]]:
+    def match(self, track_idxes:List[int], det_idxes:List[int]) -> List[Tuple[int,int]]:
         unmatched_track_idxes = track_idxes.copy()
         unmatched_det_idxes = det_idxes.copy()
 
@@ -51,8 +52,10 @@ class ChainedMatcher(Matcher):
 def chain(*matchers) -> Matcher:
     return ChainedMatcher(*matchers)
 
+
 class MatchingSession:
-    def __init__(self, tracks:List[ObjectTrack], detections, params:DNATrackParams, track_idxes=None, det_idxes=None) -> None:
+    def __init__(self, tracks:List[ObjectTrack], detections:List[Detection], params:DNATrackParams,
+                track_idxes=None, det_idxes=None) -> None:
         self.tracks = tracks
         self.detections = detections
         self.params = params
@@ -82,6 +85,14 @@ class MatchingSession:
         return founds[0] if founds else None
 
     @property
+    def associations(self) -> List[Tuple[ObjectTrack,Detection]]:
+        return [(self.tracks[t_idx], self.detections[d_idx]) for t_idx, d_idx in self.matches]
+
+    @property
+    def bindings(self) -> str:
+        return [(self.tracks[t_idx].id, d_idx) for t_idx, d_idx in self.matches]
+
+    @property
     def unmatched_hot_track_idxes(self) -> List[int]:
         idx_tracks = ((i, self.tracks[i]) for i in self.unmatched_track_idxes)
         return [i for i, t in idx_tracks if t.is_confirmed() and t.time_since_update <= 3]
@@ -93,7 +104,7 @@ class MatchingSession:
 
     @property
     def unmatched_tentative_track_idxes(self) -> List[int]:
-        return [i for i in self.unmatched_track_idxes if not self.tracks[i].is_confirmed()]
+        return [i for i in self.unmatched_track_idxes if self.tracks[i].is_tentative()]
     @property
     def unmatched_confirmed_track_idxes(self) -> List[int]:
         return [i for i in self.unmatched_track_idxes if self.tracks[i].is_confirmed()]
@@ -111,8 +122,7 @@ class MatchingSession:
         return [i for i in self.unmatched_det_idxes if self.params.is_large_detection_for_metric(self.detections[i])]
 
     def __repr__(self) -> str:
-        bindings = [(self.tracks[t_idx].id, d_idx) for t_idx, d_idx in self.matches]
         um_track_idxes = [self.tracks[t_idx].id for t_idx in self.unmatched_track_idxes]
-        return (f'matches={bindings}, unmatched: tracks={um_track_idxes}, det_idxes={self.unmatched_det_idxes}')
+        return (f'matches={self.bindings}, unmatched: tracks={um_track_idxes}, det_idxes={self.unmatched_strong_det_idxes}')
     
          

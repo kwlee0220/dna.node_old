@@ -13,7 +13,7 @@ from collections import namedtuple
 IouDistThreshold = namedtuple('IouDistThreshold', 'iou,distance')
 
 DEFAULT_DETECTIION_CLASSES = ['car', 'bus', 'truck']
-DEFAULT_DETECTION_THRESHOLD = 0.35
+DEFAULT_DETECTION_THRESHOLD = 0.37
 DEFAULT_DETECTION_MIN_SIZE = Size2d(20, 15)
 DEFAULT_DETECTION_MAX_SIZE = Size2d(768, 768)
 
@@ -23,18 +23,18 @@ DEFAULT_IOU_DIST_THRESHOLD_LOOSE = IouDistThreshold(0.85, 90)
 DEFAULT_METRIC_TIGHT_THRESHOLD = 0.3
 DEFAULT_METRIC_THRESHOLD = 0.55
 DEFAULT_METRIC_GATE_DISTANCE = 500
-DEFAULT_METRIC_GATE_BOX_DISTANCE = 200
 DEFAULT_METRIC_MIN_DETECTION_SIZE = Size2d(40, 35)
 DEFAULT_MAX_FEATURE_COUNT = 50
 
 DEFAULT_N_INIT = 3
 DEFAULT_MAX_AGE = 10
-DEFAULT_MIN_NEW_TRACK_SIZE = [30, 20]
+DEFAULT_NEW_TRACK_MIN_SIZE = [30, 20]
+DEFAULT_MATCH_OVERLAP_SCORE = 0.75
+DEFAULT_MAX_NMS_SCORE = 0.8
 
 DEFAULT_BLIND_ZONES = []
 DEFAULT_EXIT_ZONES = []
 DEFAULT_STABLE_ZONES = []
-DEFAULT_OVERLAP_SUPRESS_RATIO = 0.75
 
 @dataclass(frozen=True, eq=True)    # slots=True
 class DNATrackParams:
@@ -49,18 +49,22 @@ class DNATrackParams:
     metric_threshold: float
     metric_threshold_loose: float
     metric_gate_distance: float
-    metric_gate_box_distance: float
     metric_min_detection_size: Size2d
     max_feature_count: int
 
     n_init: int
-    min_new_track_size: Size2d
+    new_track_min_size: Size2d
     max_age: int
-    overlap_supress_ratio: float
+    match_overlap_score: float
+    max_nms_score: float
 
     blind_zones: List[geometry.Polygon]
     exit_zones: List[geometry.Polygon]
     stable_zones: List[geometry.Polygon]
+
+    def is_valid_size(self, size:Size2d) -> bool:
+        return self.detection_min_size.width <= size.width <= self.detection_max_size.width \
+            and self.detection_min_size.height <= size.height <= self.detection_max_size.height
 
     def is_strong_detection(self, det:Detection) -> bool:
         return det.score >= self.detection_threshold
@@ -82,14 +86,14 @@ def load_track_params(track_conf:OmegaConf) -> DNATrackParams:
     metric_tight_threshold = track_conf.get('metric_tight_threshold', DEFAULT_METRIC_TIGHT_THRESHOLD)
     metric_threshold = track_conf.get('metric_threshold', DEFAULT_METRIC_THRESHOLD)
     metric_gate_distance = track_conf.get('metric_gate_distance', DEFAULT_METRIC_GATE_DISTANCE)
-    metric_gate_box_distance = track_conf.get('metric_gate_box_distance', DEFAULT_METRIC_GATE_BOX_DISTANCE)
     metric_min_detection_size = track_conf.get('metric_min_detection_size', DEFAULT_METRIC_MIN_DETECTION_SIZE)
     max_feature_count = track_conf.get('max_feature_count', DEFAULT_MAX_FEATURE_COUNT)
 
     n_init = int(track_conf.get('n_init', DEFAULT_N_INIT))
     max_age = int(track_conf.get('max_age', DEFAULT_MAX_AGE))
-    overlap_supress_ratio = track_conf.get('overlap_supress_ratio', DEFAULT_OVERLAP_SUPRESS_RATIO)
-    min_new_track_size = Size2d.from_expr(track_conf.get('min_new_track_size', DEFAULT_MIN_NEW_TRACK_SIZE))
+    max_nms_score = track_conf.get('max_nms_score', DEFAULT_MAX_NMS_SCORE)
+    match_overlap_score = track_conf.get('match_overlap_score', DEFAULT_MATCH_OVERLAP_SCORE)
+    new_track_min_size = Size2d.from_expr(track_conf.get('new_track_min_size', DEFAULT_NEW_TRACK_MIN_SIZE))
 
     if blind_zones := track_conf.get("blind_zones", DEFAULT_BLIND_ZONES):
         blind_zones = [geometry.Polygon([tuple(c) for c in zone]) for zone in blind_zones]
@@ -109,14 +113,14 @@ def load_track_params(track_conf:OmegaConf) -> DNATrackParams:
                         metric_threshold=metric_tight_threshold,
                         metric_threshold_loose=metric_threshold,
                         metric_gate_distance=metric_gate_distance,
-                        metric_gate_box_distance=metric_gate_box_distance,
                         metric_min_detection_size=metric_min_detection_size,
                         max_feature_count=max_feature_count,
                         
                         n_init=n_init,
                         max_age=max_age,
-                        overlap_supress_ratio=overlap_supress_ratio,
-                        min_new_track_size=min_new_track_size,
+                        max_nms_score=max_nms_score,
+                        match_overlap_score=match_overlap_score,
+                        new_track_min_size=new_track_min_size,
                         
                         blind_zones=blind_zones,
                         exit_zones=exit_zones,

@@ -59,9 +59,8 @@ class ObjectTrack:
         convas = loc.draw(convas, color, line_thickness=line_thickness)
         convas = cv2.circle(convas, loc.center().xy.astype(int), 2, color, thickness=-1, lineType=cv2.LINE_AA)
         if label_color:
-            # label = f"{self.id}({self.state.abbr})"
             label = f"{self.state_str}"
-            convas = plot_utils.draw_label(convas, label, Point.from_np(loc.tl.astype(int)),
+            convas = plot_utils.draw_label(convas, label, Point.from_np(loc.br.astype(int)),
                                             color=label_color, fill_color=color, thickness=2)
         return convas
 

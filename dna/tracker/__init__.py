@@ -6,11 +6,11 @@ from .track_pipeline import TrackingPipeline
 
 from dna import Box
 _DEFAULT_DETECTOR = "dna.detect.yolov5:model=m&score=0.01"
-def load_dna_tracker(domain:Box, tracker_conf: OmegaConf):
+def load_dna_tracker(tracker_conf: OmegaConf):
     from dna.detect.utils import load_object_detector
     from .dna_tracker import DNATracker
 
     detector_uri = tracker_conf.get("detector", _DEFAULT_DETECTOR)
     detector = load_object_detector(detector_uri)
 
-    return DNATracker(detector, domain, tracker_conf)
+    return DNATracker(detector, tracker_conf)

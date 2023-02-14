@@ -10,7 +10,7 @@ _MODEL_PATH = 'models/siam_mot.pth'
 _MODEL_URI = 'https://drive.google.com/u/0/uc?id=14Ci_qZFpN3i8HlwcO7PECCFbfVTQ7fJY'
 _DETECTOR_CONF_FILE = 'conf/CenterNet_siammot.yaml'
 
-def load(domain:Box, tracker_conf: OmegaConf):
+def load(tracker_conf: OmegaConf):
     conf = tracker_conf.get('cnu_siammot', OmegaConf.create())
     
     model_path = conf.get('model', _MODEL_PATH)

@@ -6,7 +6,7 @@ camera:
   # uri: data/2021/etri_04.mp4
   # size: [1920, 1080]
   sync: False
-  # begin_frame: 2080
+  begin_frame: 2090
   # end_frame: 1000
 
 tracker:
