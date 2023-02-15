@@ -12,30 +12,26 @@ from dna import Box, Frame
 from dna.utils import parse_query
 from dna.detect import ObjectDetector, Detection
 
+from pathlib import Path
 import logging
-LOGGER = logging.getLogger("dna.detector.yolov5")
+LOGGER = logging.getLogger(f"dna.detector.{Path(__file__).parent.stem}")
 
 
 def load(query: str):
     args = parse_query(query)
-    model_id = 'yolov5' + args.get('model', 's')
-
-    # model = torch.hub.load('ultralytics/yolov5', model_id, pretrained=True, verbose=False)
-    # model = torch.hub.load('yolov5', path='yolov5l6.pt', source='local')
-    model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5l6.pt')
-
-    score = args.get('score')
-    if score is not None:
-        model.conf = float(score)
-
-    LOGGER.info(f'Loading Yolov5Detector: model={model_id}')
-    return Yolov5Detector(model)
-
+    return Yolov5Detector(**args)
 
 class Yolov5Detector(ObjectDetector):
-    def __init__(self, model) -> None:
-        self.model = model
-        self.names = model.names
+    def __init__(self, **kwargs) -> None:
+        model_id = 'yolov5' + kwargs.get('model', 's')
+        LOGGER.info(f'Loading {Yolov5Detector.__name__}: model={model_id}')
+
+        self.model = torch.hub.load('ultralytics/yolov5', model_id, pretrained=True, verbose=False)
+        self.names = self.model.names
+
+        score = kwargs.get('score')
+        if score is not None:
+            self.model.conf = float(score)    
 
     @torch.no_grad()
     def detect(self, frame: Frame) -> List[Detection]:

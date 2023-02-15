@@ -63,7 +63,7 @@ class DetectingProcessor(FrameProcessor):
             if self.out_fp:
                 self.out_fp.write(self._to_string(frame_idx, det) + '\n')
             if self.draw_detections:
-                img = det.draw(img, color=self.box_color, label_color=self.label_color, show_score=self.show_score)
+                img = det.draw(img, color=self.box_color, label_color=self.label_color)
 
         return Frame(image=img, index=frame_idx, ts=frame.ts)
 

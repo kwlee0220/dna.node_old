@@ -16,7 +16,8 @@ tracker:
   # detector: dna.detect.yolov4
   # detector: dna.detect.yolov4:score=0.1
   detector: dna.detect.yolov5:model=l6&score=0.01
-  # detection_threshold: 0.35
+  # detector: dna.detect.rcnn50_fpn_v2:score=0.01
+  # detection_threshold: 0.6
   # metric_thresholds: [0.3, 0.55]
   n_init: 3
   max_age: 15

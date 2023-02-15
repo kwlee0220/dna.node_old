@@ -12,9 +12,9 @@ import shapely.geometry as geometry
 from dna import Frame, Image, BGR, color, plot_utils
 
 FILE = Path(__file__).absolute()
-DEEPSORT_DIR = str(FILE.parents[0])
-if not DEEPSORT_DIR in sys.path:
-    sys.path.append(DEEPSORT_DIR)
+DNA_TRACK_DIR = str(FILE.parents[0])
+if not DNA_TRACK_DIR in sys.path:
+    sys.path.append(DNA_TRACK_DIR)
 
 import dna
 from dna import Box, Size2d, Point
