@@ -41,19 +41,24 @@ def build_dist_iou_cost(kf:KalmanFilter, tracks:List[ObjectTrack], detections:Li
     return dist_cost, iou_cost
 
 
-_AREA_RATIO_LIMITS = (0.43, 2.8)
+_AREA_RATIO_LIMITS = (0.3, 2.8)
+_LARGE_AREA_RATIO_LIMITS = (0.5, 2)
 def build_task_det_ratio_mask(tracks:List[ObjectTrack], detections:List[Detection],
                                 area_ratio_limits:npt.ArrayLike=_AREA_RATIO_LIMITS):
     det_areas = np.array([det.bbox.area() for det in detections])
     
     area_ratio_limits = np.array(area_ratio_limits)
+    large_area_ratio_limits = np.array(area_ratio_limits)
+
     mask = np.zeros((len(tracks), len(detections)), dtype=bool)
     for t_idx, track in enumerate(tracks):
-        limits = area_ratio_limits * track.location.area()
+        t_area = track.location.area()
+        ratio_limits = area_ratio_limits if t_area < 100000 else large_area_ratio_limits
+        limits = ratio_limits * t_area
         mask[t_idx,:] = (det_areas >= limits[0]) & (det_areas <= limits[1])
+        # print(track.location.area(), [area / track.location.area() for area in det_areas])
         
     return mask
-
     
 
 def build_metric_cost(tracks:List[ObjectTrack], detections:List[Detection], dist_cost:np.ndarray,
@@ -93,8 +98,8 @@ def gate_metric_cost(metric_costs:np.ndarray, dist_costs:np.ndarray,
             if dist_costs[t_idx, d_idx] == INVALID_DIST_DISTANCE:
                 metric_costs[t_idx, d_idx] = INVALID_METRIC_DISTANCE
             elif dist_costs[t_idx, d_idx] > gate_threshold:
-                box_dist = t_box.min_distance_to(det.bbox)
-                if box_dist > 150:
+                center_dist = t_box.center().distance_to(det.bbox.center())
+                if center_dist > 150:
                     metric_costs[t_idx, d_idx] = INVALID_METRIC_DISTANCE
 
 

@@ -49,16 +49,45 @@ class DNATracker(ObjectTracker):
         #loading this encoder is slow, should be done only once.
         self.feature_extractor = FeatureExtractor(wt_path, LOGGER)
         self.tracker = Tracker(self.params, LOGGER)
+        
+        if self.params.detection_roi:
+            self.buffered_roi = Box.from_tlbr(self.params.detection_roi.tlbr + np.array([-5, -5, 5, 5]))
+            tl = self.buffered_roi.tl
+            self.roi_shift = Size2d(tl[1], tl[0])
+        else:
+            self.roi_shift = Size2d(0, 0)
 
     @property
     def tracks(self) -> List[DNATrack]:
         return self.tracker.tracks
 
+    def merge(self, detections:List[Detection], detections_roi:List[Detection], roi:Box, image:Image):
+        detections_roi = [det for det in detections_roi if not self.is_overlapped_with_margin(det.bbox)]
+        detections = [det for det in detections if det.bbox.overlap_ratios(roi)[0] < 1]
+
+        # convas = image.copy()
+        # convas = self.buffered_roi.draw(convas, color.WHITE, line_thickness=1)
+        # convas = self.params.detection_roi.draw(convas, color.YELLOW, line_thickness=1)
+        # for det in detections:
+        #     convas = det.bbox.draw(convas, color.BLUE, line_thickness=1)
+        # for det in detections_roi:
+        #     convas = det.bbox.draw(convas, color.RED, line_thickness=1)
+        # cv2.imshow("merge", convas)
+        # cv2.waitKey(1)
+
+        return detections_roi + detections
+
     def track(self, frame: Frame) -> List[DNATrack]:
         dna.DEBUG_FRAME_INDEX = frame.index
 
-        # detector를 통해 match 대상 detection들을 얻는다.
-        detections = self.detector.detect(frame)
+        if self.params.detection_roi:
+            cropped = Frame(self.buffered_roi.crop(frame.image), frame.index, frame.ts)
+            detections, detections_roi = tuple(self.detector.detect_images([frame, cropped]))
+            detections_roi = [Detection(det.bbox.translate(self.roi_shift), det.label, det.score) for det in detections_roi]
+            detections = self.merge(detections, detections_roi, self.params.detection_roi, frame.image.copy())
+        else:
+            # detector를 통해 match 대상 detection들을 얻는다.
+            detections = self.detector.detect(frame)
 
         # 불필요한 detection들을 제거하고, 영상에서 각 detection별로 feature를 추출하여 부여한다.
         detections = self._prepare_detections(frame.image, detections)
@@ -104,6 +133,11 @@ class DNATracker(ObjectTracker):
             det.feature = feature
 
         return detections
+
+    def is_overlapped_with_margin(self, box:Box):
+        tlbr = box.tlbr
+        roi = self.params.detection_roi.tlbr
+        return tlbr[0] <= roi[0]+1 or tlbr[1] <= roi[1]+1 or tlbr[2] >= roi[2]-1 or tlbr[3] >= roi[3]-1
 
     def draw_detections(self, convas:Image, title:str, detections:List[Detection], line_thickness=1):
         for idx, det in enumerate(detections):

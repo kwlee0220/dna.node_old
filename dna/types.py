@@ -262,8 +262,12 @@ class Box:
         w, h = size.to_tuple()
         return Box.from_tlbr(np.array([0, 0, w, h]))
 
-    def translate(self, x: Union[int, float], y: Union[int, float]) -> Box:
-        delta = np.array([y, x, y, x])
+    # def translate(self, x: Union[int, float], y: Union[int, float]) -> Box:
+    #     delta = np.array([y, x, y, x])
+    #     return Box(self.tlbr + delta)
+
+    def translate(self, delta:Size2d) -> Box:
+        delta = np.array([delta.height, delta.width, delta.height, delta.width])
         return Box(self.tlbr + delta)
 
     def is_valid(self) -> bool:

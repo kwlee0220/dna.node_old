@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from omegaconf.omegaconf import OmegaConf
 import shapely.geometry as geometry
 
-from dna import Size2d
+from dna import Size2d, Box
 from dna.detect import Detection
 
 from collections import namedtuple
@@ -42,6 +42,7 @@ class DNATrackParams:
     detection_threshold: float
     detection_min_size: Size2d
     detection_max_size: Size2d
+    detection_roi: Box
 
     iou_dist_threshold: IouDistThreshold
     iou_dist_threshold_loose: IouDistThreshold
@@ -80,6 +81,9 @@ def load_track_params(track_conf:OmegaConf) -> DNATrackParams:
     detection_min_size = Size2d.from_expr(track_conf.get('detection_min_size', DEFAULT_DETECTION_MIN_SIZE))
     detection_max_size = Size2d.from_expr(track_conf.get('detection_max_size', DEFAULT_DETECTION_MAX_SIZE))
 
+    roi = track_conf.get('roi')
+    detection_roi = Box.from_tlbr(roi) if roi else None
+
     iou_dist_threshold = track_conf.get('iou_dist_threshold', DEFAULT_IOU_DIST_THRESHOLD)
     iou_dist_threshold_loose = track_conf.get('iou_dist_threshold_loose', DEFAULT_IOU_DIST_THRESHOLD_LOOSE)
 
@@ -106,6 +110,7 @@ def load_track_params(track_conf:OmegaConf) -> DNATrackParams:
                         detection_threshold=detection_threshold,
                         detection_min_size=detection_min_size,
                         detection_max_size=detection_max_size,
+                        detection_roi=detection_roi,
                         
                         iou_dist_threshold=iou_dist_threshold,
                         iou_dist_threshold_loose=iou_dist_threshold_loose,

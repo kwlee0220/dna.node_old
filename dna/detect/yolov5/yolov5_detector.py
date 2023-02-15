@@ -8,7 +8,7 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 
-from dna import Box, Frame
+from dna import Box, Frame, Image
 from dna.utils import parse_query
 from dna.detect import ObjectDetector, Detection
 
@@ -31,22 +31,35 @@ class Yolov5Detector(ObjectDetector):
 
         score = kwargs.get('score')
         if score is not None:
-            self.model.conf = float(score)    
+            self.model.conf = float(score)
 
     @torch.no_grad()
     def detect(self, frame: Frame) -> List[Detection]:
-        # Convert
-        img = frame.image.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
-        img = np.ascontiguousarray(img)
+        batch = [self._preprocess(frame.image)]
 
         # inference
-        preds = self.model(img).xyxy[0].cpu().numpy()
+        result = self.model(batch, size=640)
 
-        det_list = []
-        for i, pred in enumerate(preds):  # detections per image
-            bbox = Box.from_tlbr(pred[:4])
-            name = self.names[int(pred[5])]
-            confi = pred[4]
-            det_list.append(Detection(bbox, name, confi))
+        return self._to_detections(result.xyxy[0])
 
-        return det_list
+    @torch.no_grad()
+    def detect_images(self, frames:List[Frame]) -> List[List[Detection]]:
+        batch = [self._preprocess(frame.image) for frame in frames]
+
+        # inference
+        result = self.model(batch)
+
+        return [self._to_detections(xyxy) for xyxy in result.xyxy]
+
+    def _preprocess(self, image:Image) -> torch.Tensor:
+        img = image.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+        return np.ascontiguousarray(img)
+
+    def _to_detections(self, xyxy) -> List[Detection]:
+        return [self._to_detection(pred) for pred in xyxy.cpu().numpy()]
+
+    def _to_detection(self, pred) -> List[Detection]:
+        box = Box.from_tlbr(pred[:4])
+        name = self.names[int(pred[5])]
+        confi = pred[4]
+        return Detection(box, name, confi)
