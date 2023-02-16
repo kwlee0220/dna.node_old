@@ -6,6 +6,7 @@ from collections import Sequence, Iterable
 import math
 
 import numpy as np
+import numpy.typing as npt
 import cv2
 
 from .color import BGR
@@ -146,17 +147,6 @@ class Size2d:
             return Size2d(parts[0], parts[1])
         raise ValueError(f"invalid Size2d string: {expr}")
 
-    # @staticmethod
-    # def from_conf(expr:object) -> Size2d:
-    #     if isinstance(expr, str):
-    #         return Size2d.parse_string(expr)
-    #     elif isinstance(expr, Size2d):
-    #         return expr
-    #     elif hasattr(expr, "__getitem__"):
-    #         return Size2d(expr[0], expr[1])
-    #     else:
-    #         raise ValueError(f'invalid Size2d expression: {expr}')
-
     def to_tuple(self) -> Tuple[Union[int, float],Union[int, float]]:
         # return tuple(np.rint(self.wh).astype(int))
         return tuple(self.__wh)
@@ -248,8 +238,8 @@ class Box:
         return Box(np.hstack([tl.xy, br.xy]))
 
     @classmethod
-    def from_tlbr(cls, tlbr: np.ndarray) -> Box:
-        return Box(tlbr)
+    def from_tlbr(cls, tlbr:npt.ArrayLike) -> Box:
+        return Box(np.array(tlbr))
 
     @classmethod
     def from_tlwh(cls, tlwh: np.ndarray) -> Box:
@@ -260,14 +250,10 @@ class Box:
     @staticmethod
     def from_size(size:Size2d) -> Box:
         w, h = size.to_tuple()
-        return Box.from_tlbr(np.array([0, 0, w, h]))
-
-    # def translate(self, x: Union[int, float], y: Union[int, float]) -> Box:
-    #     delta = np.array([y, x, y, x])
-    #     return Box(self.tlbr + delta)
+        return Box(np.array([0, 0, w, h]))
 
     def translate(self, delta:Size2d) -> Box:
-        delta = np.array([delta.height, delta.width, delta.height, delta.width])
+        delta = np.array([delta.width, delta.height, delta.width, delta.height])
         return Box(self.tlbr + delta)
 
     def is_valid(self) -> bool:

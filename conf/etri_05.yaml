@@ -1,14 +1,15 @@
 id: etri:05
 
 camera:
-  uri: data/2022/crops/etri_05_crop.mp4
-  # uri: data/2021/etri_05.mp4
+  # uri: data/2022/crops/etri_05_crop.mp4
+  uri: data/2021/etri_05.mp4
   # size: [1920, 1080]
   sync: False
   # begin_frame: 1250
 
 tracker:
-  draw_zones: True
+  # draw_zones: True
+  detector: dna.detect.yolov5:model=l6&score=0.01
   # output: C:/Temp/data/track_output.csv
 
   # cnu_siammot:

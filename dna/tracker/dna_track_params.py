@@ -14,8 +14,9 @@ IouDistThreshold = namedtuple('IouDistThreshold', 'iou,distance')
 
 DEFAULT_DETECTIION_CLASSES = ['car', 'bus', 'truck']
 DEFAULT_DETECTION_THRESHOLD = 0.37
-DEFAULT_DETECTION_MIN_SIZE = Size2d(20, 15)
+DEFAULT_DETECTION_MIN_SIZE = Size2d(15, 15)
 DEFAULT_DETECTION_MAX_SIZE = Size2d(768, 768)
+DEFAULT_DETECTION_ROIS = []
 
 DEFAULT_IOU_DIST_THRESHOLD = IouDistThreshold(0.80, 70)
 DEFAULT_IOU_DIST_THRESHOLD_LOOSE = IouDistThreshold(0.85, 90)
@@ -42,7 +43,7 @@ class DNATrackParams:
     detection_threshold: float
     detection_min_size: Size2d
     detection_max_size: Size2d
-    detection_roi: Box
+    detection_rois: List[Box]
 
     iou_dist_threshold: IouDistThreshold
     iou_dist_threshold_loose: IouDistThreshold
@@ -80,9 +81,7 @@ def load_track_params(track_conf:OmegaConf) -> DNATrackParams:
     detection_threshold = track_conf.get('detection_threshold', DEFAULT_DETECTION_THRESHOLD)
     detection_min_size = Size2d.from_expr(track_conf.get('detection_min_size', DEFAULT_DETECTION_MIN_SIZE))
     detection_max_size = Size2d.from_expr(track_conf.get('detection_max_size', DEFAULT_DETECTION_MAX_SIZE))
-
-    roi = track_conf.get('roi')
-    detection_roi = Box.from_tlbr(roi) if roi else None
+    detection_rois = [Box.from_tlbr(roi) for roi in track_conf.get('rois', DEFAULT_DETECTION_ROIS)]
 
     iou_dist_threshold = track_conf.get('iou_dist_threshold', DEFAULT_IOU_DIST_THRESHOLD)
     iou_dist_threshold_loose = track_conf.get('iou_dist_threshold_loose', DEFAULT_IOU_DIST_THRESHOLD_LOOSE)
@@ -110,7 +109,7 @@ def load_track_params(track_conf:OmegaConf) -> DNATrackParams:
                         detection_threshold=detection_threshold,
                         detection_min_size=detection_min_size,
                         detection_max_size=detection_max_size,
-                        detection_roi=detection_roi,
+                        detection_rois=detection_rois,
                         
                         iou_dist_threshold=iou_dist_threshold,
                         iou_dist_threshold_loose=iou_dist_threshold_loose,

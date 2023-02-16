@@ -13,29 +13,36 @@ from dna.utils import RectangleDrawer, PolygonDrawer
 img = None
 
 camera_conf = OmegaConf.create()
-camera_conf.uri = "data/2022/crops/etri_06_crop.mp4"
+# camera_conf.uri = "data/2022/crops/etri_04_crop.mp4"
+camera_conf.uri = "data/crossroads/crossroad_04.mp4"
 # camera_conf.uri = "output/result.jpg"
-camera_conf.begin_frame = 2242
+camera_conf.begin_frame = 123
 camera:Camera = create_camera_from_conf(camera_conf)
 
 coords_list = [
-    # [[186, 631], [738, 492], [915, 352], [1016, 351], [1017, 334], [1101, 334], [1311, 488], [1726, 587],
-    #     [1759, 843], [1733, 1076], [1921, 1075], [1920, 2], [0, -2], [-2, 636],  [1, 1076], [226, 1077], [174, 826]],
-    # [[1339, 563], [1296, 1045], [1410, 1054], [1466, 595]],
-    # [[1017, 356], [998, 273], [1091, 272], [1097, 355]],
+    [[1138, 1], [1165, 28], [1343, 43], [1345, 117], [1264, 136], [1539, 402], [1919, 497], [1918, 3]],
+    # [[0, 927], [1920, 927], [1920, 1920], [0, 1920]],
+    # [[2, 549], [106, 546], [138, 717], [2, 720]],
     # [[186, 631], [738, 492], [917, 349], [1112, 347], [1311, 488], [1726, 587], [1759, 843], [1733, 1076],
     #     [1921, 1075], [1920, 2], [0, -2], [-2, 636], [1, 1076], [226, 1077], [174, 826]]
+]
+box_list = [
+    # [650, 0, 1290, 500],
+    # [0, 120, 451, 396]
 ]
 
 with closing(camera.open()) as cap:
     img = cap().image
 # img = cv2.imread("output/result.jpg", cv2.IMREAD_COLOR)
+
+for tlbr in box_list:
+    box = Box.from_tlbr(tlbr)
+    img = box.draw(img, color.WHITE, 1)
 for coords in coords_list:
     img = plot_utils.draw_polygon(img, coords, color.ORANGE, 2)
 
 polygon = []
-polygon = [[120, 632], [792, 442], [936, 287], [1051, 286], [1297, 496], [1782, 632], [1892, 1076], [1921, 1075],
-      [1920, 2], [0, -2], [1, 1076], [276, 1079], [258, 878], [147, 840]]
+# polygon = [[1138, 1], [1174, 41], [1343, 54], [1345, 117], [1264, 136], [1539, 402], [1919, 497], [1918, 3]]
 coords = PolygonDrawer(img, polygon).run()
 print(coords)
 

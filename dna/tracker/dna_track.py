@@ -70,6 +70,8 @@ class DNATrack(ObjectTrack):
                 if self.hits - (self.n_init-self.time_to_promote) > 2:
                     self.state = TrackState.Deleted
                     return
+        elif self.state == TrackState.TemporarilyLost:
+            self.state = TrackState.Confirmed
         
         if track_params.is_large_detection_for_metric(det):
             self.features.append(det.feature)

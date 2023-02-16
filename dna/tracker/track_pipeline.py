@@ -137,6 +137,10 @@ class TrackingPipeline(FrameProcessor):
 
         convas = frame.image
         if self.draw_zones:
+            for roi, shrinked in zip(self.tracker.params.detection_rois, self.tracker.shrinked_rois):
+                roi.draw(convas, color.YELLOW, line_thickness=1)
+                # shrinked.draw(convas, color.WHITE, line_thickness=1)
+            
             for zone in self.tracker.params.blind_zones:
                 convas = plot_utils.draw_polygon(convas, list(zone.exterior.coords), color.YELLOW, 1)
             for zone in self.tracker.params.exit_zones:

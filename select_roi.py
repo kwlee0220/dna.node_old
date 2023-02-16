@@ -13,9 +13,9 @@ from dna.utils import RectangleDrawer, PolygonDrawer
 img = None
 
 camera_conf = OmegaConf.create()
-camera_conf.uri = "data/2022/crops/etri_06_crop.mp4"
+camera_conf.uri = "data/crossroads/crossroad_03.mp4"
 # camera_conf.uri = "output/result.jpg"
-camera_conf.begin_frame = 2242
+# camera_conf.begin_frame = 2242
 camera:Camera = create_camera_from_conf(camera_conf)
 
 with closing(camera.open()) as cap:

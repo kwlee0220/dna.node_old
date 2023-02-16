@@ -50,14 +50,14 @@ class ObjectTrack:
         return 'f{state_str}, location={self.location}, frame={self.frame_index}, ts={millis}'
 
     def to_csv(self) -> str:
-        t, l, b, r = tuple(self.location.tlbr)
+        x1, y1, x2, y2 = tuple(self.location.tlbr)
         millis = int(round(self.timestamp * 1000))
-        return (f"{self.frame_index},{self.id},{t:.0f},{l:.0f},{b:.0f},{r:.0f},{self.state.name},{millis}")
+        return (f"{self.frame_index},{self.id},{x1:.0f},{y1:.0f},{x2:.0f},{y2:.0f},{self.state.name},{millis}")
 
     def draw(self, convas:Image, color:BGR, label_color:BGR=None, line_thickness:int=2) -> Image:
         loc = self.location
         convas = loc.draw(convas, color, line_thickness=line_thickness)
-        convas = cv2.circle(convas, loc.center().xy.astype(int), 2, color, thickness=-1, lineType=cv2.LINE_AA)
+        convas = cv2.circle(convas, loc.center().xy.astype(int), 3, color, thickness=-1, lineType=cv2.LINE_AA)
         if label_color:
             label = f"{self.state_str}"
             convas = plot_utils.draw_label(convas, label, Point.from_np(loc.br.astype(int)),

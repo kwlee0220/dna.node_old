@@ -50,72 +50,40 @@ class DNATracker(ObjectTracker):
         self.feature_extractor = FeatureExtractor(wt_path, LOGGER)
         self.tracker = Tracker(self.params, LOGGER)
         
-        if self.params.detection_roi:
-            self.buffered_roi = Box.from_tlbr(self.params.detection_roi.tlbr + np.array([-5, -5, 5, 5]))
-            tl = self.buffered_roi.tl
-            self.roi_shift = Size2d(tl[1], tl[0])
-        else:
-            self.roi_shift = Size2d(0, 0)
+        self.shrinked_rois = []
+        self.roi_shifts = []
+        for roi in self.params.detection_rois:
+            shrinked = Box(roi.tlbr + np.array([5, 5, -5, -5]))
+            if not shrinked.is_valid():
+                raise ValueError(f'too small roi: {roi}')
+            self.shrinked_rois.append(shrinked)
+            self.roi_shifts.append(Size2d.from_np(roi.tl))
 
     @property
     def tracks(self) -> List[DNATrack]:
         return self.tracker.tracks
 
-    def merge(self, detections:List[Detection], detections_roi:List[Detection], roi:Box, image:Image):
-        detections_roi = [det for det in detections_roi if not self.is_overlapped_with_margin(det.bbox)]
-        detections = [det for det in detections if det.bbox.overlap_ratios(roi)[0] < 1]
-
-        # convas = image.copy()
-        # convas = self.buffered_roi.draw(convas, color.WHITE, line_thickness=1)
-        # convas = self.params.detection_roi.draw(convas, color.YELLOW, line_thickness=1)
-        # for det in detections:
-        #     convas = det.bbox.draw(convas, color.BLUE, line_thickness=1)
-        # for det in detections_roi:
-        #     convas = det.bbox.draw(convas, color.RED, line_thickness=1)
-        # cv2.imshow("merge", convas)
-        # cv2.waitKey(1)
-
-        return detections_roi + detections
-
     def track(self, frame: Frame) -> List[DNATrack]:
         dna.DEBUG_FRAME_INDEX = frame.index
 
-        if self.params.detection_roi:
-            cropped = Frame(self.buffered_roi.crop(frame.image), frame.index, frame.ts)
-            detections, detections_roi = tuple(self.detector.detect_images([frame, cropped]))
-            detections_roi = [Detection(det.bbox.translate(self.roi_shift), det.label, det.score) for det in detections_roi]
-            detections = self.merge(detections, detections_roi, self.params.detection_roi, frame.image.copy())
-        else:
-            # detector를 통해 match 대상 detection들을 얻는다.
-            detections = self.detector.detect(frame)
+        detections_list = self.detector.detect_images([frame] + self.crop_rois(frame))
 
-        # 불필요한 detection들을 제거하고, 영상에서 각 detection별로 feature를 추출하여 부여한다.
-        detections = self._prepare_detections(frame.image, detections)
-        if dna.DEBUG_SHOW_IMAGE:
-            self.draw_detections(frame.image.copy(), 'detections', detections)
-
-        if LOGGER.isEnabledFor(logging.DEBUG):
-            LOGGER.debug(f"{frame.index}: ------------------------------------------------------")
-        session, deleted_tracks = self.tracker.track(frame, detections)
-        
-        return self.tracker.tracks + deleted_tracks
-
-    def _prepare_detections(self, image:Image, detections:List[Detection]) -> List[Detection]:
         # 검출 물체 중 관련있는 label의 detection만 사용한다.
-        detections = [det for det in detections if det.label in self.params.detection_classes]
+        filterds = []
+        for dets in detections_list:
+            filterds.append([det for det in dets if det.label in self.params.detection_classes])
+        detections_list = filterds
 
         # Detection box 크기에 따라 invalid한 detection들을 제거한다.
-        # 일정 점수 이하의 detection들과 blind zone에 포함된 detection들은 무시한다.
-        def is_valid_detection(det:Detection) -> bool:
-            if not self.params.is_valid_size(det.bbox.size()):
-                return False
-            if dna.utils.find_any_centroid_cover(det.bbox, self.params.blind_zones) >= 0:
-                return False
-            return True
-        detections = [det for det in detections if is_valid_detection(det)]
-            
-        # if dna.DEBUG_SHOW_IMAGE:
-        #     self.draw_detections(image.copy(), 'detections', detections)
+        filterds = []
+        for dets in detections_list:
+            filterds.append([det for det in dets if self.params.is_valid_size(det.bbox.size())])
+        detections_list = filterds
+
+        mergeds = self.merge(detections_list)
+
+        # blind zone에 포함된 detection들은 무시한다.
+        detections = [det for det in mergeds if dna.utils.find_any_centroid_cover(det.bbox, self.params.blind_zones) < 0]
 
         # Detection끼리 너무 많이 겹치는 경우 low-score detection을 제거한다.
         def supress_overlaps(detections:List[Detection]) -> List[Detection]:
@@ -129,17 +97,80 @@ class DNATracker(ObjectTracker):
             return supresseds
         detections = supress_overlaps(detections)
         
-        for det, feature in zip(detections, self.feature_extractor.extract(image, detections)):
+        # Filtering을 마친 detection에 대해서는 영상 내의 해당 영역에서 feature를 추출하여 부여한다.
+        for det, feature in zip(detections, self.feature_extractor.extract(frame.image, detections)):
             det.feature = feature
 
-        return detections
+        if dna.DEBUG_SHOW_IMAGE:
+            convas = frame.image.copy()
+            for roi in self.params.detection_rois:
+                convas = roi.draw(convas, color.YELLOW, line_thickness=1)
+            self.draw_detections(convas, 'detections', detections)
 
-    def is_overlapped_with_margin(self, box:Box):
-        tlbr = box.tlbr
-        roi = self.params.detection_roi.tlbr
-        return tlbr[0] <= roi[0]+1 or tlbr[1] <= roi[1]+1 or tlbr[2] >= roi[2]-1 or tlbr[3] >= roi[3]-1
+        if LOGGER.isEnabledFor(logging.DEBUG):
+            LOGGER.debug(f"{frame.index}: ------------------------------------------------------")
+        session, deleted_tracks = self.tracker.track(frame, detections)
+        
+        return self.tracker.tracks + deleted_tracks
+
+    def crop_rois(self, frame:Frame) -> List[Frame]:
+        return [Frame(roi.crop(frame.image), frame.index, frame.ts) for roi in self.params.detection_rois]
+
+    def merge(self, detections_list:List[Detection]) -> List[Detection]:
+        mergeds = []
+
+        cropped_detections_list = detections_list[1:]
+        for roi, shift, dets in zip(self.shrinked_rois, self.roi_shifts, cropped_detections_list):
+            for det in dets:
+                shifted_box = det.bbox.translate(shift)
+                if roi.contains(shifted_box):
+                    mergeds.append(Detection(shifted_box, det.label, det.score))
+
+        for det in detections_list[0]:
+            if all(not roi.contains(det.bbox) for roi in self.params.detection_rois):
+                mergeds.append(det)
+
+        return mergeds
+
+    # def _prepare_detections(self, image:Image, detections:List[Detection]) -> List[Detection]:
+    #     # 검출 물체 중 관련있는 label의 detection만 사용한다.
+    #     detections = [det for det in detections if det.label in self.params.detection_classes]
+
+    #     # Detection box 크기에 따라 invalid한 detection들을 제거한다.
+    #     # 일정 점수 이하의 detection들과 blind zone에 포함된 detection들은 무시한다.
+    #     def is_valid_detection(det:Detection) -> bool:
+    #         if not self.params.is_valid_size(det.bbox.size()):
+    #             return False
+    #         if dna.utils.find_any_centroid_cover(det.bbox, self.params.blind_zones) >= 0:
+    #             return False
+    #         return True
+    #     detections = [det for det in detections if is_valid_detection(det)]
+            
+    #     # if dna.DEBUG_SHOW_IMAGE:
+    #     #     self.draw_detections(image.copy(), 'detections', detections)
+
+    #     # Detection끼리 너무 많이 겹치는 경우 low-score detection을 제거한다.
+    #     def supress_overlaps(detections:List[Detection]) -> List[Detection]:
+    #         remains = sorted(detections.copy(), key=lambda d: d.score, reverse=True)
+    #         supresseds = []
+    #         while remains:
+    #             head = remains.pop(0)
+    #             supresseds.append(head)
+    #             remains = [det for det in remains if head.bbox.iou(det.bbox) < self.params.max_nms_score]
+    #             pass
+    #         return supresseds
+    #     detections = supress_overlaps(detections)
+        
+    #     for det, feature in zip(detections, self.feature_extractor.extract(image, detections)):
+    #         det.feature = feature
+
+    #     return detections
 
     def draw_detections(self, convas:Image, title:str, detections:List[Detection], line_thickness=1):
+        for roi, shrinked in zip(self.params.detection_rois, self.shrinked_rois):
+            convas = roi.draw(convas, color.YELLOW, line_thickness=1)
+            # convas = shrinked.draw(convas, color.WHITE, line_thickness=1)
+
         for idx, det in enumerate(detections):
             if det.score < self.params.detection_threshold:
                 det.draw(convas, color.RED, label=str(idx), label_color=color.WHITE,
