@@ -184,7 +184,7 @@ class Tracker:
 
         return track
     
-    def revise_matches(self, matcher:Matcher, session:MatchingSession, detection: Detection):
+    def revise_matches(self, matcher:Matcher, session:MatchingSession, detection: Detection) -> None:
         # tentative track과 strong detection 사이의 match들을 검색한다.
         tent_strong_matches = [m for m in session.matches \
                                     if self.tracks[m[0]].is_tentative() and self.params.is_strong_detection(detection[m[1]])]
