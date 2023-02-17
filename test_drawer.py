@@ -13,22 +13,22 @@ from dna.utils import RectangleDrawer, PolygonDrawer
 img = None
 
 camera_conf = OmegaConf.create()
-# camera_conf.uri = "data/2022/crops/etri_04_crop.mp4"
-camera_conf.uri = "data/crossroads/crossroad_04.mp4"
+camera_conf.uri = "data/2022/crops/etri_07_crop.mp4"
+# camera_conf.uri = "data/crossroads/crossroad_04.mp4"
 # camera_conf.uri = "output/result.jpg"
 camera_conf.begin_frame = 123
 camera:Camera = create_camera_from_conf(camera_conf)
 
 coords_list = [
-    [[1138, 1], [1165, 28], [1343, 43], [1345, 117], [1264, 136], [1539, 402], [1919, 497], [1918, 3]],
-    # [[0, 927], [1920, 927], [1920, 1920], [0, 1920]],
-    # [[2, 549], [106, 546], [138, 717], [2, 720]],
-    # [[186, 631], [738, 492], [917, 349], [1112, 347], [1311, 488], [1726, 587], [1759, 843], [1733, 1076],
+    # [[646, 399], [800, 460], [1194, 274], [1194, 250], [1421, 251], [1362, 491], [1518, 587],
+    #   [1673, 632], [1683, 1078], [1919, 1076], [1918, 6], [2, 6], [5, 399]],
+    # [[182, 478], [526, 502], [800, 460], [1195, 275], [1195, 208], [181, 201]],
+    # [[71, 490], [6, 492], [7, 441], [87, 440], [93, 472]],
     #     [1921, 1075], [1920, 2], [0, -2], [-2, 636], [1, 1076], [226, 1077], [174, 826]]
 ]
 box_list = [
-    # [650, 0, 1290, 500],
-    # [0, 120, 451, 396]
+    [0, 420, 320, 740],
+    # [900, 240, 1410, 600]
 ]
 
 with closing(camera.open()) as cap:
@@ -42,7 +42,7 @@ for coords in coords_list:
     img = plot_utils.draw_polygon(img, coords, color.ORANGE, 2)
 
 polygon = []
-# polygon = [[1138, 1], [1174, 41], [1343, 54], [1345, 117], [1264, 136], [1539, 402], [1919, 497], [1918, 3]]
+# polygon = [[71, 490], [6, 492], [7, 441], [87, 440], [93, 472]]
 coords = PolygonDrawer(img, polygon).run()
 print(coords)
 

@@ -104,7 +104,7 @@ class DNATracker(ObjectTracker):
         if dna.DEBUG_SHOW_IMAGE:
             convas = frame.image.copy()
             for roi in self.params.detection_rois:
-                convas = roi.draw(convas, color.YELLOW, line_thickness=1)
+                convas = roi.draw(convas, color.ORANGE, line_thickness=1)
             self.draw_detections(convas, 'detections', detections)
 
         if LOGGER.isEnabledFor(logging.DEBUG):
@@ -168,7 +168,7 @@ class DNATracker(ObjectTracker):
 
     def draw_detections(self, convas:Image, title:str, detections:List[Detection], line_thickness=1):
         for roi, shrinked in zip(self.params.detection_rois, self.shrinked_rois):
-            convas = roi.draw(convas, color.YELLOW, line_thickness=1)
+            convas = roi.draw(convas, color.ORANGE, line_thickness=1)
             # convas = shrinked.draw(convas, color.WHITE, line_thickness=1)
 
         for idx, det in enumerate(detections):

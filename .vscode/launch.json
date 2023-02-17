@@ -22,13 +22,13 @@
             "program": "${workspaceFolder}/scripts/dna_node.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--camera", "data/2022/crops/etri_041_crop.mp4",
+                // "--camera", "data/2022/crops/etri_041_crop.mp4",
                 "--conf", "conf/etri_04.yaml",
-                "--output", "output/2022/etri_041_event.json",   // -o <file>
+                "--output", "output/2022/etri_04_event.json",   // -o <file>
                 // "--begin_frame", "1000",
                 // "--end_frame", "1000",
-                "--show", //"1280x720",
-                // "--show_progress",  // -p
+                // "--show", //"1280x720",
+                "--show_progress",  // -p
             ],
             "justMyCode": true
         },
@@ -39,9 +39,9 @@
             "args": [
                 // "--camera", "data/2022/crops/etri_061_crop.mp4", "--sync",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
-                "--conf", "conf/crossroads/crossroad_04.yaml",
-                // "--output", "output/etri_04_track.csv",   // -o <file>
-                // "--output_video", "output/track_05_2021.mp4",   // -v <file>
+                "--conf", "conf/etri_07.yaml",
+                // "--output", "output/2022/etri_04_track.csv",   // -o <file>
+                // "--output_video", "output/track_07.mp4",   // -v <file>
                 "--show", //"1280x720",
                 // "--show_progress",  // -p
                 // "--pause_on_eos",    // -k
@@ -115,7 +115,7 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "output/2022/etri_04_track.csv",
-                "--video", "data/2022/etri2022_04_crop.mp4",
+                "--video", "data/2022/crops/etri_04_crop.mp4",
                 // "--type", "json",
                 "--camera_index", "0",
                 "--contact_point", "simulation",

@@ -11,7 +11,7 @@ from dna import plot_utils, color, Point, BGR, Image, Frame
 from .type import ObjectTrack, TrackState, ObjectTracker, TrackProcessor
 
 
-class TrackWriter(TrackProcessor):
+class TrackCsvWriter(TrackProcessor):
     def __init__(self, track_file: str) -> None:
         super().__init__()
 
@@ -35,7 +35,7 @@ class TrackWriter(TrackProcessor):
 
     def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[ObjectTrack]) -> None:
         for track in tracks:
-            self.out_handle.write(track.to_string() + '\n')
+            self.out_handle.write(track.to_csv() + '\n')
 
 class Trail:
     __slots__ = ('__tracks', )
@@ -100,7 +100,7 @@ class TrackingPipeline(FrameProcessor):
 
         output = tracker_conf.get("output", None)
         if output is not None:
-            track_processors = [TrackWriter(output)] + track_processors
+            track_processors = [TrackCsvWriter(output)] + track_processors
             
         return cls(tracker=tracker, processors=track_processors, draw_tracks=draw_tracks, draw_zones=draw_zones)
 
@@ -138,7 +138,7 @@ class TrackingPipeline(FrameProcessor):
         convas = frame.image
         if self.draw_zones:
             for roi, shrinked in zip(self.tracker.params.detection_rois, self.tracker.shrinked_rois):
-                roi.draw(convas, color.YELLOW, line_thickness=1)
+                roi.draw(convas, color.ORANGE, line_thickness=1)
                 # shrinked.draw(convas, color.WHITE, line_thickness=1)
             
             for zone in self.tracker.params.blind_zones:

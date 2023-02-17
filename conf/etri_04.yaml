@@ -4,16 +4,12 @@ camera:
   # uri: data/etri_04_hot.mp4
   # uri: data/2022/crops/etri_04_crop.mp4
   uri: data/2021/etri_04.mp4
-  # size: [1920, 1080]
   sync: False
   # begin_frame: 2100
   # end_frame: 1000
 
 tracker:
   # draw_zones: True
-  detector: dna.detect.yolov5:model=l6&score=0.01
-  n_init: 3
-  max_age: 10
   rois:
     - [600, 300, 1240, 940]
   blind_zones:
@@ -23,17 +19,12 @@ tracker:
     - [[930, 369], [932, 298], [865, 297], [867, 371]]
     - [[1204, 408], [1205, 327], [1274, 328], [1275, 408]]
     - [[411, 841], [3, 694], [4, 1076], [408, 1071]]
-  # stable_zones:
-  #   - [[1023, 345], [1151, 359], [1020, 738], [463, 626]]
 
 publishing:
   min_path_length: 10
   attach_world_coordinates:
-    camera_geometry: conf/region_etri/etri_testbed.json
-    # camera_geometry: conf/etri_camera_geom.json
+    camera_geometry: regions/etri_testbed/etri_testbed.json
     camera_index: 0
-    # epsg_code: "EPSG:5186"
-    # world_coords_offset: [-4,5]
 
   # stabilization:
   #   look_ahead: 3

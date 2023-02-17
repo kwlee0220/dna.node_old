@@ -9,7 +9,7 @@ camera:
 
 tracker:
   # draw_zones: True
-  detector: dna.detect.yolov5:model=l6&score=0.01
+  # detector: dna.detect.yolov5:model=l6&score=0.01
   # output: C:/Temp/data/track_output.csv
 
   # cnu_siammot:

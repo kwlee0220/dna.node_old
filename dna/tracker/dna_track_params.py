@@ -7,7 +7,9 @@ from omegaconf.omegaconf import OmegaConf
 import shapely.geometry as geometry
 
 from dna import Size2d, Box
+from dna.utils import find_any_centroid_cover, find_any_point_cover
 from dna.detect import Detection
+from dna.tracker import ObjectTrack
 
 from collections import namedtuple
 IouDistThreshold = namedtuple('IouDistThreshold', 'iou,distance')
@@ -24,7 +26,8 @@ DEFAULT_IOU_DIST_THRESHOLD_LOOSE = IouDistThreshold(0.85, 90)
 DEFAULT_METRIC_TIGHT_THRESHOLD = 0.3
 DEFAULT_METRIC_THRESHOLD = 0.55
 DEFAULT_METRIC_GATE_DISTANCE = 500
-DEFAULT_METRIC_MIN_DETECTION_SIZE = Size2d(40, 35)
+DEFAULT_METRIC_MIN_DETECTION_SIZE = Size2d(30, 30)
+DEFAULT_METRIC_REGISTRY_MIN_DETECTION_SIZE = Size2d(50, 50)
 DEFAULT_MAX_FEATURE_COUNT = 50
 
 DEFAULT_N_INIT = 3
@@ -52,6 +55,7 @@ class DNATrackParams:
     metric_threshold_loose: float
     metric_gate_distance: float
     metric_min_detection_size: Size2d
+    metric_registry_min_detection_size: Size2d
     max_feature_count: int
 
     n_init: int
@@ -74,6 +78,14 @@ class DNATrackParams:
     def is_large_detection_for_metric(self, det:Detection) -> bool:
         return det.bbox.size().width >= self.metric_min_detection_size.width \
                 and det.bbox.size().height >= self.metric_min_detection_size.height
+    
+    def is_large_detection_for_metric_regitry(self, det:Detection) -> bool:
+        return det.bbox.size() >= self.metric_registry_min_detection_size
+            
+    def find_stable_zone(self, box:Box) -> int:
+        return find_any_centroid_cover(box, self.params.stable_zones)
+    def is_in_stable_zone(self, box:Box, zone_id:int) -> bool:
+        return self.stable_zones[zone_id].covers(box.center().to_tuple())
 
 
 def load_track_params(track_conf:OmegaConf) -> DNATrackParams:
@@ -90,6 +102,7 @@ def load_track_params(track_conf:OmegaConf) -> DNATrackParams:
     metric_threshold = track_conf.get('metric_threshold', DEFAULT_METRIC_THRESHOLD)
     metric_gate_distance = track_conf.get('metric_gate_distance', DEFAULT_METRIC_GATE_DISTANCE)
     metric_min_detection_size = track_conf.get('metric_min_detection_size', DEFAULT_METRIC_MIN_DETECTION_SIZE)
+    metric_registry_min_detection_size = track_conf.get('metric_registry_min_detection_size', DEFAULT_METRIC_REGISTRY_MIN_DETECTION_SIZE)
     max_feature_count = track_conf.get('max_feature_count', DEFAULT_MAX_FEATURE_COUNT)
 
     n_init = int(track_conf.get('n_init', DEFAULT_N_INIT))
@@ -118,6 +131,7 @@ def load_track_params(track_conf:OmegaConf) -> DNATrackParams:
                         metric_threshold_loose=metric_threshold,
                         metric_gate_distance=metric_gate_distance,
                         metric_min_detection_size=metric_min_detection_size,
+                        metric_registry_min_detection_size=metric_registry_min_detection_size,
                         max_feature_count=max_feature_count,
                         
                         n_init=n_init,

@@ -253,7 +253,7 @@ def main():
 
     bg_img = load_video_image(args.video, args.frame)
     contact_point = ContactPointType(_contact_point_choices.index(args.contact_point))
-    localizer = WorldCoordinateLocalizer('conf/region_etri/etri_testbed.json', args.camera_index,
+    localizer = WorldCoordinateLocalizer('regions/etri_testbed/etri_testbed.json', args.camera_index,
                                         contact_point=contact_point) if args.camera_index >= 0 else None
     world_image = cv2.imread("data/ETRI_221011.png", cv2.IMREAD_COLOR)
 

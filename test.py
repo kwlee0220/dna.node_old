@@ -8,6 +8,7 @@ from torchvision.utils import draw_bounding_boxes
 from torchvision.transforms.functional import to_pil_image
 import torchvision.transforms as transforms
 
+
 transform = transforms.ToTensor()
 
 img = cv2.imread("data/grace_hopper_517x606.jpg", cv2.IMREAD_COLOR)

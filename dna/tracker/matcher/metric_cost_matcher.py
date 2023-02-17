@@ -10,7 +10,7 @@ import dna
 from dna.detect import Detection
 from dna.tracker import utils
 from ..dna_track_params import DNATrackParams
-from .base import Matcher, chain, MatchingSession, matches_str
+from .base import Matcher, chain, MatchingSession, matches_str, INVALID_METRIC_DISTANCE
 from .hungarian_matcher import HungarianMatcher
 from dna.tracker.dna_track import DNATrack
 
@@ -31,11 +31,11 @@ class MetricCostMatcher(Matcher):
         session = MatchingSession(self.tracks, self.detections, self.params, track_idxes, det_idxes)
 
         metric_matcher = HungarianMatcher(self.metric_cost, threshold_name="metric",
-                                            threshold=self.params.metric_threshold, invalid_value=1)
+                                            threshold=self.params.metric_threshold,
+                                            invalid_value=INVALID_METRIC_DISTANCE)
 
         #####################################################################################################
         ################ Hot track에 한정해서 강한 threshold를 사용해서  matching 실시
-        ################ Tentative track에 비해 2배 이상 먼거리를 갖는 경우에는 matching을 하지 않도록 함.
         #####################################################################################################
         if session.unmatched_hot_track_idxes and session.unmatched_metric_det_idxes:
             matches0 = metric_matcher.match(session.unmatched_hot_track_idxes, session.unmatched_metric_det_idxes)
@@ -59,7 +59,8 @@ class MetricCostMatcher(Matcher):
         #####################################################################################################
         if session.unmatched_track_idxes and session.unmatched_metric_det_idxes:
             metric_matcher_loose = HungarianMatcher(self.metric_cost, threshold_name="metric",
-                                                    threshold=self.params.metric_threshold_loose, invalid_value=1)
+                                                    threshold=self.params.metric_threshold_loose,
+                                                    invalid_value=INVALID_METRIC_DISTANCE)
             matches0 = metric_matcher_loose.match(session.unmatched_track_idxes, session.unmatched_metric_det_idxes)
             if matches0:
                 session.update(matches0)

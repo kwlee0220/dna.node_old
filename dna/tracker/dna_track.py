@@ -26,7 +26,7 @@ def to_box(tlbr:np.ndarray) -> Box:
 
 class DNATrack(ObjectTrack):
     def __init__(self, mean, covariance, track_id:int, frame_index:int, ts:float,
-                    n_init:int, max_age:int, detection:Detection=None) -> None:
+                    n_init:int, max_age:int, detection:Detection) -> None:
         super().__init__(id=track_id, state=TrackState.Tentative, location=to_box(to_tlbr(mean[:4])),
                         frame_index=frame_index, timestamp=ts)
 
@@ -36,14 +36,18 @@ class DNATrack(ObjectTrack):
         self.hits = 1
         self.time_since_update = 0
 
+        self.detections = [detection]
         self.features = []
-        self.last_detection = detection
-        if detection is not None and detection.feature is not None:
+        if detection.feature is not None:
             self.features.append(detection.feature)
 
         self.n_init = n_init
         self.time_to_promote = n_init - 1
         self._max_age = max_age
+
+    @property
+    def last_detection(self) -> Detection:
+        return self.features[-1]
 
     def predict(self, kf) -> None:
         self.mean, self.covariance = kf.predict(self.mean, self.covariance)
@@ -68,12 +72,12 @@ class DNATrack(ObjectTrack):
                     self.state = TrackState.Confirmed
             else:
                 if self.hits - (self.n_init-self.time_to_promote) > 2:
-                    self.state = TrackState.Deleted
+                    self.mark_deleted()
                     return
         elif self.state == TrackState.TemporarilyLost:
             self.state = TrackState.Confirmed
         
-        if track_params.is_large_detection_for_metric(det):
+        if track_params.is_large_detection_for_metric_regitry(det):
             self.features.append(det.feature)
             if len(self.features) > track_params.max_feature_count:
                 self.features = self.features[-track_params.max_feature_count:]

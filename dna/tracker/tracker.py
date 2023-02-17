@@ -59,7 +59,7 @@ class Tracker:
         for tidx in session.unmatched_track_idxes:
             track = self.tracks[tidx]
             if not track.is_deleted():
-                if not self.params.is_valid_size(track.location.size()):
+                if track.location.size() > self.params.detection_max_size:
                     track.mark_deleted()
                 else:
                     track.mark_missed()
@@ -143,7 +143,7 @@ class Tracker:
             if matches0:
                 session.update(matches0)
                 if self.logger.isEnabledFor(logging.DEBUG):
-                    self.logger.debug(f"(metric) all, strong: {matches_str(self.tracks, matches0)}")
+                    self.logger.debug(f"(metric) all, metric: {matches_str(self.tracks, matches0)}")
 
         ###########################################################################################################
         ### Match되지 못한 temporarily lost track에 대해서는 motion을 기준으로 재 matching 시킨다.
@@ -227,7 +227,7 @@ class Tracker:
                 session.update(matches1)
                 if self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f"rematch yielding tracks, {matcher}: {matches_str(self.tracks, matches1)}")
-            
+
     def draw_matched_detections(self, title:str, convas:Image, matches:List[Tuple[int,int]], detections:List[Detection]):
         if matches:
             for t_idx, d_idx in matches:
