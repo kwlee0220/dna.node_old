@@ -218,6 +218,30 @@ class Size2d:
             return np.array_equal(self.__wh, other.__wh)
         else:
             return False
+
+    def __gt__(self, other:Size2d):
+        if isinstance(other, Size2d):
+            return self.__wh[0] > other.__wh[0] and self.__wh[1] > other.__wh[1]
+        else:
+            raise ValueError(f'invalid Size2d object: {self}')
+
+    def __ge__(self, other:Size2d):
+        if isinstance(other, Size2d):
+            return self.__wh[0] >= other.__wh[0] and self.__wh[1] >= other.__wh[1]
+        else:
+            raise ValueError(f'invalid Size2d object: {self}')
+
+    def __lt__(self, other:Size2d):
+        if isinstance(other, Size2d):
+            return self.__wh[0] < other.__wh[0] and self.__wh[1] < other.__wh[1]
+        else:
+            raise ValueError(f'invalid Size2d object: {self}')
+
+    def __le__(self, other:Size2d):
+        if isinstance(other, Size2d):
+            return self.__wh[0] <= other.__wh[0] and self.__wh[1] <= other.__wh[1]
+        else:
+            raise ValueError(f'invalid Size2d object: {self}')
     
     def __repr__(self) -> str:
         if isinstance(self.wh[0], np.int32):
