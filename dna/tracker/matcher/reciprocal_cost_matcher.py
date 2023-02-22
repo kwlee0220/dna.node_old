@@ -23,7 +23,7 @@ class ReciprocalCostMatcher(Matcher):
         self.name = name if name else 'reciprocal'
         self.logger = logger
         
-    def match(self, row_idxes:Iterable[int], column_idxes:Iterable[int]) -> List[Tuple[int,int]]:
+    def match(self, row_idxes:List[int], column_idxes:List[int]) -> List[Tuple[int,int]]:
         unmatched_row_idxes = row_idxes.copy()
         unmatched_col_idxes = column_idxes.copy()
         

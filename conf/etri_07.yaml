@@ -1,16 +1,17 @@
 id: etri:07
 
 camera:
-  # uri: data/2022/crops/etri_07_crop.mp4
-  uri: data/2021/etri_07.mp4
+  uri: data/2022/crops/etri_07_crop.mp4
+  # uri: data/2021/etri_07.mp4
   sync: False
-  begin_frame: 202
+  # begin_frame: 1396
 
 tracker:
-  draw_zones: True
+  # draw_zones: True
   detector: dna.detect.yolov5:model=l6&score=0.1
   detection_min_size: [30, 30]
-  max_age: 40
+  n_init: 3
+  max_age: 50
   rois:
     - [0, 420, 640, 1060]
     - [900, 240, 1410, 600]
@@ -24,9 +25,9 @@ tracker:
     - [[1196, 223], [1196, 287], [1055, 289], [1055, 224]]
     - [[1673, 516], [1684, 1077], [1918, 1077], [1912, 515]]
     - [[175, 384], [175, 480], [257, 478], [258, 382]]
+    - [[677, 962], [1920, 962], [1920, 1200], [677, 1200]]
   stable_zones:
-    - [[0, 420], [300, 420], [300, 800], [0, 800]]
-  #   - [[1368, 512], [822, 465], [1106, 332], [1277, 338], [1327, 278], [1413, 283]]
+    - [[92, 507], [328, 667], [-300, 796], [-300, 513]]
 
 publishing:
   min_path_length: 10

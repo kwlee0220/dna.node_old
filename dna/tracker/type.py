@@ -29,6 +29,8 @@ class ObjectTrack:
         self.id = id
         self.state = state
         self.location = location
+        self.first_frame_index = frame_index
+        self.first_timestamp = timestamp
         self.frame_index = frame_index
         self.timestamp = timestamp
 

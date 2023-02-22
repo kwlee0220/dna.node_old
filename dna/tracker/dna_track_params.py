@@ -25,9 +25,9 @@ DEFAULT_IOU_DIST_THRESHOLD_LOOSE = IouDistThreshold(0.85, 90)
 
 DEFAULT_METRIC_TIGHT_THRESHOLD = 0.3
 DEFAULT_METRIC_THRESHOLD = 0.55
-DEFAULT_METRIC_GATE_DISTANCE = 500
+DEFAULT_METRIC_GATE_DISTANCE = 600
 DEFAULT_METRIC_MIN_DETECTION_SIZE = Size2d(30, 30)
-DEFAULT_METRIC_REGISTRY_MIN_DETECTION_SIZE = Size2d(50, 50)
+DEFAULT_METRIC_REGISTRY_MIN_DETECTION_SIZE = Size2d(45, 45)
 DEFAULT_MAX_FEATURE_COUNT = 50
 
 DEFAULT_N_INIT = 3
@@ -83,9 +83,13 @@ class DNATrackParams:
         return det.bbox.size() >= self.metric_registry_min_detection_size
             
     def find_stable_zone(self, box:Box) -> int:
-        return find_any_centroid_cover(box, self.params.stable_zones)
+        return find_any_centroid_cover(box, self.stable_zones)
     def is_in_stable_zone(self, box:Box, zone_id:int) -> bool:
-        return self.stable_zones[zone_id].covers(box.center().to_tuple())
+        pt = geometry.Point(box.center().to_tuple())
+        return self.stable_zones[zone_id].covers(pt)
+
+    def find_exit_zone(self, box:Box) -> int:
+        return find_any_centroid_cover(box, self.exit_zones)
 
 
 def load_track_params(track_conf:OmegaConf) -> DNATrackParams:

@@ -8,7 +8,7 @@ camera:
   # begin_frame: 100
 
 tracker:
-  draw_zones: True
+  # draw_zones: True
   detector: dna.detect.yolov5:model=l6&score=0.01
   detection_threshold: 0.35
   n_init: 5

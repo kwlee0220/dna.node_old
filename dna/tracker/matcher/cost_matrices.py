@@ -30,15 +30,25 @@ def build_iou_cost(tracks:List[ObjectTrack], detections:List[Detection]) -> np.n
     return matrix
 
 
-def build_dist_iou_cost(kf:KalmanFilter, tracks:List[ObjectTrack], detections:List[Detection]) -> Tuple[np.ndarray, np.ndarray]:
+def gate_dist_iou_cost(dist_cost:np.ndarray, iou_cost:np.ndarray, \
+                        tracks:List[ObjectTrack], detections:List[Detection]) -> Tuple[np.ndarray, np.ndarray]:
+    validity_mask = build_task_det_ratio_mask(tracks, detections)
+    gated_dist_cost = np.where(validity_mask, dist_cost, INVALID_DIST_DISTANCE)
+    gated_iou_cost = np.where(validity_mask, iou_cost, INVALID_IOU_DISTANCE)
+    return gated_dist_cost, gated_iou_cost
+
+
+def build_dist_iou_cost(kf:KalmanFilter, tracks:List[ObjectTrack], detections:List[Detection]) \
+    -> Tuple[np.ndarray, np.ndarray]:
     dist_cost = build_dist_cost(kf, tracks, detections)
     iou_cost = build_iou_cost(tracks, detections)
+    return gate_dist_iou_cost(dist_cost, iou_cost, tracks, detections)
     
-    bad_ratio_mask = ~build_task_det_ratio_mask(tracks, detections)
-    iou_cost[bad_ratio_mask] = INVALID_IOU_DISTANCE
-    dist_cost[bad_ratio_mask] = INVALID_DIST_DISTANCE
+    # bad_ratio_mask = ~build_task_det_ratio_mask(tracks, detections)
+    # iou_cost[bad_ratio_mask] = INVALID_IOU_DISTANCE
+    # dist_cost[bad_ratio_mask] = INVALID_DIST_DISTANCE
 
-    return dist_cost, iou_cost
+    # return dist_cost, iou_cost
 
 
 _AREA_RATIO_LIMITS = (0.3, 2.8)
@@ -61,14 +71,14 @@ def build_task_det_ratio_mask(tracks:List[ObjectTrack], detections:List[Detectio
     return mask
     
 
-def build_metric_cost(tracks:List[ObjectTrack], detections:List[Detection], dist_cost:np.ndarray,
-                        gate_distance:float, track_idxes:List[int], det_idxes:List[int]):
-    metric_cost = build_raw_metric_cost(tracks, detections, track_idxes, det_idxes)
-    gate_metric_cost(metric_cost, dist_cost, tracks, detections, gate_distance)
+# def build_metric_cost(tracks:List[ObjectTrack], detections:List[Detection], dist_cost:np.ndarray,
+#                         gate_distance:float, track_idxes:List[int], det_idxes:List[int]):
+#     metric_cost = build_raw_metric_cost(tracks, detections, track_idxes, det_idxes)
+#     gate_metric_cost(metric_cost, dist_cost, tracks, detections, gate_distance)
 
-    return metric_cost
+#     return metric_cost
 
-def build_raw_metric_cost(tracks:List[ObjectTrack], detections:List[Detection],
+def build_metric_cost(tracks:List[ObjectTrack], detections:List[Detection],
                         track_idxes:List[int], det_idxes:List[int]) -> np.ndarray:
     def build_matrix(tracks:List[ObjectTrack], features) -> np.ndarray:
         cost_matrix = np.zeros((len(tracks), len(features)))
@@ -90,17 +100,18 @@ def build_raw_metric_cost(tracks:List[ObjectTrack], detections:List[Detection],
     return cost_matrix
 
 def gate_metric_cost(metric_costs:np.ndarray, dist_costs:np.ndarray,
-                    tracks:List[ObjectTrack], detections:List[Detection],
                     gate_threshold:float) -> None:
-    for t_idx, track in enumerate(tracks):
-        t_box = track.location
-        for d_idx, det in enumerate(detections):
-            if dist_costs[t_idx, d_idx] == INVALID_DIST_DISTANCE:
-                metric_costs[t_idx, d_idx] = INVALID_METRIC_DISTANCE
-            elif dist_costs[t_idx, d_idx] > gate_threshold:
-                center_dist = t_box.center().distance_to(det.bbox.center())
-                if center_dist > 150:
-                    metric_costs[t_idx, d_idx] = INVALID_METRIC_DISTANCE
+    gated = np.where(dist_costs > gate_threshold, INVALID_METRIC_DISTANCE, metric_costs)
+    return gated
+    # for t_idx, track in enumerate(tracks):
+    #     t_box = track.location
+    #     for d_idx, det in enumerate(detections):
+    #         if dist_costs[t_idx, d_idx] == INVALID_DIST_DISTANCE:
+    #             metric_costs[t_idx, d_idx] = INVALID_METRIC_DISTANCE
+    #         elif dist_costs[t_idx, d_idx] > gate_threshold:
+    #             center_dist = t_box.center().distance_to(det.bbox.center())
+    #             if center_dist > 150:
+    #                 metric_costs[t_idx, d_idx] = INVALID_METRIC_DISTANCE
 
 
 def print_cost_matrix(tracks:List[ObjectTrack], cost, trim_overflow=None):

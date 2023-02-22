@@ -13,10 +13,11 @@ from dna.utils import RectangleDrawer, PolygonDrawer
 img = None
 
 camera_conf = OmegaConf.create()
-camera_conf.uri = "data/2022/crops/etri_07_crop.mp4"
+# camera_conf.uri = "data/2022/crops/etri_07_crop.mp4"
+camera_conf.uri = "data/2021/etri_07.mp4"
 # camera_conf.uri = "data/crossroads/crossroad_04.mp4"
 # camera_conf.uri = "output/result.jpg"
-camera_conf.begin_frame = 123
+camera_conf.begin_frame = 314
 camera:Camera = create_camera_from_conf(camera_conf)
 
 coords_list = [
@@ -27,7 +28,7 @@ coords_list = [
     #     [1921, 1075], [1920, 2], [0, -2], [-2, 636], [1, 1076], [226, 1077], [174, 826]]
 ]
 box_list = [
-    [0, 420, 320, 740],
+    # [0, 420, 320, 740],
     # [900, 240, 1410, 600]
 ]
 
@@ -42,7 +43,7 @@ for coords in coords_list:
     img = plot_utils.draw_polygon(img, coords, color.ORANGE, 2)
 
 polygon = []
-# polygon = [[71, 490], [6, 492], [7, 441], [87, 440], [93, 472]]
+# polygon = [[95, 530], [328, 667], [2, 796], [2, 530]]
 coords = PolygonDrawer(img, polygon).run()
 print(coords)
 

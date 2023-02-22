@@ -36,6 +36,9 @@ class MatchingSession:
     def find_match_by_det(self, det_idx:int) -> Optional[Tuple[int,int]]:
         founds = [m for m in self.matches if m[1] == det_idx]
         return founds[0] if founds else None
+    
+    def get_match(self, match:Tuple[int,int]):
+        return self.tracks[match[0]], self.detections[match[1]]
 
     @property
     def associations(self) -> List[Tuple[ObjectTrack,Detection]]:
@@ -53,7 +56,7 @@ class MatchingSession:
     @property
     def unmatched_tlost_track_idxes(self) -> List[int]:
         idx_tracks = ((i, self.tracks[i]) for i in self.unmatched_track_idxes)
-        return [i for i, t in idx_tracks if t.is_temporarily_lost() and t.time_since_update > 3]
+        return [i for i, t in idx_tracks if t.is_temporarily_lost()]
 
     @property
     def unmatched_tentative_track_idxes(self) -> List[int]:
@@ -61,6 +64,9 @@ class MatchingSession:
     @property
     def unmatched_confirmed_track_idxes(self) -> List[int]:
         return [i for i in self.unmatched_track_idxes if self.tracks[i].is_confirmed()]
+    @property
+    def unmatched_non_tentative_track_idxes(self) -> List[int]:
+        return [i for i in self.unmatched_track_idxes if not self.tracks[i].is_tentative()]
         
     @property
     def unmatched_strong_det_idxes(self) -> List[int]:
@@ -72,7 +78,10 @@ class MatchingSession:
         
     @property
     def unmatched_metric_det_idxes(self) -> List[int]:
-        return [i for i in self.unmatched_det_idxes if self.params.is_large_detection_for_metric(self.detections[i])]
+        # metric 생성용 detection들 중에서 'exit_zone'에 포함된 것을 제외시킨다.
+        return [i for i in self.unmatched_strong_det_idxes
+                    if self.params.is_large_detection_for_metric(det:=self.detections[i]) \
+                        and self.params.find_exit_zone(det.bbox) < 0]
 
     def __repr__(self) -> str:
         um_track_idxes = [self.tracks[t_idx].id for t_idx in self.unmatched_track_idxes]
