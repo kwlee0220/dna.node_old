@@ -38,7 +38,7 @@ class Session:
         self.points = self.points[length:]
         self.world_coords = self.world_coords[length:]
 
-        return LocalPathEvent(node_id=self.node_id, luid=self.luid,
+        return LocalPathEvent(node_id=self.node_id, track_id=self.luid,
                               camera_path=camera_path, world_path=world_path,
                               first_frame=self.first_frame, last_frame=self.last_frame,
                               continuation=cont)
@@ -63,13 +63,13 @@ class LocalPathGenerator(EventProcessor):
 
 
     def handle_event(self, ev: TrackEvent) -> None:
-        session = self.sessions.get(ev.luid, None)
+        session = self.sessions.get(ev.track_id, None)
         if session is None:
-            session = Session(ev.node_id, ev.luid)
-            self.sessions[ev.luid] = session
+            session = Session(ev.node_id, ev.track_id)
+            self.sessions[ev.track_id] = session
 
         if ev.state == TrackState.Deleted:
-            self.sessions.pop(ev.luid, None)
+            self.sessions.pop(ev.track_id, None)
             if session.length > 0:
                 pev = session.build_local_path(length=session.length, cont=False)
                 self.publish_event(pev)

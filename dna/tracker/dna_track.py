@@ -4,11 +4,13 @@ from typing import Union, List
 import numpy as np
 import cv2
 
+import dna
 from dna import Box, Size2d, Image, BGR, Point, plot_utils, Frame
 from dna.detect import Detection
 from dna.tracker import ObjectTrack, TrackState
 from .kalman_filter import KalmanFilter
 from .dna_track_params import DNATrackParams
+from dna.node.track_event import TrackEvent
 
 
 def to_tlbr(xyah:np.ndarray) -> Box:
@@ -35,12 +37,14 @@ class DNATrackState:
     covariance: np.ndarray
     hits: int
     time_since_update: int
+    stable_zone: int
     detections: List[Detection]
     features: List[np.ndarray]
     frame_index: int
     timestamp: float
 
 
+_UNKNOWN_ZONE_ID = -2
 
 class DNATrack(ObjectTrack):
     def __init__(self, mean, covariance, track_id:int, frame_index:int, ts:float,
@@ -51,8 +55,10 @@ class DNATrack(ObjectTrack):
         self.mean = mean
         self.covariance = covariance
         self.hits = 1
+        # self.first_index = frame_index
         self.time_since_update = 0
         self.time_to_promote = params.n_init - 1
+        self.params = params
 
         self.archived_state = None
 
@@ -64,30 +70,51 @@ class DNATrack(ObjectTrack):
 
         self.n_init = params.n_init
         self.max_age = params.max_age
-        self.exit_zone_touch_count = 0
+        self.__exit_zone = _UNKNOWN_ZONE_ID
+        self.__stable_zone = self.home_zone
 
     @property
     def age(self) -> int:
         return len(self.detections)
+    
+    @property
+    def last_frame_index(self) -> int:
+        return self.first_frame_index + len(self.detections) - 1
 
     @property
     def last_detection(self) -> Detection:
         return self.detections[-1]
 
-    def predict(self, kf) -> None:
+    @property
+    def exit_zone(self) -> int:
+        if self.__exit_zone == _UNKNOWN_ZONE_ID:
+            self.__exit_zone = self.params.find_exit_zone(self.location)
+        return self.__exit_zone
+
+    @property
+    def stable_zone(self) -> int:
+        if self.__stable_zone == _UNKNOWN_ZONE_ID:
+            self.__stable_zone = self.params.find_stable_zone(self.location)
+        return self.__stable_zone
+        
+    def predict(self, kf:KalmanFilter) -> None:
         self.mean, self.covariance = kf.predict(self.mean, self.covariance)
         self.location = to_box(to_tlbr(self.mean[:4]))
+        self.__exit_zone = _UNKNOWN_ZONE_ID
+        self.__stable_zone = _UNKNOWN_ZONE_ID
         self.time_since_update += 1
 
-    def update(self, kf, frame:Frame, det: Union[Detection, None], track_params:DNATrackParams) -> None:
+    def update(self, kf:KalmanFilter, frame:Frame, det:Detection) -> None:
         self.mean, self.covariance = kf.update(self.mean, self.covariance, det.bbox.to_xyah())
         self.location = to_box(to_tlbr(self.mean[:4]))
+        self.__exit_zone = _UNKNOWN_ZONE_ID
+        self.__stable_zone = _UNKNOWN_ZONE_ID
         
         self.detections.append(det)
-        if det and track_params.is_large_detection_for_metric_regitry(det):
+        if det and self.params.is_metric_detection_for_registry(det):
             self.features.append(det.feature)
-            if len(self.features) > track_params.max_feature_count:
-                self.features = self.features[-track_params.max_feature_count:]
+            if len(self.features) > self.params.max_feature_count:
+                self.features = self.features[-self.params.max_feature_count:]
         self.hits += 1
         self.time_since_update = 0
         self.frame_index = frame.index
@@ -97,7 +124,7 @@ class DNATrack(ObjectTrack):
         if self.state == TrackState.Tentative:
             if det is None:
                 self.mark_deleted()
-            elif track_params.is_strong_detection(det):
+            elif self.params.is_strong_detection(det):
                 self.time_to_promote -= 1
                 if self.time_to_promote <= 0:
                     self.state = TrackState.Confirmed
@@ -108,24 +135,33 @@ class DNATrack(ObjectTrack):
             self.state = TrackState.Confirmed
                 
     def mark_missed(self, frame:Frame) -> None:
+        self.frame_index = frame.index
+        self.timestamp = frame.ts
         self.detections.append(None)
+        
         if self.state == TrackState.Tentative:
             self.mark_deleted()
-        elif self.time_since_update > self.max_age:
+        elif self.exit_zone >= 0:
+            # track의 위치가 exit-zone에 위치한 경우 바로 delete시킨다.
             self.mark_deleted()
-        elif self.state != TrackState.TemporarilyLost:
-            self.state = TrackState.TemporarilyLost
-            self.archived_state = DNATrackState(self.mean, self.covariance, self.hits, self.time_since_update,
-                                                self.detections.copy(), self.features.copy(),
-                                                self.frame_index, self.timestamp)
+        else:   # Confirmed, TemporarilyLost, Deleted
+            if self.state != TrackState.TemporarilyLost:
+                self.state = TrackState.TemporarilyLost
+                self.archived_state = DNATrackState(self.mean, self.covariance, self.hits, self.time_since_update,
+                                                    self.stable_zone, self.detections.copy(), self.features.copy(),
+                                                    self.frame_index, self.timestamp)
+            max_lost_age = self.max_age
+            if self.archived_state.stable_zone >= 0:
+                max_lost_age *= 5
+            if self.time_since_update > max_lost_age:
+                self.mark_deleted()
 
     def mark_deleted(self) -> None:
         self.state = TrackState.Deleted
 
-    def mark_exit_zone_touched(self) -> None:
-        self.exit_zone_touch_count += 1
-        if self.exit_zone_touch_count >= 3:
-            self.mark_deleted()
+    def to_track_event(self) -> TrackEvent:
+        return TrackEvent(node_id=None, track_id=self.id, state=self.state, location=self.location,
+                          frame_index=self.frame_index, ts=self.timestamp)
         
     @property
     def state_str(self) -> str:
@@ -141,27 +177,40 @@ class DNATrack(ObjectTrack):
             raise ValueError("Shold not be here")
         
     def __repr__(self) -> str:
-        millis = int(round(self.timestamp * 1000))
-        return (f'{self.state_str}, location={self.location}, age={self.age}({self.time_since_update}), nfeats={len(self.features)}, '
-                f'frame={self.frame_index}, ts={millis}')
+        interval_str = ""
+        if len(self.detections):
+            interval_str = f':{self.first_frame_index}-{self.last_frame_index}'
 
-    def take_over(self, track:DNATrack, kf:KalmanFilter, frame:Frame, track_params:DNATrackParams) -> None:
+        return (f'{self.id}({self.state.abbr})[{len(self.detections)}{interval_str}]({self.time_since_update}), '
+                f'nfeats={len(self.features)}, frame={self.frame_index}')
+
+    def take_over(self, track:DNATrack, kf:KalmanFilter, frame:Frame, track_params:DNATrackParams,
+                  track_events:List[TrackEvent]) -> None:
         archived_state = self.archived_state
 
         self.mean = archived_state.mean
         self.covariance = archived_state.covariance
         self.time_since_update = archived_state.time_since_update
+        self.hits = archived_state.hits
+        self.detections = archived_state.detections
         self.archived_state = None
 
-        for i in range(archived_state.frame_index, track.first_frame_index):
+        # Take-over할 track의 첫 detection 전까지는 추정된 위치를 사용한다.
+        for i in range(archived_state.frame_index+1, track.first_frame_index):
             self.predict(kf)
             self.detections.append(None)
 
+        # Take-over할 track에게 할당된 detection으로 본 track의 위치를 재조정한다.
+        replay_frame = Frame(frame.image, track.first_frame_index, track.first_timestamp)
         for det in track.detections:
             self.predict(kf)
             if det:
-                self.update(kf, frame, det, track_params)
+                self.update(kf, replay_frame, det)
             else:
+                self.frame_index = replay_frame.index
+                self.timestamp = replay_frame.ts
                 self.detections.append(None)
+            track_events.append(self.to_track_event())
+            replay_frame = Frame(frame.image, replay_frame.index+1, track.first_timestamp)
 
         track.mark_deleted()

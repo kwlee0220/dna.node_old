@@ -8,13 +8,14 @@ from dna.utils import plot_utils
 
 
 class Detection:
-    __slots__ = 'bbox', 'label', 'score', 'feature'
+    __slots__ = 'bbox', 'label', 'score', 'feature', 'exit_zone'
 
     def __init__(self, bbox:Box, label:Optional[str]=None, score:float=-1) -> None:
         self.bbox = bbox
         self.label = label
         self.score = score
         self.feature = None
+        self.exit_zone = -1
 
     def draw(self, convas: Image, color:BGR,
             label:Optional[str]=None,

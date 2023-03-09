@@ -7,7 +7,7 @@ from .kafka_event import KafkaEvent
 @dataclass(frozen=True, eq=True, order=True)    # slots=True
 class LocalPathEvent(KafkaEvent):
     node_id: str
-    luid: int
+    track_id: int
     camera_path:str = field(compare=False, repr=False, hash=False)
     world_path:str = field(compare=False, repr=False, hash=False)
     first_frame: int
@@ -18,7 +18,7 @@ class LocalPathEvent(KafkaEvent):
         return self.node_id.encode('utf-8')
     
     def serialize(self) -> str:
-        serialized = { 'node_id': self.node_id, 'luid': self.luid,
+        serialized = { 'node_id': self.node_id, 'track_id': self.track_id,
                         'camera_path': self.camera_path, 'world_path': self.world_path,
                         'first_frame': self.first_frame, 'last_frame': self.last_frame,
                         'continuation': self.continuation }

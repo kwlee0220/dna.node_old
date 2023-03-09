@@ -57,14 +57,14 @@ class WorldCoordinateLocalizer:
         return pt_world, dist
         
     def to_image_coord_box(self, tlbr:np.array) -> Tuple[Optional[np.ndarray], np.double]:
-        pt = self.select_contact_point(tlbr, self.contact_point_type)
+        pt = self.select_contact_point(tlbr)
         return self.to_image_coord(pt)
 
-    def to_image_coord(self, pt) -> Point:
+    def to_image_coord(self, pt) -> Tuple[Point, np.double]:
         pt_m, dist = self.localize_point(pt)
         pt_m2p = conv_meter2pixel(pt_m, self.satellite['origin_pixel'], self.satellite['meter_per_pixel'])
         # return np.rint(pt_m2p).astype('int32')
-        return Point.from_np(pt_m2p)
+        return Point.from_np(pt_m2p), dist
         
     def localize_point(self, pt) -> Tuple[Optional[np.ndarray], np.double]:
         '''Calculate 3D location (unit: [meter]) of the given point (unit: [pixel]) with the given camera configuration'''
@@ -209,7 +209,7 @@ if __name__ == '__main__':
     print(coord, dist)
 
     img = cv2.imread("data/ETRI_221011.png", cv2.IMREAD_COLOR)
-    img_coord = localizer.to_image_coord(pt)
+    img_coord, _ = localizer.to_image_coord(pt)
     img = cv2.circle(img, img_coord, 5, color.RED, -1)
     while ( True ):
         cv2.imshow('image', img)

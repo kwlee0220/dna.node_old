@@ -66,6 +66,15 @@ class ObjectTrack:
                                             color=label_color, fill_color=color, thickness=2)
         return convas
 
+    def __eq__(self, other) -> bool:
+        if isinstance(other, ObjectTrack):
+            return self.id == other.id
+        else:
+            return False
+        
+    def __hash__(self) -> int:
+        return hash(self.id)
+
 
 class ObjectTracker(metaclass=ABCMeta):
     @abstractmethod
@@ -84,4 +93,4 @@ class TrackProcessor(metaclass=ABCMeta):
     def track_stopped(self, tracker:ObjectTracker) -> None: pass
 
     @abstractmethod
-    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[ObjectTrack]) -> None: pass
+    def process_tracks(self, tracker:ObjectTracker, frame:Frame, tracks:List[ObjectTrack]) -> None: pass

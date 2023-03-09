@@ -10,8 +10,7 @@ from dna import Box
 from dna.detect import Detection
 from dna.tracker import ObjectTrack, utils
 from dna.tracker.matcher import MatchingSession, matches_str
-from dna.tracker.matcher.cost_matrices import gate_dist_iou_cost
-from ..dna_track_params import DNATrackParams, IouDistThreshold
+from ..dna_track_params import DNATrackParams, DistanceIoUThreshold
 from .base import Matcher, chain
 from .reciprocal_cost_matcher import ReciprocalCostMatcher
 
@@ -25,7 +24,7 @@ class IoUDistanceCostMatcher(Matcher):
         self.params = params
         self.logger = logger
         
-        tight_thresholds = IouDistThreshold(0.5, 20)
+        tight_thresholds = DistanceIoUThreshold(distance=20, iou=0.5)
         self.tight_matcher = self._create_chain(dist_cost, iou_cost, tight_thresholds)  
         self.matcher = self._create_chain(dist_cost, iou_cost, params.iou_dist_threshold)
 

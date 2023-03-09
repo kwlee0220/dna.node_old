@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Any, Union
 from pathlib import Path
 from urllib.parse import parse_qs
 
@@ -29,9 +29,53 @@ class Yolov5Detector(ObjectDetector):
         self.model = torch.hub.load('ultralytics/yolov5', model_id, pretrained=True, verbose=False)
         self.names = self.model.names
 
-        score = kwargs.get('score')
-        if score is not None:
-            self.model.conf = float(score)
+        self.detect_args = dict()
+        # self.detect_args = {'imgsz':640}
+        if (v := kwargs.get('score')) is not None:
+            self.model.conf = float(v)
+        if (v := kwargs.get('iou')) is not None:
+            self.model.iou = float(v)
+        if (v := kwargs.get('max_det')) is not None:
+            self.model.max_det = int(v)
+        if (v := kwargs.get('classes')) is not None:
+            class_idxes = [self.names.index(cls) if isinstance(cls, str) else int(cls) for cls in v.split(',')]
+            self.model.classes = [idx for idx in class_idxes if idx < len(self.names)]
+        if (v := kwargs.get('agnostic')) is not None:
+            self.model.agnostic = bool(v)
+        if (v := kwargs.get('device')) is not None:
+            self.model.to(v)
+            
+    @property
+    def score(self) -> float:
+        return self.model.conf
+    @score.setter
+    def score(self, score:float) -> None:
+        self.model.conf = score
+            
+    @property
+    def classes(self) -> List[str]:
+        return [self.names[cls_idx] for cls_idx in self.model.classes]
+    @classes.setter
+    def classes(self, classes:List[str]) -> None:
+        class_idxes = [self.names.index(cls) if isinstance(cls, str) else int(cls) for cls in classes.split(',')]
+        self.model.classes = [idx for idx in class_idxes if idx >= 0 and idx < len(self.names)]
+            
+    @property
+    def iou(self) -> float:
+        return self.model.iou
+    @iou.setter
+    def iou(self, iou:float) -> None:
+        self.model.iou = iou
+            
+    @property
+    def max_det(self) -> int:
+        return self.model.max_det
+    @max_det.setter
+    def max_det(self, count:int) -> None:
+        self.model.max_det = count
+            
+    def device(self, device:Union[int,str]) -> None:
+        self.model.to(device)
 
     @torch.no_grad()
     def detect(self, frame: Frame) -> List[Detection]:
@@ -52,8 +96,9 @@ class Yolov5Detector(ObjectDetector):
         return [self._to_detections(xyxy) for xyxy in result.xyxy]
 
     def _preprocess(self, image:Image) -> torch.Tensor:
-        img = image.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
-        return np.ascontiguousarray(img)
+        return image[:,:,::-1]
+        # img = image.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+        # return np.ascontiguousarray(img)
 
     def _to_detections(self, xyxy) -> List[Detection]:
         return [self._to_detection(pred) for pred in xyxy.cpu().numpy()]

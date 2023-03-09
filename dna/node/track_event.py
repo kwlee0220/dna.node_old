@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from typing import Optional, List
+import dataclasses
 from dataclasses import dataclass, field, asdict
 import json
 
 import numpy as np
 
-from dna import Box, Point
+from dna import Box, Point, utils
 from dna.tracker import ObjectTrack, TrackState
 from .kafka_event import KafkaEvent
 
@@ -15,9 +16,9 @@ _WGS84_PRECISION = 7
 _DIST_PRECISION = 3
 @dataclass(frozen=True, eq=True, order=False, repr=False)    # slots=True
 class TrackEvent(KafkaEvent):
-    node_id: str
-    luid: int
-    state: TrackState
+    node_id: str        # node id
+    track_id: int       # tracking object id
+    state: TrackState   # tracking state
     location: Box = field(hash=False)
     frame_index: int
     ts: int = field(hash=False)
@@ -31,13 +32,13 @@ class TrackEvent(KafkaEvent):
         if self.frame_index < other.frame_index:
             return True
         elif self.frame_index == other.frame_index:
-            return self.luid < other.luid
+            return self.track_id < other.luid
         else:
             return False
 
     @staticmethod
     def from_track(node_id:str, track:ObjectTrack) -> TrackEvent:
-        return TrackEvent(node_id=node_id, luid=track.id, state=track.state,
+        return TrackEvent(node_id=node_id, track_id=track.id, state=track.state,
                         location=track.location, frame_index=track.frame_index, ts=int(track.timestamp * 1000))
 
     @staticmethod
@@ -50,7 +51,7 @@ class TrackEvent(KafkaEvent):
         distance = json_obj.get('distance', None)
 
         return TrackEvent(node_id=json_obj['node'],
-                            luid=json_obj['luid'],
+                            track_id=json_obj['track_id'],
                             state=TrackState[json_obj['state']],
                             location=Box.from_tlbr(np.array(json_obj['location'])),
                             frame_index=json_obj['frame_index'],
@@ -60,7 +61,7 @@ class TrackEvent(KafkaEvent):
 
     def to_json(self) -> str:
         tlbr_expr = [round(v, 2) for v in self.location.tlbr.tolist()]
-        serialized = {'node':self.node_id, 'luid':self.luid, 'state':self.state.name,
+        serialized = {'node':self.node_id, 'track_id':self.track_id, 'state':self.state.name,
                     'location':tlbr_expr, 'frame_index':self.frame_index, 'ts': self.ts}
         if self.world_coord is not None:
             serialized['world_coord'] = [round(v, _WGS84_PRECISION) for v in self.world_coord.to_tuple()]
@@ -71,7 +72,7 @@ class TrackEvent(KafkaEvent):
 
     def serialize(self) -> str:
         tlbr_expr = [round(v, 2) for v in self.location.tlbr.tolist()]
-        serialized = {'node':self.node_id, 'luid':self.luid, 'state':self.state.name,
+        serialized = {'node':self.node_id, 'track_id':self.track_id, 'state':self.state.name,
                     'location':tlbr_expr, 'frame_index':self.frame_index, 'ts': self.ts}
         if self.world_coord is not None:
             serialized['world_coord'] = [round(v, _WGS84_PRECISION) for v in self.world_coord.to_tuple()]
@@ -87,7 +88,7 @@ class TrackEvent(KafkaEvent):
         return TrackEvent(**fields)
 
     def to_csv(self) -> str:
-        vlist = [self.node_id, self.luid, self.state.name] \
+        vlist = [self.node_id, self.track_id, self.state.name] \
                 + self.location.tlbr.tolist() \
                 + [self.frame_index, self.ts]
         if self.world_coord is not None:
@@ -115,20 +116,20 @@ class TrackEvent(KafkaEvent):
             world_coord = None
             dist = None
             
-        return TrackEvent(node_id=node_id, luid=luid, state=state, location=loc,
+        return TrackEvent(node_id=node_id, track_id=luid, state=state, location=loc,
                             frame_index=frame_idx, ts=ts, world_coord=world_coord, distance=dist)
     
     def __repr__(self) -> str:
-        return (f"TrackEvent[node={self.node_id}, id={self.luid}, loc={self.location}, "
-                f"frame={self.frame_index}, ts={self.ts}]")
+        return (f"TrackEvent[id={self.track_id}({self.state.abbr}), frame={self.frame_index}, loc={self.location}]")
 
-EOT:TrackEvent = TrackEvent(node_id=None, luid=None, state=None, location=None,
+EOT:TrackEvent = TrackEvent(node_id=None, track_id=None, state=None, location=None,
                             world_coord=None, distance=None, frame_index=-1, ts=-1)
 
 
 from dna import Frame
 from dna.tracker import TrackProcessor
 from .event_processor import EventQueue
+
 class TrackEventSource(TrackProcessor, EventQueue):
     def __init__(self, node_id:str) -> None:
         TrackProcessor.__init__(self)
@@ -140,6 +141,6 @@ class TrackEventSource(TrackProcessor, EventQueue):
     def track_stopped(self, tracker) -> None:
         self.close()
 
-    def process_tracks(self, tracker, frame: Frame, tracks: List[ObjectTrack]) -> None:
+    def process_tracks(self, tracker, frame:Frame, tracks:List[ObjectTrack]) -> None:
         for track in tracks:
             self.publish_event(TrackEvent.from_track(self.node_id, track))

@@ -4,5 +4,4 @@ from .matching_session import MatchingSession
 from .hungarian_matcher import HungarianMatcher
 from .reciprocal_cost_matcher import ReciprocalCostMatcher
 from .iou_dist_cost_matcher import IoUDistanceCostMatcher
-from .metric_assisted_cost_matcher import MetricAssistedCostMatcher
-from .metric_cost_matcher2 import MetricCostMatcher
+from .metric_cost_matcher import MetricCostMatcher

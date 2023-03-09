@@ -11,7 +11,7 @@ def draw_line(convas:Image, from_pt:Point, to_pt:Point, color:BGR,
     return draw_line_raw(convas, from_pt.xy.astype(int), to_pt.xy.astype(int), color, line_thickness)
 
 def draw_line_raw(convas:Image, from_pt, to_pt, color:BGR, line_thickness: int=2) -> Image:
-    return cv2.line(convas, from_pt, to_pt, color, line_thickness)
+    return cv2.line(convas, from_pt, to_pt, color, line_thickness, lineType=cv2.LINE_AA)
 
 def draw_line_string_raw(convas:Image, pts:List[List[int]], color: BGR,
                             line_thickness: int=2) -> Image:
@@ -33,11 +33,11 @@ def draw_label(convas:Image, label:str, tl:Point, color: BGR=WHITE, fill_color:B
     return cv2.putText(convas, label, (tl.x, tl.y - 2), 0, font_scale, color, thickness=txt_thickness,
                         lineType=cv2.LINE_AA)
     
-def draw_polygon(convas:Image, coords:List[Union[Tuple[float,float],List[float]]], color, thickness) -> Image:
+def draw_polygon(convas:Image, coords:List[Union[Tuple[float,float],List[float]]], color, line_thickness) -> Image:
     if len(coords) > 2:
         coords = np.array(coords).astype(int)
-        return cv2.polylines(convas, [coords], True, color, thickness, lineType=cv2.LINE_AA)
+        return cv2.polylines(convas, [coords], True, color, line_thickness, lineType=cv2.LINE_AA)
     elif len(coords) == 2:
-        return cv2.line(convas, coords[0], coords[1], color, thickness, lineType=cv2.LINE_AA)
+        return cv2.line(convas, coords[0], coords[1], color, line_thickness, lineType=cv2.LINE_AA)
     else:
         return convas

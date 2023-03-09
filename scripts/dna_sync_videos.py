@@ -106,7 +106,7 @@ def find_isolated_trajectories(events_by_frame:Dict[int,List[TrackEvent]], spars
     def is_isolated(target:TrackEvent, events:List[TrackEvent]):
         # 같은 frame_index를 갖는 다른 track_event들과의 거리가 일정거리(sparse_dist) 이상인지를 판단함.
         for ev in events:
-            if target.luid != ev.luid and target.world_coord.distance_to(ev.world_coord) < sparse_dist:
+            if target.track_id != ev.track_id and target.world_coord.distance_to(ev.world_coord) < sparse_dist:
                 return False
         return True
         
@@ -115,8 +115,8 @@ def find_isolated_trajectories(events_by_frame:Dict[int,List[TrackEvent]], spars
     for _, events in events_by_frame.items():
         for te in events:
             if is_isolated(te, events):
-                # 물체의 식별자('luid')별로 track_event를 누적하여 trajectory를 구성함
-                trajectories[te.luid].append(Sample.from_event(te))
+                # 물체의 식별자('track_id')별로 track_event를 누적하여 trajectory를 구성함
+                trajectories[te.track_id].append(Sample.from_event(te))
     return [Trajectory(luid, samples) for luid, samples in trajectories.items()]
     
 def generate_segments(trajs: List[Trajectory], length: int):
@@ -158,7 +158,7 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description="Synchronize two videos")
     parser.add_argument("track_files", nargs='+', help="track json files")
-    parser.add_argument("--max_camera_distance", type=float, metavar="meter", default=55,
+    parser.add_argument("--max_camera_distance", type=float, metavar="meter", default=50,
                         help="max. distance from camera (default: 55)")
     parser.add_argument("--frame_delta", type=int, metavar="count", default=50, 
                         help="maximum frame difference between videos (default: 50)")

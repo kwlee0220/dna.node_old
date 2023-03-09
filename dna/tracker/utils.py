@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import List, Optional, Tuple, Sequence, Iterable, Generator, TypeVar
+from typing import List, Optional, Tuple, Sequence, Iterable, Generator, TypeVar, Union
 from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
 
-from dna import Box, Frame
+from dna import Box, Frame, Point, Image, BGR, plot_utils
 from dna.detect import Detection
 from dna.tracker import ObjectTrack, TrackState, ObjectTracker
 
@@ -24,11 +24,11 @@ def all_indices(values:Sequence):
 def project(tuples: Iterable[Tuple], elm_idx: int) -> List:
     return [t[elm_idx] for t in tuples]
 
-def get_items(values:Iterable[T], idxes:Iterable[int]) -> Generator[T,None,None]:
-    return (values[idx] for idx in idxes)
+def get_items(values:Iterable[T], idxes:Iterable[int]) -> List[T]:
+    return [values[idx] for idx in idxes]
 
-def get_indexed_items(values:Iterable[T], idxes:Iterable[int]) -> Generator[T,None,None]:
-    return ((idx, values[idx]) for idx in idxes)
+def get_indexed_items(values:Iterable[T], idxes:Iterable[int]) -> List[T]:
+    return [(idx, values[idx]) for idx in idxes]
     
 def cosine_distance(a:npt.ArrayLike, b:npt.ArrayLike, data_is_normalized=False):
     if not data_is_normalized:
@@ -36,6 +36,7 @@ def cosine_distance(a:npt.ArrayLike, b:npt.ArrayLike, data_is_normalized=False):
         b = np.asarray(b) / np.linalg.norm(b, axis=1, keepdims=True)
         
     return 1. - np.dot(a, b.T)
+
 
 class SimpleTrack(ObjectTrack):
     def __init__(self, id:int, state:TrackState, location:Box, frame_index:int, timestamp:float) -> None:

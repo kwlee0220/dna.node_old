@@ -7,6 +7,10 @@ from datetime import timedelta
 import argparse
 from omegaconf import OmegaConf
 
+import warnings
+from torch.serialization import SourceChangeWarning
+warnings.filterwarnings("ignore", category=SourceChangeWarning)
+
 import dna
 from dna.conf import load_node_conf, get_config
 from dna.camera import Camera, ImageProcessor, create_camera_from_conf

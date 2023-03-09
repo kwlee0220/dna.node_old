@@ -62,7 +62,7 @@ def load_trajectories_json(track_file:str) -> Dict[str,List[Box]]:
         t_boxes = defaultdict(list)
         for line in f.readlines():
             json_obj = json.loads(line)
-            luid = int(json_obj['luid'])
+            luid = int(json_obj['track_id'])
             box = Box.from_tlbr(json_obj['location'])
             t_boxes[luid].append(box)
         return t_boxes
@@ -131,8 +131,6 @@ class TrajectoryDrawer:
         self.stabilizer = stabilizer
         self.camera_image = camera_image
         self.world_image = world_image
-        self.localizer = localizer
-        self.stabilizer = stabilizer
         self.color = color.RED
         self.thickness = 2
 
@@ -226,7 +224,7 @@ class TrajectoryDrawer:
             pts = [box.center() for box in traj]
             
         if self.show_world_coords:
-            pts = [self.localizer.to_image_coord(pt) for pt in pts]
+            pts = [self.localizer.to_image_coord(pt)[0] for pt in pts]
             
         if self.show_stabilized:
             pts = self.stabilize(pts)

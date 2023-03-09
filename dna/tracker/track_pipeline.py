@@ -9,16 +9,17 @@ import cv2
 
 from dna import plot_utils, color, Point, BGR, Image, Frame
 from .type import ObjectTrack, TrackState, ObjectTracker, TrackProcessor
+from . import utils
 
 
 class TrackCsvWriter(TrackProcessor):
-    def __init__(self, track_file: str) -> None:
+    def __init__(self, track_file:str) -> None:
         super().__init__()
 
         self.track_file = track_file
         self.out_handle = None
 
-    def track_started(self, tracker: ObjectTracker) -> None:
+    def track_started(self, tracker:ObjectTracker) -> None:
         super().track_started(tracker)
 
         parent = Path(self.track_file).parent
@@ -26,14 +27,14 @@ class TrackCsvWriter(TrackProcessor):
             parent.mkdir(parents=True, exist_ok=True)
         self.out_handle = open(self.track_file, 'w')
     
-    def track_stopped(self, tracker: ObjectTracker) -> None:
+    def track_stopped(self, tracker:ObjectTracker) -> None:
         if self.out_handle:
             self.out_handle.close()
             self.out_handle = None
 
         super().track_stopped(tracker)
 
-    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[ObjectTrack]) -> None:
+    def process_tracks(self, tracker:ObjectTracker, frame:Frame, tracks:List[ObjectTrack]) -> None:
         for track in tracks:
             self.out_handle.write(track.to_csv() + '\n')
 
@@ -47,12 +48,12 @@ class Trail:
     def tracks(self) -> List[ObjectTrack]:
         return self.__tracks
 
-    def append(self, track: ObjectTrack) -> None:
+    def append(self, track:ObjectTrack) -> None:
         self.__tracks.append(track)
 
-    def draw(self, convas: np.ndarray, color: color.BGR, line_thickness=2) -> np.ndarray:
+    def draw(self, convas:np.ndarray, color:color.BGR, line_thickness=2) -> np.ndarray:
         # track의 중점 값들을 선으로 이어서 출력함
-        track_centers: List[Point] = [t.location.center() for t in self.tracks[-11:]]
+        track_centers:List[Point] = [t.location.center() for t in self.tracks[-11:]]
         return plot_utils.draw_line_string(convas, track_centers, color, line_thickness)
     
 
@@ -63,13 +64,13 @@ class TrailCollector(TrackProcessor):
         super().__init__()
         self.trails = collections.defaultdict(lambda: Trail())
 
-    def get_trail(self, track_id: str) -> Trail:
+    def get_trail(self, track_id:str) -> Trail:
         return self.trails[track_id]
 
-    def track_started(self, tracker: ObjectTracker) -> None: pass
-    def track_stopped(self, tracker: ObjectTracker) -> None: pass
+    def track_started(self, tracker:ObjectTracker) -> None: pass
+    def track_stopped(self, tracker:ObjectTracker) -> None: pass
 
-    def process_tracks(self, tracker: ObjectTracker, frame: Frame, tracks: List[ObjectTrack]) -> None:      
+    def process_tracks(self, tracker:ObjectTracker, frame:Frame, tracks:List[ObjectTrack]) -> None:      
         for track in tracks:
             if track.state == TrackState.Confirmed  \
                 or track.state == TrackState.TemporarilyLost    \
@@ -81,12 +82,11 @@ class TrailCollector(TrackProcessor):
 
 from dna.camera import ImageProcessor, FrameProcessor
 class TrackingPipeline(FrameProcessor):
-    __slots__ = ( 'tracker', 'is_detection_based', 'trail_collector', 'track_processors',
-                 'draw_tracks', 'show_zones' )
+    __slots__ = ( 'tracker', 'trail_collector', 'track_processors', 'draw')
 
-    @classmethod
-    def load(cls, img_proc: ImageProcessor, tracker_conf: OmegaConf,
-                            track_processors: List[TrackProcessor]=[]) -> TrackingPipeline:
+    @staticmethod
+    def load(img_proc:ImageProcessor, tracker_conf:OmegaConf,
+             track_processors:List[TrackProcessor]=[]) -> TrackingPipeline:
         tracker_uri = tracker_conf.get("uri", "dna.tracker")
         parts = tracker_uri.split(':', 1)
         id, query = tuple(parts) if len(parts) > 1 else (tracker_uri, "")
@@ -95,24 +95,21 @@ class TrackingPipeline(FrameProcessor):
         tracker_module = importlib.import_module(id)
         tracker = tracker_module.load_dna_tracker(tracker_conf)
 
-        draw_tracks = img_proc.is_drawing() and tracker_conf.get("draw_tracks", True)
-        draw_zones = img_proc.is_drawing() and tracker_conf.get("draw_zones", False)
+        draw = img_proc.is_drawing() and tracker_conf.get("draw", [])
 
         output = tracker_conf.get("output", None)
         if output is not None:
             track_processors = [TrackCsvWriter(output)] + track_processors
             
-        return cls(tracker=tracker, processors=track_processors, draw_tracks=draw_tracks, draw_zones=draw_zones)
+        return TrackingPipeline(tracker=tracker, processors=track_processors, draw=draw)
 
-    def __init__(self, tracker: ObjectTracker, processors: List[TrackProcessor]=[], draw_tracks: bool=False,
-                draw_zones=False) -> None:
+    def __init__(self, tracker:ObjectTracker, processors:List[TrackProcessor]=[], draw:List[str]=[]) -> None:
         super().__init__()
 
         self.tracker = tracker
         self.trail_collector = TrailCollector()
         self.track_processors = processors + [self.trail_collector]
-        self.draw_tracks = draw_tracks
-        self.draw_zones = draw_zones
+        self.draw = draw
 
     def on_started(self, capture) -> None:
         for processor in self.track_processors:
@@ -122,54 +119,72 @@ class TrackingPipeline(FrameProcessor):
         for processor in self.track_processors:
             processor.track_stopped(self.tracker)
 
-    def set_control(self, key: int) -> int:
-        if key == ord('z'):
-            self.draw_zones = not self.draw_zones
+    def set_control(self, key:int) -> int:
+        def toggle(tag:str):
+            if tag in self.draw:
+                self.draw.pop(tag)
+            else:
+                self.draw.append(tag)
+            
         if key == ord('t'):
-            self.draw_tracks = not self.draw_tracks
+            toggle('tracks')
+        if key == ord('b'):
+            toggle('blind_zones')
+        if key == ord('z'):
+            toggle('track_zones')
+        if key == ord('e'):
+            toggle('exit_zones')
+        if key == ord('s'):
+            toggle('stable_zones')
+        if key == ord('m'):
+            toggle('magnifying_zones')
         return key
 
-    def process_frame(self, frame: Frame) -> Frame:
+    def process_frame(self, frame:Frame) -> Frame:
         tracks = self.tracker.track(frame)
 
         for processor in self.track_processors:
             processor.process_tracks(self.tracker, frame, tracks)
 
-        convas = frame.image
-        if self.draw_zones:
-            for roi, shrinked in zip(self.tracker.params.detection_rois, self.tracker.shrinked_rois):
-                roi.draw(convas, color.ORANGE, line_thickness=1)
-                # shrinked.draw(convas, color.WHITE, line_thickness=1)
-            
-            for zone in self.tracker.params.blind_zones:
-                convas = plot_utils.draw_polygon(convas, list(zone.exterior.coords), color.YELLOW, 1)
-            for zone in self.tracker.params.exit_zones:
-                convas = plot_utils.draw_polygon(convas, list(zone.exterior.coords), color.RED, 1)
-            for poly in self.tracker.params.stable_zones:
-                convas = plot_utils.draw_polygon(convas, list(poly.exterior.coords), color.BLUE, 1)
+        if self.draw:
+            convas = frame.image
+            if 'track_zones' in self.draw:
+                for zone in self.tracker.params.track_zones:
+                    convas = zone.draw(convas, color.RED, 1)
+            if 'blind_zones' in self.draw:
+                for zone in self.tracker.params.blind_zones:
+                    convas = zone.draw(convas, color.YELLOW, 1)
+            if 'exit_zones' in self.draw:
+                for zone in self.tracker.params.exit_zones:
+                    convas = zone.draw(convas, color.RED, 1)
+            if 'stable_zones' in self.draw:
+                for zone in self.tracker.params.stable_zones:
+                    convas = zone.draw(convas, color.BLUE, 1)
+            if 'magnifying_zones' in self.draw:
+                for roi in self.tracker.params.magnifying_zones:
+                    roi.draw(convas, color.ORANGE, line_thickness=1)
 
-        if self.draw_tracks:
-            tracks = self.tracker.tracks
-            for track in tracks:
-                if hasattr(track, 'last_detection'):
-                    det = track.last_detection
-                    if det:
-                        convas = det.draw(convas, color.WHITE, line_thickness=1)
-
-            for track in tracks:
-                if track.is_tentative():
-                    convas = self.draw_track_trail(convas, track, color.RED, trail_color=color.BLUE, line_thickness=1)
-            for track in sorted(tracks, key=lambda t: t.id, reverse=True):
-                if track.is_confirmed():
-                    convas = self.draw_track_trail(convas, track, color.BLUE, trail_color=color.RED, line_thickness=1)
-                elif track.is_temporarily_lost():
-                    convas = self.draw_track_trail(convas, track, color.BLUE, trail_color=color.LIGHT_GREY, line_thickness=1)
+            if 'tracks' in self.draw:
+                tracks = self.tracker.tracks
+                for track in tracks:
+                    if hasattr(track, 'last_detection'):
+                        det = track.last_detection
+                        if det:
+                            convas = det.draw(convas, color.WHITE, line_thickness=1)
+                for track in tracks:
+                    if track.is_tentative():
+                        convas = self.draw_track_trail(convas, track, color.RED, trail_color=color.BLUE, line_thickness=1)
+                for track in sorted(tracks, key=lambda t:t.id, reverse=True):
+                    if track.is_confirmed():
+                        convas = self.draw_track_trail(convas, track, color.BLUE, trail_color=color.RED, line_thickness=1)
+                    elif track.is_temporarily_lost():
+                        convas = self.draw_track_trail(convas, track, color.BLUE, trail_color=color.LIGHT_GREY, line_thickness=1)
             return Frame(convas, frame.index, frame.ts)
         else:
             return frame
     
-    def draw_track_trail(self, convas:Image, track: ObjectTrack, color: color.BGR, label_color: BGR=color.WHITE,
-                        trail_color: Optional[BGR]=None, line_thickness=2) -> np.ndarray:
+    def draw_track_trail(self, convas:Image, track:ObjectTrack, color:color.BGR, label_color:BGR=color.WHITE,
+                        trail_color:Optional[BGR]=None, line_thickness=2) -> np.ndarray:
         convas = track.draw(convas, color, label_color=label_color, line_thickness=line_thickness)
 
         if trail_color:

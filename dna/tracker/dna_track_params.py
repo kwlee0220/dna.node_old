@@ -1,58 +1,77 @@
 from __future__ import annotations
-from typing import List, Tuple, Set
+from typing import List, Tuple, Set, Union, Any, Optional
 from enum import Enum
 from dataclasses import dataclass, field
 
+import numpy as np
+import numpy.typing as npt
 from omegaconf.omegaconf import OmegaConf
-import shapely.geometry as geometry
 
+import dna
 from dna import Size2d, Box
-from dna.utils import find_any_centroid_cover, find_any_point_cover
 from dna.detect import Detection
-from dna.tracker import ObjectTrack
+from dna.zone import Zone
 
-from collections import namedtuple
-IouDistThreshold = namedtuple('IouDistThreshold', 'iou,distance')
+
+@dataclass(frozen=True, eq=True)    # slots=True
+class DistanceIoUThreshold:
+    distance: float
+    iou: float
+    
+    @staticmethod
+    def from_config(conf:OmegaConf, key:str, default=None) -> DistanceIoUThreshold:
+        conf_value = OmegaConf.select(conf, key, default=None)
+        if conf_value:
+            npa = np.array(conf_value)
+            return DistanceIoUThreshold(distance=npa[0], iou=npa[1])
+        else:
+            return default
 
 DEFAULT_DETECTIION_CLASSES = ['car', 'bus', 'truck']
-DEFAULT_DETECTION_THRESHOLD = 0.37
+DEFAULT_DETECTION_CONFIDENCE = 0.37
 DEFAULT_DETECTION_MIN_SIZE = Size2d(15, 15)
 DEFAULT_DETECTION_MAX_SIZE = Size2d(768, 768)
 DEFAULT_DETECTION_ROIS = []
 
-DEFAULT_IOU_DIST_THRESHOLD = IouDistThreshold(0.80, 70)
-DEFAULT_IOU_DIST_THRESHOLD_LOOSE = IouDistThreshold(0.85, 90)
+DEFAULT_IOU_DIST_THRESHOLD = DistanceIoUThreshold(distance=70, iou=0.75)
+DEFAULT_IOU_DIST_THRESHOLD_LOOSE = DistanceIoUThreshold(distance=90, iou=0.85)
 
-DEFAULT_METRIC_TIGHT_THRESHOLD = 0.3
+# DEFAULT_METRIC_TIGHT_THRESHOLD = 0.3
 DEFAULT_METRIC_THRESHOLD = 0.55
 DEFAULT_METRIC_GATE_DISTANCE = 600
 DEFAULT_METRIC_MIN_DETECTION_SIZE = Size2d(30, 30)
-DEFAULT_METRIC_REGISTRY_MIN_DETECTION_SIZE = Size2d(45, 45)
+DEFAULT_METRIC_REGISTRY_MIN_DETECTION_SIZE = Size2d(35, 35)
 DEFAULT_MAX_FEATURE_COUNT = 50
 
 DEFAULT_N_INIT = 3
-DEFAULT_MAX_AGE = 10
+DEFAULT_MAX_AGE = 15
 DEFAULT_NEW_TRACK_MIN_SIZE = [30, 20]
 DEFAULT_MATCH_OVERLAP_SCORE = 0.75
 DEFAULT_MAX_NMS_SCORE = 0.8
 
-DEFAULT_BLIND_ZONES = []
-DEFAULT_EXIT_ZONES = []
-DEFAULT_STABLE_ZONES = []
+EMPTY_ZONES = []
 
+def load_size2d(conf:OmegaConf, key:str, def_value:Optional[Size2d]) -> Optional[Size2d]:
+    value = conf.get(key)
+    return Size2d.from_expr(value) if value else def_value    
+
+
+def parse_zones(conf:OmegaConf, key:str, default:Zone=EMPTY_ZONES) -> List[Zone]:
+    zones_expr = OmegaConf.select(conf, key, default=default)
+    return [Zone.from_coords(zone) for zone in zones_expr]
+    
 @dataclass(frozen=True, eq=True)    # slots=True
 class DNATrackParams:
     detection_classes: Set[str]
-    detection_threshold: float
+    detection_confidence: float
     detection_min_size: Size2d
     detection_max_size: Size2d
-    detection_rois: List[Box]
+    drop_border_detections: bool
 
-    iou_dist_threshold: IouDistThreshold
-    iou_dist_threshold_loose: IouDistThreshold
+    iou_dist_threshold: DistanceIoUThreshold
+    iou_dist_threshold_loose: DistanceIoUThreshold
 
     metric_threshold: float
-    metric_threshold_loose: float
     metric_gate_distance: float
     metric_min_detection_size: Size2d
     metric_registry_min_detection_size: Size2d
@@ -63,76 +82,84 @@ class DNATrackParams:
     max_age: int
     match_overlap_score: float
     max_nms_score: float
-
-    blind_zones: List[geometry.Polygon]
-    exit_zones: List[geometry.Polygon]
-    stable_zones: List[geometry.Polygon]
-
-    def is_valid_size(self, size:Size2d) -> bool:
-        return self.detection_min_size.width <= size.width <= self.detection_max_size.width \
-            and self.detection_min_size.height <= size.height <= self.detection_max_size.height
+    
+    track_zones: List[Zone]
+    magnifying_zones: List[Box]
+    blind_zones: List[Zone]
+    exit_zones: List[Zone]
+    stable_zones: List[Zone]
+    
+    draw: List[str]
 
     def is_strong_detection(self, det:Detection) -> bool:
-        return det.score >= self.detection_threshold
+        return det.score >= self.detection_confidence
     
-    def is_large_detection_for_metric(self, det:Detection) -> bool:
-        return det.bbox.size().width >= self.metric_min_detection_size.width \
-                and det.bbox.size().height >= self.metric_min_detection_size.height
+    def is_metric_detection(self, det:Detection) -> bool:
+        return self.is_strong_detection(det) \
+            and det.bbox.size() >= self.metric_min_detection_size \
+            and det.exit_zone < 0
     
-    def is_large_detection_for_metric_regitry(self, det:Detection) -> bool:
-        return det.bbox.size() >= self.metric_registry_min_detection_size
-            
-    def find_stable_zone(self, box:Box) -> int:
-        return find_any_centroid_cover(box, self.stable_zones)
+    def is_metric_detection_for_registry(self, det:Detection) -> bool:
+        return self.is_strong_detection(det) \
+            and det.bbox.size() >= self.metric_registry_min_detection_size \
+            and det.exit_zone < 0
+
     def is_in_stable_zone(self, box:Box, zone_id:int) -> bool:
-        pt = geometry.Point(box.center().to_tuple())
-        return self.stable_zones[zone_id].covers(pt)
-
+        return self.stable_zones[zone_id].contains_point(box.center())
+            
+    def find_track_zone(self, box:Box) -> int:
+        return Zone.find_covering_zone(box.center(), self.track_zones)
+    def find_stable_zone(self, box:Box) -> int:
+        return Zone.find_covering_zone(box.center(), self.stable_zones)
     def find_exit_zone(self, box:Box) -> int:
-        return find_any_centroid_cover(box, self.exit_zones)
-
+        return Zone.find_covering_zone(box.center(), self.exit_zones)
+    def find_blind_zone(self, box:Box) -> int:
+        return Zone.find_covering_zone(box.center(), self.blind_zones)
 
 def load_track_params(track_conf:OmegaConf) -> DNATrackParams:
     detection_classes = set(track_conf.get('detection_classes', DEFAULT_DETECTIION_CLASSES))
-    detection_threshold = track_conf.get('detection_threshold', DEFAULT_DETECTION_THRESHOLD)
-    detection_min_size = Size2d.from_expr(track_conf.get('detection_min_size', DEFAULT_DETECTION_MIN_SIZE))
-    detection_max_size = Size2d.from_expr(track_conf.get('detection_max_size', DEFAULT_DETECTION_MAX_SIZE))
-    detection_rois = [Box.from_tlbr(roi) for roi in track_conf.get('rois', DEFAULT_DETECTION_ROIS)]
+    detection_confidence = track_conf.get('detection_confidence', DEFAULT_DETECTION_CONFIDENCE)
+    detection_min_size = load_size2d(track_conf, 'detection_min_size', None)
+    detection_max_size = load_size2d(track_conf, 'detection_max_size', None)
+    drop_border_detections = track_conf.get('drop_border_detections', True)
 
-    iou_dist_threshold = track_conf.get('iou_dist_threshold', DEFAULT_IOU_DIST_THRESHOLD)
-    iou_dist_threshold_loose = track_conf.get('iou_dist_threshold_loose', DEFAULT_IOU_DIST_THRESHOLD_LOOSE)
+    iou_dist_threshold = DistanceIoUThreshold.from_config(track_conf, 'iou_dist_threshold', DEFAULT_IOU_DIST_THRESHOLD)
+    iou_dist_threshold_loose = DistanceIoUThreshold.from_config(track_conf, 'iou_dist_threshold_loose',
+                                                                DEFAULT_IOU_DIST_THRESHOLD_LOOSE)
 
-    metric_tight_threshold = track_conf.get('metric_tight_threshold', DEFAULT_METRIC_TIGHT_THRESHOLD)
-    metric_threshold = track_conf.get('metric_threshold', DEFAULT_METRIC_THRESHOLD)
-    metric_gate_distance = track_conf.get('metric_gate_distance', DEFAULT_METRIC_GATE_DISTANCE)
-    metric_min_detection_size = track_conf.get('metric_min_detection_size', DEFAULT_METRIC_MIN_DETECTION_SIZE)
-    metric_registry_min_detection_size = track_conf.get('metric_registry_min_detection_size', DEFAULT_METRIC_REGISTRY_MIN_DETECTION_SIZE)
-    max_feature_count = track_conf.get('max_feature_count', DEFAULT_MAX_FEATURE_COUNT)
+    metric_threshold = OmegaConf.select(track_conf, "metric_threshold", default=DEFAULT_METRIC_THRESHOLD)
+    metric_gate_distance = OmegaConf.select(track_conf, "metric_gate_distance", default=DEFAULT_METRIC_GATE_DISTANCE)
+    metric_min_detection_size = load_size2d(track_conf, 'metric_min_detection_size',
+                                            DEFAULT_METRIC_MIN_DETECTION_SIZE)
+    metric_registry_min_detection_size = load_size2d(track_conf, 'metric_registry_min_detection_size',
+                                                     DEFAULT_METRIC_REGISTRY_MIN_DETECTION_SIZE)
+    max_feature_count = OmegaConf.select(track_conf, "max_feature_count", default=DEFAULT_MAX_FEATURE_COUNT)
 
     n_init = int(track_conf.get('n_init', DEFAULT_N_INIT))
     max_age = int(track_conf.get('max_age', DEFAULT_MAX_AGE))
     max_nms_score = track_conf.get('max_nms_score', DEFAULT_MAX_NMS_SCORE)
     match_overlap_score = track_conf.get('match_overlap_score', DEFAULT_MATCH_OVERLAP_SCORE)
     new_track_min_size = Size2d.from_expr(track_conf.get('new_track_min_size', DEFAULT_NEW_TRACK_MIN_SIZE))
-
-    if blind_zones := track_conf.get("blind_zones", DEFAULT_BLIND_ZONES):
-        blind_zones = [geometry.Polygon([tuple(c) for c in zone]) for zone in blind_zones]
-    if exit_zones := track_conf.get("exit_zones", DEFAULT_EXIT_ZONES):
-        exit_zones = [geometry.Polygon([tuple(c) for c in zone]) for zone in exit_zones]
-    if stable_zones := track_conf.get("stable_zones", DEFAULT_STABLE_ZONES):
-        stable_zones = [geometry.Polygon([tuple(c) for c in zone]) for zone in stable_zones]
+    
+    track_zones = parse_zones(track_conf, 'track_zones')
+    blind_zones = parse_zones(track_conf, 'blind_zones')
+    exit_zones = parse_zones(track_conf, 'exit_zones')
+    stable_zones = parse_zones(track_conf, 'stable_zones')
+    zones_expr = OmegaConf.select(track_conf, 'magnifying_zones', default=[])
+    magnifying_zones = [Box.from_tlbr(zone) for zone in zones_expr]
+    
+    draw = track_conf.get("draw", [])
 
     return DNATrackParams(detection_classes=detection_classes,
-                        detection_threshold=detection_threshold,
+                        detection_confidence=detection_confidence,
                         detection_min_size=detection_min_size,
                         detection_max_size=detection_max_size,
-                        detection_rois=detection_rois,
+                        drop_border_detections=drop_border_detections,
                         
                         iou_dist_threshold=iou_dist_threshold,
                         iou_dist_threshold_loose=iou_dist_threshold_loose,
                         
-                        metric_threshold=metric_tight_threshold,
-                        metric_threshold_loose=metric_threshold,
+                        metric_threshold=metric_threshold,
                         metric_gate_distance=metric_gate_distance,
                         metric_min_detection_size=metric_min_detection_size,
                         metric_registry_min_detection_size=metric_registry_min_detection_size,
@@ -144,6 +171,10 @@ def load_track_params(track_conf:OmegaConf) -> DNATrackParams:
                         match_overlap_score=match_overlap_score,
                         new_track_min_size=new_track_min_size,
                         
+                        track_zones=track_zones,
+                        magnifying_zones=magnifying_zones,
                         blind_zones=blind_zones,
                         exit_zones=exit_zones,
-                        stable_zones=stable_zones)
+                        stable_zones=stable_zones,
+                        
+                        draw=draw)

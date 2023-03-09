@@ -4,6 +4,10 @@ from datetime import timedelta
 import yaml
 from omegaconf import OmegaConf
 
+import warnings
+from torch.serialization import SourceChangeWarning
+warnings.filterwarnings("ignore", category=SourceChangeWarning)
+
 import dna
 from dna.conf import load_node_conf, get_config
 from scripts.utils import load_camera_conf
@@ -17,10 +21,11 @@ def parse_args():
     
     parser.add_argument("--camera", metavar="uri", help="target camera uri")
     parser.add_argument("--sync", action='store_true', help="sync to camera fps")
-    parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number", default=1)
+    parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number")
     parser.add_argument("--end_frame", type=int, metavar="number", help="the last frame number")
 
     parser.add_argument("--output", metavar="json file", help="track event file.", default=None)
+    parser.add_argument("--output_video", "-v", metavar="mp4 file", help="output video file.", default=None)
     parser.add_argument("--show_progress", help="display progress bar.", action='store_true')
     parser.add_argument("--show", "-s", nargs='?', const='0x0', default=None)
     parser.add_argument("--loop", action='store_true')
@@ -38,10 +43,17 @@ def main():
     conf.camera = load_camera_conf(get_config(conf, "camera", OmegaConf.create()), args_conf)
     camera = create_camera_from_conf(conf.camera)
 
-    if 'output' in args:
-        publishing_conf = conf.get('publishing', OmegaConf.create())
-        publishing_conf.output = args.output
-        conf.publishing = publishing_conf
+    conf.output_video = args.output_video
+
+    publishing_conf:OmegaConf = OmegaConf.select(conf, 'publishing')
+    if publishing_conf is None:
+        conf.publishing = publishing_conf = OmegaConf.create()
+
+    plugins_conf = OmegaConf.select(publishing_conf, 'plugins')
+    if plugins_conf is None:
+        publishing_conf.plugins = plugins_conf = OmegaConf.create()
+    if args.output:
+         publishing_conf.plugins.output = args.output
 
     while True:
         img_proc = build_node_processor(camera.open(), conf)

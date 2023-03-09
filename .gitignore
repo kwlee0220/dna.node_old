@@ -134,7 +134,7 @@ output/
 models/
 *.pt
 *.whl
-track_output*
+output.png
 docker/share/
 docker/Dockerfile.0
 docker/Dockerfile.1

@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import sys
-from typing import Tuple, Union, Dict, Any, Optional, List
+from typing import Tuple, Union, Dict, Any, Optional, List, TypeVar, Callable, Iterable
 from datetime import datetime, timezone
 from time import time
 from pathlib import Path
 
-from . import Box
+from . import Box, Point
 from .color import BGR
+
+T = TypeVar("T")
 
 
 def datetime2utc(dt: datetime) -> int:
@@ -38,19 +40,22 @@ def get_first_param(args: Dict[str,Any], key: str, def_value=None):
     value = args.get(key)
     return value[0] if value else def_value
 
-
-def find_any_point_cover(pt:geometry.Point, zones:List[geometry.Polygon]):
-    for idx, zone in enumerate(zones):
-        if zone.covers(pt):
-            return idx
-    return -1
-def find_any_centroid_cover(box: Box, zones:List[geometry.Polygon]):
-    pt = geometry.Point(box.center().to_tuple())
-    return find_any_point_cover(pt, zones)
+def split_list(list:List, cond) -> Tuple[List,List]:
+    trues = []
+    falses = []
+    for v in list:
+        if cond(v):
+            trues.append(v)
+        else:
+            falses.append(v)
+    return trues, falses
 
 from dna import color, plot_utils
 import cv2
 import numpy as np
+
+def rindex(lst, value):
+    return len(lst) - lst[::-1].index(value) - 1
 
 def find_track_index(track_id, tracks):
     return next((idx for idx, track in enumerate(tracks) if track[idx].id == track_id), None)
@@ -161,6 +166,9 @@ class PolygonDrawer:
             key = cv2.waitKey(1) & 0xFF
             if key == ord('q'):
                 break
+            elif key == ord('s'):
+                cv2.imwrite("output.png", self.convas)
+
         cv2.destroyWindow('image')
         return self.coords
         

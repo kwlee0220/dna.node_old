@@ -263,7 +263,10 @@ class Box:
 
     @classmethod
     def from_tlbr(cls, tlbr:npt.ArrayLike) -> Box:
-        return Box(np.array(tlbr))
+        tlbr = np.array(tlbr)
+        if tlbr.shape == (2,2):
+            tlbr = tlbr.flatten()
+        return Box(tlbr)
 
     @classmethod
     def from_tlwh(cls, tlwh: np.ndarray) -> Box:
@@ -386,6 +389,10 @@ class Box:
             return y2 - y1b
         else:             # rectangles intersect
             return 0.
+
+    def contains_point(self, pt:Point) -> bool:
+        x, y = pt.to_tuple()
+        return x >= self.tlbr[0] and y >= self.tlbr[1] and x < self.tlbr[2] and y < self.tlbr[3]
 
     def contains(self,box:Box) -> bool:
         return self.tlbr[0] <= box.tlbr[0] and self.tlbr[1] <= box.tlbr[1] \

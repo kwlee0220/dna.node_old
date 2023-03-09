@@ -79,9 +79,7 @@ class MatchingSession:
     @property
     def unmatched_metric_det_idxes(self) -> List[int]:
         # metric 생성용 detection들 중에서 'exit_zone'에 포함된 것을 제외시킨다.
-        return [i for i in self.unmatched_strong_det_idxes
-                    if self.params.is_large_detection_for_metric(det:=self.detections[i]) \
-                        and self.params.find_exit_zone(det.bbox) < 0]
+        return [i for i in self.unmatched_strong_det_idxes if self.params.is_metric_detection(self.detections[i])]
 
     def __repr__(self) -> str:
         um_track_idxes = [self.tracks[t_idx].id for t_idx in self.unmatched_track_idxes]
