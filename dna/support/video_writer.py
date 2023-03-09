@@ -3,6 +3,7 @@ from typing import Optional, Tuple, List
 
 from pathlib import Path
 from contextlib import suppress
+import logging
 
 import cv2
 

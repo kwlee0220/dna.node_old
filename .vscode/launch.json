@@ -22,15 +22,15 @@
             "program": "${workspaceFolder}/scripts/dna_node.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                // "--camera", "data/2022/crops/etri_041_crop.mp4",
-                "--conf", "conf/etri_testbed/etri_06.yaml",
-                // "--conf", "conf/ai_city/ai_city_10.yaml",
-                "--output", "output/etri_061_event.json",   // -o <file>
-                "--output_video", "output/etri_061.mp4",   // -v <file>
+                // "--camera", "data/2022/etri_042.mp4",
+                // "--conf", "conf/etri_testbed/etri_04.yaml",
+                "--conf", "conf/ai_city/ai_city_11.yaml",
+                // "--output", "output/etri_042_event.json",   // -o <file>
+                // "--output_video", "output/etri_061.mp4",   // -v <file>
                 // "--begin_frame", "1000",
                 // "--end_frame", "1000",
-                // "--show", //"1280x720",
-                "--show_progress",  // -p
+                "--show", //"1280x720",
+                // "--show_progress",  // -p
             ],
             "justMyCode": true
         },
@@ -78,7 +78,7 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--conf", "conf/etri_04.yaml",
-                "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/3/media.smp",
+                "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/5/media.smp",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",
@@ -86,13 +86,16 @@
             ],
             "justMyCode": true
         },
-        { "name": "GenerateTrainingData",
+        { "name": "GenerateTrainSet",
             "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_generate_training_data.py",
+            "program": "${workspaceFolder}/scripts/dna_gen_trainset.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--conf", "conf/etri_testbed/etri_06.yaml",
-                "--output", "training"
+                "data/2022/etri_074.mp4",
+                "output/etri_074_event.json",
+                "--margin", "5",
+                // "--output", "output/training/etri_044"
+                "--output", "d:/Temp/training/etri_074"
             ],
             "justMyCode": true
         },
@@ -141,10 +144,10 @@
             "program": "${workspaceFolder}/scripts/dna_draw_trajs.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "output/2022/etri_073.csv",
-                "--video", "data/2022/etri_071.mp4",
-                // "--type", "json",
-                "--camera_index", "3",
+                "output/2022/etri_041_event.json",
+                "--video", "data/2022/etri_041.mp4",
+                "--type", "json",
+                "--camera_index", "1",
                 "--contact_point", "simulation",
                 "--world_view",
                 // "--thickness", "2",
