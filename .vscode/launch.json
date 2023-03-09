@@ -23,10 +23,10 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--camera", "data/2022/crops/etri_041_crop.mp4",
-                "--conf", "conf/etri_testbed/etri_04.yaml",
+                "--conf", "conf/etri_testbed/etri_06.yaml",
                 // "--conf", "conf/ai_city/ai_city_10.yaml",
-                "--output", "output/etri_041_event.json",   // -o <file>
-                "--output_video", "output/etri_041.mp4",   // -v <file>
+                "--output", "output/etri_061_event.json",   // -o <file>
+                "--output_video", "output/etri_061.mp4",   // -v <file>
                 // "--begin_frame", "1000",
                 // "--end_frame", "1000",
                 // "--show", //"1280x720",

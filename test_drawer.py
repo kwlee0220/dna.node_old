@@ -15,7 +15,7 @@ img = None
 
 camera_conf = OmegaConf.create()
 # camera_conf.uri = "data/2022/crops/etri_07_crop.mp4"
-camera_conf.uri = "data/2022/etri_041.mp4"
+camera_conf.uri = "data/2022/etri_051.mp4"
 # camera_conf.uri = "data/ai_city/ai_city_10.mp4"
 # camera_conf.uri = "data/crossroads/crossroad_04.mp4"
 # camera_conf.uri = "output/track_07.mp4"
@@ -23,15 +23,15 @@ camera_conf.begin_frame = 100
 camera:Camera = create_camera_from_conf(camera_conf)
 
 track_zones = [
-    [[1204, 397], [1183, 412], [1039, 1078], [-1, 1081], [0, 730], [956, 373], [959, 360], [960, 323], [1205, 346]]
+    [[1, 624], [674, 367], [713, 322], [670, 293], [676, 195], [1026, 240], [1357, 311], [1785, 455], [1764, 562],
+      [1420, 534], [1224, 839], [1123, 1077], [1, 1078]]
 ]
 blind_zones = [
-    # [0, 850, 1920, 1080],
 ]
 exit_zones = [
-    [875, 292, 978, 370],
-    [1177, 323, 1255, 401],
-    [[467, 855], [218, 644], [3, 694], [4, 1076], [451, 1076]]
+    [553, 177, 703, 316],
+    [1700, 388, 1900, 570],
+    [[103, 521], [347, 822], [372, 1078], [284, 1079], [0, 1080], [2, 521]]
 ]
 zones = [
     # [[153, 387], [206, 518], [1176, 540]],

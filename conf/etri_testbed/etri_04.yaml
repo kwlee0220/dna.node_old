@@ -29,8 +29,6 @@ publishing:
   sort_by_frame_index: True
 
   plugins:
-    # output: 'output/etri_044.json'
-    # output_csv: 'output/etri_044.csv'
     local_path:
       max_path_length: 100
 #   kafka:
