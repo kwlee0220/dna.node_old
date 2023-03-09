@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, NewType, Tuple, Optional, Union, Any
 
+import numbers
 from dataclasses import dataclass, field
 from collections import Sequence, Iterable
 import math
@@ -275,8 +276,8 @@ class Box:
         return Box(tlbr)
 
     @staticmethod
-    def from_size(size:Size2d) -> Box:
-        w, h = size.to_tuple()
+    def from_size(size:Union[Size2d,tuple]) -> Box:
+        w, h = size.to_tuple() if isinstance(size, Size2d) else size
         return Box(np.array([0, 0, w, h]))
 
     def translate(self, delta:Size2d) -> Box:
@@ -436,6 +437,21 @@ class Box:
         tl = self.tl
         br = self.br
         return img[tl[1]:br[1], tl[0]:br[0]]
+    
+    def expand(self, margin) -> Box:
+        if isinstance(margin, numbers.Number):
+            tlbr = self.tlbr + [-margin, -margin, margin, margin]
+            return Box(tlbr)
+        elif isinstance(margin, tuple):
+            w, h = margin
+            self.tlbr + [-w, -h, w, h]
+            return Box(tlbr)
+        elif isinstance(margin, Size2d):
+            w, h = margin.to_tuple()
+            self.tlbr + [-w, -h, w, h]
+            return Box(tlbr)
+        else:
+            raise ValueError(f'invalid margin: {margin}')
 
     def copy(self, src_img:Image, tar_img:Image) -> None:
         x, y = tuple(self.tl)

@@ -75,7 +75,7 @@ class ImageProcessor(AbstractExecution):
             self.suffix_processors.append(DrawText())
 
         if output_video is not None:
-            self.suffix_processors.append(VideoWriter(Path(output_video)))
+            self.suffix_processors.append(ImageWriteProcessor(Path(output_video)))
 
         if show:
             window_name = f'camera={conf.camera.uri}'
@@ -262,7 +262,7 @@ class ShowProgress(FrameProcessor):
         self.last_frame_index = frame.index
         return frame
 
-class VideoWriter(FrameProcessor):
+class ImageWriteProcessor(FrameProcessor):
     def __init__(self, path: Path) -> None:
         super().__init__()
 

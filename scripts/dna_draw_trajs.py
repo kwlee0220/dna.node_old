@@ -12,13 +12,13 @@ from dna.camera import Camera
 from dna.camera.utils import create_camera_from_conf
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
 from dna.node import stabilizer
+from dna.support.load_tracklets import read_tracklets_json, read_tracklets_csv
 
 
 _contact_point_choices = [t.name.lower() for t in ContactPointType]
 
 import argparse
 def parse_args():
-    
     parser = argparse.ArgumentParser(description="Draw paths")
     parser.add_argument("track_file")
     parser.add_argument("--type", metavar="[csv|json]", default='csv', help="input track file type")
@@ -46,26 +46,16 @@ def load_video_image(video_file:str, frame_no:int) -> Image:
         return frame.image if frame is not None else None
 
 def load_trajectories_csv(track_file:str) -> Dict[str,List[Box]]:
-    import csv
-    with open(track_file) as f:
-        t_boxes = defaultdict(list)
-        reader = csv.reader(f)
-        for row in reader:
-            luid = int(row[1])
-            box = Box.from_tlbr([int(v) for v in row[2:6]])
-            t_boxes[luid].append(box)
-        return t_boxes
+    t_boxes = defaultdict(list)
+    for track in read_tracklets_csv(track_file):
+        t_boxes[track.track_id].append(track.location)
+    return t_boxes
 
 def load_trajectories_json(track_file:str) -> Dict[str,List[Box]]:
-    import json
-    with open(track_file) as f:
-        t_boxes = defaultdict(list)
-        for line in f.readlines():
-            json_obj = json.loads(line)
-            luid = int(json_obj['track_id'])
-            box = Box.from_tlbr(json_obj['location'])
-            t_boxes[luid].append(box)
-        return t_boxes
+    t_boxes = defaultdict(list)
+    for track in read_tracklets_json(track_file):
+        t_boxes[track.track_id].append(track.location)
+    return t_boxes
 
 def to_point_sequence(trajs: Dict[str,List[Box]]) -> Dict[str,List[Point]]:
     def tbox_to_tpoint(tbox:List[Box]):
