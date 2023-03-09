@@ -108,9 +108,13 @@ class ZoneEventGenerator(EventProcessor):
             if len(through_events) == 1:
                 self.publish_event(through_events[0])
             elif len(through_events) > 1:
+                def distance_to_cross(line, zone_id) -> geometry.Point:
+                    overlap = self.zones[zone_id].intersection(line_track.line)
+                    return overlap.distance(start_pt)
+
                 start_pt = geometry.Point(line_track.line.coords[0])
                 # line의 시작점을 기준으로 through된 zone과의 거리를 구한 후, 짧은 순서로 정렬시켜 event를 발송함
-                zone_dists = [(idx, self.zones[through_ev.zone_id].distance(start_pt)) for idx, through_ev in enumerate(through_events)]
+                zone_dists = [(idx, distance_to_cross(line_track.line, thru_ev.zone_id)) for idx, thru_ev in enumerate(through_events)]
                 zone_dists.sort(key=lambda zd: zd[1])
                 for idx, dist in zone_dists:
                     self.publish_event(through_events[idx])

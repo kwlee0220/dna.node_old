@@ -48,6 +48,9 @@ class Zone:
     def intersects(self, geom:BaseGeometry):
         return self.geom.intersects(geom) 
     
+    def intersection(self, geom:BaseGeometry) -> BaseGeometry:
+        return self.geom.intersection(geom) 
+    
     def distance(self, geom:BaseGeometry) -> float:
         return self.geom.distance(geom)
 
