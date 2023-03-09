@@ -2,7 +2,7 @@ version: 1
 
 formatters:
     standard:
-        format: "%(asctime)s %(levelname).5s [%(name)s] %(message)s (%(filename)s:%(lineno)d)"
+        format: "%(asctime)s %(levelname).4s [%(name)s] %(message)s (%(filename)s:%(lineno)d)"
         datefmt: "%H:%M:%S"
     error:
         format: "%(levelname)s <PID %(process)d:%(processName)s> %(name)s.%(funcName)s(): %(message)s"
@@ -11,7 +11,7 @@ formatters:
 handlers:
     console:
         class: logging.StreamHandler
-        level: INFO
+        level: DEBUG
         formatter: standard
         stream: ext://sys.stdout
 
@@ -48,7 +48,27 @@ loggers:
         handlers: [console]
         propagate: no
     dna.tracker:
-        level: DEBUG
+        level: INFO
+        handlers: [console]
+        propagate: no
+    dna.node:
+        level: INFO
+        handlers: [console]
+        propagate: no
+    dna.node.event:
+        level: WARN
+        handlers: [console]
+        propagate: no
+    dna.node.zone:
+        level: INFO
+        handlers: [console]
+        propagate: no
+    dna.node.zone.zone:
+        level: INFO
+        handlers: [console]
+        propagate: no
+    dna.node.zone.motion:
+        level: INFO
         handlers: [console]
         propagate: no
 

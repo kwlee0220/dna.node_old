@@ -1,0 +1,13 @@
+id: ai_city:13
+
+camera:
+  uri: data/ai_city/ai_city_13.mp4
+  sync: False
+  # begin_frame: 1265
+  end_frame: 3000
+
+tracker:
+  draw: ["tracks", "track_zones"]
+  max_age: 30
+  track_zones:
+    - [[2,126], [1916,88], [1918,1076], [2,1074]]

@@ -1,0 +1,56 @@
+id: etri:06
+
+camera:
+  uri: data/2022/crops/etri_06_crop.mp4
+  # uri: data/2021/etri_06.mp4
+  # uri: data/etri_06_hot.mp4
+  # uri: data/2022/etri_064.mp4
+  sync: False
+  # begin_frame: 100
+
+tracker:
+  draw: ['tracks', 'track_zones']
+  n_init: 5
+  track_zones:
+    - [[205, 607], [792, 442], [941, 332], [1099, 332], [1297, 496], [1918, 638], [1920, 1076], [0, 1082], [0, 612]]
+  magnifying_zones:
+    - [700, 320, 1300, 690]
+  exit_zones:
+      # - [1017, 275, 1111, 334]  # 정문 방향
+      # - [1917, 586, 1637, 925]  # 12동 방향
+      # - [3, 600, 189, 950]      # 7동 방향
+      - [1017, 275, 1111, 334]   # 정문 방향
+      - [1600, 686, 1920, 1080]  # 12동 방향
+      - [3, 600, 189, 950]        # 7동 방향
+
+publishing:
+  refine_buffer_size: 60
+  min_path_length: 30
+  attach_world_coordinates:
+    camera_geometry: regions/etri_testbed/etri_testbed.json
+    camera_index: 2
+    # epsg_code: "EPSG:5186"
+    # world_coords_offset: [1,5]
+#   stabilization:
+#     look_ahead: 7
+#     # smoothing_factor: 1
+  plugins:
+    output_csv: 'output/etri_054.csv'
+#   local_path:
+#     max_path_length: 100
+#   kafka:
+#     bootstrap_servers: [localhost:9092]
+# #   bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
+#     topic: 'node-tracks'
+    zone_pipeline:
+      zones:
+        0: [[1511, 498], [1567, 1075], [1203, 1072], [1358, 492]]
+        1: [[226, 580], [455, 511], [660, 1078], [258, 1075]]
+        2: [[634, 478], [1332, 470], [1498, 538], [460, 561]]
+      motions:
+          '01': '01'
+          '02': '02'
+          '10': '10'
+          '12': '12'
+          '20': '20'
+          '21': '21'

@@ -1,0 +1,52 @@
+id: etri:04
+
+camera:
+  # uri: data/2021/etri_04.mp4
+  # uri: data/2022/crops/etri_04_crop.mp4
+  # uri: data/etri_04_hot.mp4
+  uri: data/2022/etri_041.mp4
+  sync: False
+  # begin_frame: 1000
+  # end_frame: 1000
+
+tracker:
+  draw: ["tracks", "track_zones"]
+  track_zones:
+    - [[1204, 397], [1183, 412], [1039, 1078], [-1, 1081], [0, 730], [956, 373], [959, 360], [960, 323], [1205, 346]]
+  magnifying_zones:
+    - [600, 300, 1240, 940]
+  exit_zones:
+    - [875, 292, 978, 370]  # 12쪽 방향
+    - [1177, 323, 1255, 401]  # 7동쪽 방향
+    - [[467, 855], [218, 644], [3, 694], [4, 1076], [451, 1076]]  # 정문 방향
+
+publishing:
+  refine_buffer_size: 60
+  min_path_length: 10
+  attach_world_coordinates:
+    camera_geometry: regions/etri_testbed/etri_testbed.json
+    camera_index: 0
+  sort_by_frame_index: True
+
+  plugins:
+    # output: 'output/etri_044.json'
+    # output_csv: 'output/etri_044.csv'
+    local_path:
+      max_path_length: 100
+#   kafka:
+#     bootstrap_servers: [localhost:9092]
+# #   bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
+#     topic: 'node-tracks'
+#     zone_pipeline:
+#       zones:
+#         0: [[961, 387], [1032, 374], [1033, 303], [919, 301], [918, 385]]
+#         1: [[1262, 325], [1133, 323], [1139, 375], [1171, 425], [1277, 422]]
+#         2: [[417, 486], [1210, 486], [1210, 675], [417, 675]]
+#       motions:
+#           '01': '01'
+#           '02': '02'
+#           '10': '10'
+#           '12': '12'
+#           '102': '12'
+#           '20': '20'
+#           '21': '21'

@@ -1,0 +1,55 @@
+id: etri:05
+
+camera:
+  # uri: data/2021/etri_05.mp4
+  uri: data/2022/crops/etri_05_crop.mp4
+  # uri: data/2022/etri_054.mp4ev
+  # size: [1920, 1080]
+  sync: False
+  # begin_frame: 1250
+
+tracker:
+  draw: ["tracks", "track_zones"]
+
+  # cnu_siammot:
+  #   model: models/person_vehicle/models.pth
+  #   detector: configs/CenterNet_siammot.yaml
+  track_zones:
+    - [[1, 624], [674, 367], [713, 322], [670, 293], [676, 195], [1026, 240], [1357, 311], [1785, 455], [1764, 562],
+      [1420, 534], [1224, 839], [1123, 1077], [1, 1078]]
+  exit_zones:
+    - [551, 178, 680, 316]  # 왼쪽
+    - [1700, 388, 1900, 570]  # 오른쪽
+    - [[177, 521], [329, 997], [284, 1079], [0, 1080], [2, 521]]  # 아랫쪽
+    # - [553, 177, 703, 316]  # 12동 방향
+    # - [1700, 388, 1900, 570]  # 7동 방향
+    # - [[103, 521], [347, 822], [372, 1078], [284, 1079], [0, 1080], [2, 521]] # 정문 방향
+
+publishing:
+  refine_buffer_size: 60
+  min_path_length: 10
+  attach_world_coordinates:
+    camera_geometry: regions/etri_testbed/etri_testbed.json
+    camera_index: 1
+    # epsg_code: "EPSG:5186"
+
+  plugins:
+    output_csv: 'output/etri_054.csv'
+#   local_path:
+#     max_path_length: 100
+#   kafka:
+#     bootstrap_servers: [localhost:9092]
+# #   bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
+#     topic: 'node-tracks'
+    zone_pipeline:
+      zones:
+          0: [[664, 178], [1068, 184], [1063, 296], [897, 354], [506, 391]]
+          1: [[1517, 304], [1651, 304], [1651, 590], [1517, 590]]
+          2: [[423, 396], [1393, 688], [1302, 965], [176, 498]]
+      motions:
+          '01': '01'
+          '02': '02'
+          '10': '10'
+          '12': '12'
+          '20': '20'
+          '21': '21'
