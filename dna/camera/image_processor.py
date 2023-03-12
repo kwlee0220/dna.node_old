@@ -1,9 +1,7 @@
 from __future__ import annotations
 from typing import Optional, Tuple, List
 from abc import ABCMeta, abstractmethod
-from collections import namedtuple
 from contextlib import suppress
-import threading
 
 import logging
 from pathlib import Path
@@ -39,9 +37,11 @@ class FrameProcessor(metaclass=ABCMeta):
     def set_control(self, key:int) -> int:
         return key
 
+
 class ImageProcessor(AbstractExecution):
     __ALPHA = 0.2
-    __slots__ = ('capture', 'conf', 'frame_processors', 'suffix_processors', '_is_drawing', 'fps_measured', 'logger', 'cond', 'ready')
+    __slots__ = ('capture', 'conf', 'frame_processors', 'suffix_processors', 'show_processor',
+                 '_is_drawing', 'fps_measured', 'logger', 'cond', 'ready')
 
     from dataclasses import dataclass
     @dataclass(frozen=True)    # slots=True
@@ -55,6 +55,7 @@ class ImageProcessor(AbstractExecution):
             return (f"elapsed={timedelta(seconds=self.elapsed)}, "
                     f"frame_count={self.frame_count}, "
                     f"fps={self.fps_measured:.1f}")
+
 
     def __init__(self, cap: ImageCapture, conf: OmegaConf, context: ExecutionContext=NoOpExecutionContext()):
         super().__init__(context=context)
@@ -70,9 +71,9 @@ class ImageProcessor(AbstractExecution):
         show_str:str = conf.get("show", None)
         show:Optional[Size2d] = Size2d.parse_string(show_str) if show_str is not None else None
 
-        self._is_drawing:bool = show or output_video is not None
+        self._is_drawing:bool = show or output_video
         if self._is_drawing:
-            self.suffix_processors.append(DrawText())
+            self.suffix_processors.append(DrawFrameTitle())
 
         if output_video is not None:
             self.suffix_processors.append(ImageWriteProcessor(Path(output_video)))
@@ -104,7 +105,7 @@ class ImageProcessor(AbstractExecution):
 
     def add_frame_processor(self, frame_proc: FrameProcessor) -> None:
         self.frame_processors.append(frame_proc)
-        if self.show_processor is not None:
+        if self.show_processor:
             self.show_processor.add_processor(frame_proc)
 
     def wait_for_ready(self) -> None:
@@ -137,6 +138,11 @@ class ImageProcessor(AbstractExecution):
                 if frame is None: break
                 capture_count += 1
 
+                # 등록된 모든 frame-processor를 capture된 image를 이용해 'process_frame' 메소드를 차례대로 호출한다.
+                # process_frame() 호출시 첫번째 processor는 capture된 image를 입력받지만,
+                # 이후 processor들은 자신 바로 전에 호출된 process_frame()의 반환값을 입력으로 받는다.
+                # 만일 어느 한 frame-processor의 process_frame() 호출 결과가 None인 경우는 이후 frame-processor 호출은 중단되고
+                # 전체 image-processor의 수행이 중단된다.
                 for fproc in processors:
                     frame = fproc.process_frame(frame)
                     if frame is None: break
@@ -144,7 +150,7 @@ class ImageProcessor(AbstractExecution):
 
                 elapsed = time.time() - started
                 fps = 1 / (elapsed / capture_count)
-                weight = ImageProcessor.__ALPHA if capture_count > 50 else 0.5
+                weight = ImageProcessor.__ALPHA if capture_count > 50 else 0.7
                 self.fps_measured = weight*fps + (1-weight)*self.fps_measured
         except CancellationError as e:
             failure_cause = e
@@ -152,6 +158,7 @@ class ImageProcessor(AbstractExecution):
             failure_cause = e
             self.logger.error(e, exc_info=True)
         finally:
+            # 등록된 순서의 역순으로 'on_stopped()' 메소드를 호출함
             for fproc in reversed(processors):
                 try:
                     fproc.on_stopped()
@@ -162,6 +169,7 @@ class ImageProcessor(AbstractExecution):
 
     def finalize(self) -> None:
         self.capture.close()
+
 
 class ExecutionProgressReporter(FrameProcessor):
     def __init__(self, context: ExecutionContext, interval_secs: int) -> None:
@@ -184,7 +192,7 @@ class ExecutionProgressReporter(FrameProcessor):
             self.next_report_time += self.report_interval
         return frame
 
-class DrawText(FrameProcessor):
+class DrawFrameTitle(FrameProcessor):
     def on_started(self, proc:ImageProcessor) -> None:
         self.proc = proc
     def on_stopped(self) -> None: pass
@@ -244,6 +252,7 @@ class ShowFrame(FrameProcessor):
             else: 
                 return frame
 
+
 class ShowProgress(FrameProcessor):
     def __init__(self, total_frame_count: int) -> None:
         super().__init__()
@@ -261,32 +270,55 @@ class ShowProgress(FrameProcessor):
         self.tqdm.refresh()
         self.last_frame_index = frame.index
         return frame
-
+    
+    
 class ImageWriteProcessor(FrameProcessor):
     def __init__(self, path: Path) -> None:
         super().__init__()
-
-        self.fourcc = None
-        ext = path.suffix.lower()
-        if ext == '.mp4':
-            self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        elif ext == '.avi':
-            self.fourcc = cv2.VideoWriter_fourcc(*'DIVX')
-        else:
-            raise IOError("unknown output video file extension: 'f{ext}'")
+        
         self.path = path.resolve()
         self.logger = logging.getLogger('dna.node.frame_processor.video_writer')
 
     def on_started(self, proc:ImageProcessor) -> None:
         self.logger.info(f'opening video file: {self.path}')
-
-        self.path.parent.mkdir(exist_ok=True)
-        self.video_writer = cv2.VideoWriter(str(self.path), self.fourcc, proc.capture.fps, proc.capture.size.to_tuple())
+        
+        from ..support.video_writer import VideoWriter
+        self.writer = VideoWriter(self.path.resolve(), proc.capture.fps, proc.capture.size)
+        self.writer.open()
 
     def on_stopped(self) -> None:
         self.logger.info(f'closing video file: {self.path}')
-        with suppress(Exception): self.video_writer.release()
+        with suppress(Exception): self.writer.close()
 
     def process_frame(self, frame:Frame) -> Optional[Frame]:
-        self.video_writer.write(frame.image)
+        self.writer.write(frame.image)
         return frame
+
+# class ImageWriteProcessor(FrameProcessor):
+#     def __init__(self, path: Path) -> None:
+#         super().__init__()
+
+#         self.fourcc = None
+#         ext = path.suffix.lower()
+#         if ext == '.mp4':
+#             self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+#         elif ext == '.avi':
+#             self.fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+#         else:
+#             raise IOError("unknown output video file extension: 'f{ext}'")
+#         self.path = path.resolve()
+#         self.logger = logging.getLogger('dna.node.frame_processor.video_writer')
+
+#     def on_started(self, proc:ImageProcessor) -> None:
+#         self.logger.info(f'opening video file: {self.path}')
+
+#         self.path.parent.mkdir(exist_ok=True)
+#         self.video_writer = cv2.VideoWriter(str(self.path), self.fourcc, proc.capture.fps, proc.capture.size.to_tuple())
+
+#     def on_stopped(self) -> None:
+#         self.logger.info(f'closing video file: {self.path}')
+#         with suppress(Exception): self.video_writer.release()
+
+#     def process_frame(self, frame:Frame) -> Optional[Frame]:
+#         self.video_writer.write(frame.image)
+#         return frame

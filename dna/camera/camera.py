@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, NewType, Union
+from typing import Optional, Union
 from dataclasses import dataclass, field
 from abc import ABCMeta, abstractmethod
 
@@ -20,7 +20,7 @@ class Parameters:
     end_frame: Optional[int] = field(default=None)
     threaded: bool = field(default=False)
 
-    @classmethod
+    @staticmethod
     def from_conf(cls, conf:OmegaConf):
         uri = conf.uri
         size = conf.get('size', None)
@@ -30,8 +30,9 @@ class Parameters:
         end_frame = conf.get("end_frame", None)
         threaded = conf.get("threaded", False)
         
-        return cls(uri=uri, size=size, sync=sync, begin_frame=begin_frame, end_frame=end_frame,
-                    threaded=threaded)
+        return Parameters(uri=uri, size=size, sync=sync, begin_frame=begin_frame, end_frame=end_frame,
+                          threaded=threaded)
+
 
 class Camera(metaclass=ABCMeta):
     @abstractmethod
@@ -60,6 +61,14 @@ class Camera(metaclass=ABCMeta):
         pass
 
     def resize(self, size:Size2d) -> Camera:
+        """Returns a Camera that captures the resized images.
+
+        Args:
+            size (Size2d): target image size.
+
+        Returns:
+            Camera: Camera
+        """
         from .resized_camera import ResizingCamera
         return ResizingCamera(self, size)
 
@@ -122,6 +131,11 @@ class ImageCapture(metaclass=ABCMeta):
     @property
     @abstractmethod
     def sync(self) -> bool:
+        """Returns whether frames are captured on its fps or immediately as they are captured from the camera.
+
+        Returns:
+            bool: synchronized capture or not
+        """
         pass
 
     @property
