@@ -12,7 +12,7 @@ from dna.camera import Camera
 from dna.camera.utils import create_camera_from_conf
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
 from dna.node import stabilizer
-from dna.support.load_tracklets import read_tracklets_json, read_tracklets_csv
+from dna.support.load_tracklets import read_tracks_json, read_tracks_csv
 
 
 _contact_point_choices = [t.name.lower() for t in ContactPointType]
@@ -33,6 +33,7 @@ def parse_args():
     parser.add_argument("--pause", action='store_true', help="pause before termination")
     parser.add_argument("--look_ahead", metavar='count', type=int, default=7, help="look-ahead/behind count")
     parser.add_argument("--smoothing", metavar='value', type=float, default=1, help="stabilization smoothing factor")
+    parser.add_argument("--color", metavar='color', default='RED', help="color for trajectory")
     parser.add_argument("--output", "-o", metavar="file path", help="output jpeg file path")
     return parser.parse_known_args()
 
@@ -47,14 +48,15 @@ def load_video_image(video_file:str, frame_no:int) -> Image:
 
 def load_trajectories_csv(track_file:str) -> Dict[str,List[Box]]:
     t_boxes = defaultdict(list)
-    for track in read_tracklets_csv(track_file):
+    for track in read_tracks_csv(track_file):
         t_boxes[track.track_id].append(track.location)
     return t_boxes
 
 def load_trajectories_json(track_file:str) -> Dict[str,List[Box]]:
     t_boxes = defaultdict(list)
-    for track in read_tracklets_json(track_file):
-        t_boxes[track.track_id].append(track.location)
+    for track in read_tracks_json(track_file):
+        if not track.is_deleted():
+            t_boxes[track.track_id].append(track.location)
     return t_boxes
 
 def to_point_sequence(trajs: Dict[str,List[Box]]) -> Dict[str,List[Point]]:
@@ -115,13 +117,13 @@ class RunningStabilizer:
 
 class TrajectoryDrawer:
     def __init__(self, box_trajs: Dict[str,List[Box]], camera_image: Image, world_image: Image=None,
-                localizer:WorldCoordinateLocalizer=None, stabilizer:RunningStabilizer=None) -> None:
+                localizer:WorldCoordinateLocalizer=None, stabilizer:RunningStabilizer=None, traj_color:color=color.RED) -> None:
         self.box_trajs = box_trajs
         self.localizer = localizer
         self.stabilizer = stabilizer
         self.camera_image = camera_image
         self.world_image = world_image
-        self.color = color.RED
+        self.traj_color = traj_color
         self.thickness = 2
 
         self.show_world_coords = False
@@ -137,7 +139,7 @@ class TrajectoryDrawer:
         contact = self.localizer.contact_point_type.name if self.localizer else ContactPointType.Centroid.name
         stabilized_flag = f', stabilized({self.stabilizer.smoothing_factor})' if self.show_stabilized else ''
         return cv2.putText(convas, f'{id_str}view={view}, contact={contact}{stabilized_flag}',
-                            (10, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, self.color, 2)
+                            (10, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, self.traj_color, 2)
 
     def draw(self, title='trajectories', pause:bool=True) -> Image:
         bg_image = self.world_image if self.world_image is not None and self.show_world_coords else self.camera_image
@@ -221,7 +223,7 @@ class TrajectoryDrawer:
             
         pts = [_xy(pt) for pt in pts]
         pts = np.rint(np.array(pts)).astype('int32')
-        return cv2.polylines(convas, [pts], False, self.color, self.thickness)
+        return cv2.polylines(convas, [pts], False, self.traj_color, self.thickness)
             
     def stabilize(self, traj:List[Point]) -> List[Point]:
         pts_s = []
@@ -249,8 +251,9 @@ def main():
     if args.look_ahead > 0 and args.smoothing > 0:
         stabilizer = RunningStabilizer(args.look_ahead, args.smoothing)
 
+    traj_color = color.__dict__[args.color]
     drawer = TrajectoryDrawer(box_trajs, camera_image=bg_img, world_image=world_image,
-                              localizer=localizer, stabilizer=stabilizer)
+                              localizer=localizer, stabilizer=stabilizer, traj_color=traj_color)
 
     if args.interactive:
         drawer.draw_interactively()

@@ -2,8 +2,8 @@ id: etri:05
 
 camera:
   # uri: data/2021/etri_05.mp4
-  uri: data/2022/crops/etri_05_crop.mp4
-  # uri: data/2022/etri_054.mp4ev
+  # uri: data/2022/crops/etri_05_crop.mp4
+  uri: data/2022/etri_051.mp4
   # size: [1920, 1080]
   sync: False
   # begin_frame: 1250
@@ -31,7 +31,7 @@ publishing:
     # epsg_code: "EPSG:5186"
   sort_by_frame_index: True
 
-  plugins:
+  # plugins:
 #   local_path:
 #     max_path_length: 100
 #   kafka:

@@ -52,10 +52,12 @@ class TrackEventPipeline(TrackProcessor,EventQueue):
             self.track_event_queue = stabilizer
             
         if OmegaConf.select(publishing_conf, "sort_by_frame_index", default=False):
-            from .sort_track_event import SortTrackEvent
-            sort = SortTrackEvent(buffer_size=self.refine_buffer_size)
-            self.track_event_queue.add_listener(sort)
-            self.track_event_queue = sort
+            from .event_processors import GroupByFrameIndex, UngroupTrackEvents
+            groupby_frame = GroupByFrameIndex(max_delay_frames=self.refine_buffer_size)
+            ungroup = UngroupTrackEvents()
+            self.track_event_queue.add_listener(groupby_frame)
+            groupby_frame.add_listener(ungroup)
+            self.track_event_queue = ungroup
 
         plugins_conf = OmegaConf.select(publishing_conf, 'plugins')
         if plugins_conf is not None:

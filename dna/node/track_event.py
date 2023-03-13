@@ -27,6 +27,9 @@ class TrackEvent(KafkaEvent):
 
     def key(self) -> str:
         return self.node_id.encode('utf-8')
+    
+    def is_deleted(self) -> bool:
+        return self.state == TrackState.Deleted
 
     def __lt__(self, other) -> bool:
         if self.frame_index < other.frame_index:

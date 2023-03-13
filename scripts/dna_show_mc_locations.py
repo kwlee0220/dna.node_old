@@ -89,6 +89,7 @@ class MCLocationDrawer:
                     self._draw_circles(convas, loc, fill_color=color)
                     # convas = cv2.circle(convas, loc.point.to_rint().to_tuple(), radius=7, color=color, thickness=-1, lineType=cv2.LINE_AA)
         cv2.imshow("locations", convas)
+        return convas
 
     def draw(self, title='locations', interactive:bool=True) -> Image:
         slot_no = 0
@@ -110,6 +111,9 @@ class MCLocationDrawer:
                     if slot_no > 0:
                         slot_no -= 1
                         self.draw_frame(slot_no)
+                elif key == ord('s'):
+                    image = self.draw_frame(slot_no)
+                    cv2.imwrite("output/output.png", image)
             else:
                 if key == 0xFF:
                     if slot_no < len(self.indexes)-1:

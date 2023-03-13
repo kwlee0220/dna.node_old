@@ -84,6 +84,14 @@ from dna.camera import ImageProcessor, FrameProcessor
 class TrackingPipeline(FrameProcessor):
     __slots__ = ( 'tracker', 'trail_collector', 'track_processors', 'draw')
 
+    def __init__(self, tracker:ObjectTracker, processors:List[TrackProcessor]=[], draw:List[str]=[]) -> None:
+        super().__init__()
+
+        self.tracker = tracker
+        self.trail_collector = TrailCollector()
+        self.track_processors = processors + [self.trail_collector]
+        self.draw = draw
+
     @staticmethod
     def load(img_proc:ImageProcessor, tracker_conf:OmegaConf,
              track_processors:List[TrackProcessor]=[]) -> TrackingPipeline:
@@ -102,14 +110,6 @@ class TrackingPipeline(FrameProcessor):
             track_processors = [TrackCsvWriter(output)] + track_processors
             
         return TrackingPipeline(tracker=tracker, processors=track_processors, draw=draw)
-
-    def __init__(self, tracker:ObjectTracker, processors:List[TrackProcessor]=[], draw:List[str]=[]) -> None:
-        super().__init__()
-
-        self.tracker = tracker
-        self.trail_collector = TrailCollector()
-        self.track_processors = processors + [self.trail_collector]
-        self.draw = draw
 
     def on_started(self, capture) -> None:
         for processor in self.track_processors:

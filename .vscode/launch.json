@@ -23,14 +23,14 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--camera", "data/2022/etri_042.mp4",
-                // "--conf", "conf/etri_testbed/etri_04.yaml",
-                "--conf", "conf/ai_city/ai_city_11.yaml",
-                // "--output", "output/etri_042_event.json",   // -o <file>
+                "--conf", "conf/etri_testbed/etri_07.yaml",
+                // "--conf", "conf/ai_city/ai_city_t3_c01.yaml",
+                "--output", "output/ai_city_13.json",   // -o <file>
                 // "--output_video", "output/etri_061.mp4",   // -v <file>
                 // "--begin_frame", "1000",
                 // "--end_frame", "1000",
-                "--show", //"1280x720",
-                // "--show_progress",  // -p
+                // "--show", //"1280x720",
+                "--show_progress",  // -p
             ],
             "justMyCode": true
         },
@@ -44,7 +44,7 @@
                 // "--conf", "conf/etri_testbed/etri_04.yaml",
                 "--conf", "conf/ai_city/ai_city_09.yaml",
                 // "--output", "output/etri_07_2021.csv",   // -o <file>
-                // "--output_video", "output/etri_041.mp4",   // -v <file>
+                "--output_video", "output/etri_041.mp4",   // -v <file>
                 "--show", //"1280x720",
                 // "--show_progress",  // -p
                 // "--pause_on_eos",    // -k
@@ -57,7 +57,7 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--camera", "data/2022/crops/etri_041_crop.mp4", "--sync",
-                "--conf", "conf/etri_05.yaml",
+                "--conf", "conf/etri_testbed/etri_05.yaml",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 // "--detector", "dna.detect.yolov4:score=0.1",
                 // "--detector", "dna.detect.rcnn50_fpn",
@@ -77,8 +77,8 @@
             "program": "${workspaceFolder}/scripts/dna_show.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                // "--conf", "conf/etri_04.yaml",
-                "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/5/media.smp",
+                "--conf", "conf/etri_testbed/etri_04.yaml",
+                // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/5/media.smp",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",
@@ -104,25 +104,25 @@
             "program": "${workspaceFolder}/scripts/dna_show_mc_locations.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "output/2022/etri_042_event.json",
-                "output/2022/etri_052_event.json",
-                "output/2022/etri_062_event.json",
-                "output/2022/etri_072_event.json",
+                "output/2022/etri_041_event.json",
+                "output/2022/etri_051_event.json",
+                "output/2022/etri_061_event.json",
+                "output/2022/etri_071_event.json",
                 "--offsets", "0, 7, 3, 0",     // 041, 051, 061, 071
                 // "--max_camera_distance", "57",
             ],
             "justMyCode": true
         },
-        { "name": "SyncVideos",
+        { "name": "MatchMCTracklets",
             "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_sync_videos.py",
+            "program": "${workspaceFolder}/scripts/dna_match_mc_tracklets.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "output/2022/etri_043_event.json",
-                "output/2022/etri_053_event.json",
-                "output/2022/etri_063_event.json",
-                // "output/2021/etri_07_event.json",
+                "output/2022/etri_041_event.json",
+                "output/2022/etri_051_event.json",
+                "output/2022/etri_061_event.json",
                 "--max_camera_distance", "50",
+                "--offsets", "0, 7, 3, 0",     // 041, 051, 061, 071
             ],
             "justMyCode": true
         },
@@ -144,15 +144,16 @@
             "program": "${workspaceFolder}/scripts/dna_draw_trajs.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "output/2022/etri_041_event.json",
-                "--video", "data/2022/etri_041.mp4",
+                "output/ai_city_13.json",
+                "--video", "data/ai_city/ai_city_13.mp4",
                 "--type", "json",
-                "--camera_index", "1",
-                "--contact_point", "simulation",
-                "--world_view",
+                // "--camera_index", "1",
+                // "--contact_point", "simulation",
+                // "--world_view",
                 // "--thickness", "2",
-                "-i",
-                // "-o", "output/result.jpg",
+                // "-i",
+                "--color", "SKYBLUE",
+                "-o", "output/result.jpg",
             ],
             "justMyCode": true
         },

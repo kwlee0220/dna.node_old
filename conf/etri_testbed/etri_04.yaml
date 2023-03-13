@@ -28,7 +28,7 @@ publishing:
     camera_index: 0
   sort_by_frame_index: True
 
-  plugins:
+  # plugins:
     # local_path:
     #   max_path_length: 100
 #   kafka:

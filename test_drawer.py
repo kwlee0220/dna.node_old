@@ -16,35 +16,35 @@ img = None
 camera_conf = OmegaConf.create()
 # camera_conf.uri = "data/2022/crops/etri_07_crop.mp4"
 # camera_conf.uri = "data/2022/etri_051.mp4"
-camera_conf.uri = "data/ai_city/ai_city_11.mp4"
+camera_conf.uri = "data/ai_city/ai_city_t3_c01.avi"
 # camera_conf.uri = "data/crossroads/crossroad_04.mp4"
 # camera_conf.uri = "output/track_07.mp4"
-camera_conf.begin_frame = 100
+camera_conf.begin_frame = 1000
 camera:Camera = create_camera_from_conf(camera_conf)
 
 track_zones = [
-    [[2,228], [1916,300], [1916,1076], [2,1074]]
 ]
 blind_zones = [
-    [0, 800, 1920, 1080],
-    [1527, 441, 1917, 1075]
 ]
 exit_zones = [
-    [[981, 267], [1492, 284], [1230, 216], [871, 216]],
-    [0, 800, 1920, 1080],
-    [0, 396, 85, 725],
-    [1525, 440, 1920, 1080]
+    # [1050, 200, 1245, 280],
+    # [1815, 335, 1920, 1080],
+    # [0, 960, 1920, 960],
+    # [0, 350, 90, 960]
 ]
 zones = [
-    [[153, 387], [206, 518], [1176, 540]],
-    [[1326, 894], [1498, 517]],
-    [[81, 740], [1349, 740]],
-    [[91, 693], [90, 344]]
+    # [[491, 376], [619, 428], [1333, 396], [1400, 297]],
+    # [[1531, 289], [1545, 466]],
+    # [[1376, 570], [1606, 467]],
+    # [[587, 589], [1025, 588]],
+    # [[288, 386], [289, 525]],
 ]
+    # [[703, 268], [703, 421], [503, 425], [502, 263]]
+    # [[407, 239], [407, 422], [96, 452], [118, 206]]
 
 with closing(camera.open()) as cap:
     img = cap().image
-# img = cv2.imread("conf/ai_city/cam_4.jpg", cv2.IMREAD_COLOR)
+img = cv2.imread("output/output.png", cv2.IMREAD_COLOR)
 
 for coords in track_zones:
     img = plot_utils.draw_polygon(img, coords, color.GREEN, 2)
@@ -56,7 +56,7 @@ for coords in zones:
     img = Zone.from_coords(coords, as_line_string=True).draw(img, color.RED, line_thickness=3)
 
 polygon = []
-# polygon = [[1406, 282], [1768, 294], [1643, 236], [1334, 229]]
+polygon = [[703, 268], [703, 421], [96, 452], [118, 206]]
 coords = PolygonDrawer(img, polygon).run()
 print(coords)
 

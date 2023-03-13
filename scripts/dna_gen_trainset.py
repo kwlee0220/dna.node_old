@@ -14,8 +14,8 @@ from dna.conf import load_node_conf, get_config
 from scripts.utils import load_camera_conf
 from dna.camera import ImageProcessor,  create_camera_from_conf
 from dna.node.node_processor import build_node_processor
-from dna.support.tracklet_crop_writer import TrackletCropWriter
-from dna.support.load_tracklets import read_tracklets_json, load_tracklets_by_frame
+from dna.tracklet.tracklet_crop_writer import TrackletCropWriter
+from dna.support.load_tracklets import read_tracks_json, load_tracklets_by_frame
 
 
 import argparse
@@ -36,8 +36,8 @@ def main():
     dna.initialize_logger(args.logger)
     conf, _, args_conf = load_node_conf(args, ['show_progress'])
 
-    read_tracklets_json(args.track_file)
-    tracklets = load_tracklets_by_frame(read_tracklets_json(args.track_file))
+    tracks = (track for track in read_tracks_json(args.track_file) if not track.is_deleted())
+    tracklets = load_tracklets_by_frame(tracks)
     
     # 카메라 설정 정보 추가
     conf.camera = {'uri': args.track_video, 'sync': False, }

@@ -7,20 +7,18 @@ from dna.tracker import TrackState
 from dna.node import TrackEvent
 
 
-def read_tracklets_csv(track_file:str) -> Generator[TrackEvent, None, None]:
+def read_tracks_csv(track_file:str) -> Generator[TrackEvent, None, None]:
     import csv
     with open(track_file) as f:
         reader = csv.reader(f)
         for row in reader:
             yield TrackEvent.from_csv(row)
 
-def read_tracklets_json(track_file:str) -> Generator[TrackEvent, None, None]:
+def read_tracks_json(track_file:str) -> Generator[TrackEvent, None, None]:
     import json
     with open(track_file) as f:
         for line in f.readlines():
-            track = TrackEvent.from_json(line)
-            if track.state == TrackState.Tentative or track.state == TrackState.Confirmed:
-                yield track
+            yield TrackEvent.from_json(line)
 
 def load_tracklets_by_frame(tracklet_gen:Generator[TrackEvent, None, None]) -> Dict[int,List[TrackEvent]]:
     tracklets:Dict[int,List[TrackEvent]] = dict()

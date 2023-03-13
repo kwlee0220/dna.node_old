@@ -282,7 +282,7 @@ class ImageWriteProcessor(FrameProcessor):
     def on_started(self, proc:ImageProcessor) -> None:
         self.logger.info(f'opening video file: {self.path}')
         
-        from ..support.video_writer import VideoWriter
+        from .video_writer import VideoWriter
         self.writer = VideoWriter(self.path.resolve(), proc.capture.fps, proc.capture.size)
         self.writer.open()
 
@@ -293,32 +293,3 @@ class ImageWriteProcessor(FrameProcessor):
     def process_frame(self, frame:Frame) -> Optional[Frame]:
         self.writer.write(frame.image)
         return frame
-
-# class ImageWriteProcessor(FrameProcessor):
-#     def __init__(self, path: Path) -> None:
-#         super().__init__()
-
-#         self.fourcc = None
-#         ext = path.suffix.lower()
-#         if ext == '.mp4':
-#             self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-#         elif ext == '.avi':
-#             self.fourcc = cv2.VideoWriter_fourcc(*'DIVX')
-#         else:
-#             raise IOError("unknown output video file extension: 'f{ext}'")
-#         self.path = path.resolve()
-#         self.logger = logging.getLogger('dna.node.frame_processor.video_writer')
-
-#     def on_started(self, proc:ImageProcessor) -> None:
-#         self.logger.info(f'opening video file: {self.path}')
-
-#         self.path.parent.mkdir(exist_ok=True)
-#         self.video_writer = cv2.VideoWriter(str(self.path), self.fourcc, proc.capture.fps, proc.capture.size.to_tuple())
-
-#     def on_stopped(self) -> None:
-#         self.logger.info(f'closing video file: {self.path}')
-#         with suppress(Exception): self.video_writer.release()
-
-#     def process_frame(self, frame:Frame) -> Optional[Frame]:
-#         self.video_writer.write(frame.image)
-#         return frame

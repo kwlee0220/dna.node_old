@@ -1,8 +1,6 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
+from typing import Optional
 
-from typing import Optional, List
-from abc import ABCMeta, abstractmethod
 from pathlib import Path
 
 from dna import color, Frame
@@ -25,8 +23,8 @@ class DetectingProcessor(FrameProcessor):
         self.output = output
         self.out_fp = None
 
-    @classmethod
-    def load(cls, detector_uri:str, output: Optional[Path]=None, draw_detections: bool=False) -> DetectingProcessor:
+    @staticmethod
+    def load(detector_uri:str, output: Optional[Path]=None, draw_detections: bool=False) -> DetectingProcessor:
         if not detector_uri:
             raise ValueError(f"detector id is None")
 
@@ -42,7 +40,7 @@ class DetectingProcessor(FrameProcessor):
             loader_module = importlib.import_module(id)
             detector = loader_module.load(query)
 
-        return cls(detector=detector, output=output, draw_detections=draw_detections)
+        return DetectingProcessor(detector=detector, output=output, draw_detections=draw_detections)
 
     def on_started(self, proc: ImageProcessor) -> None:
         if self.output:

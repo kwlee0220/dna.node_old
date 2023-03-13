@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Tuple, List, Dict, Optional, Union
+from typing import Tuple, List, Dict, Optional, Union, Set
 from collections import defaultdict
 
 import cv2
@@ -20,6 +20,7 @@ class ZoneSequenceDisplay(FrameProcessor,EventListener):
         for motion_id in motion_definitions.values():
             self.motion_counts[motion_id] = 0
         self.track_locations:Dict[int,Box] = dict()
+        self.motion_tracks:Set[int] = set()
         self.track_queue = track_queue
         self.motion_queue = motion_queue
 
@@ -33,6 +34,7 @@ class ZoneSequenceDisplay(FrameProcessor,EventListener):
                 self.track_locations[ev.track_id] = ev.location
         elif isinstance(ev, Motion):
             self.motion_counts[ev.id] += 1
+            self.motion_tracks.add(ev.track_id)
 
     def on_started(self, proc:ImageProcessor) -> None:
         for key in self.motion_counts.keys():
@@ -48,8 +50,10 @@ class ZoneSequenceDisplay(FrameProcessor,EventListener):
         convas = frame.image
         
         for track_id, loc in self.track_locations.items():
-            convas = loc.draw(convas, color.RED, line_thickness=3)
+            if track_id in self.motion_tracks:
+                convas = loc.draw(convas, color.RED, line_thickness=3)
         self.track_locations.clear()
+        self.motion_tracks.clear()
 
         for motion, count in self.motion_counts.items():
             y_offset += 25

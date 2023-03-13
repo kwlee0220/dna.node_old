@@ -23,6 +23,7 @@ class ObjectDetector(metaclass=ABCMeta):
         """
         pass
 
+
 class ScoreFilteredObjectDetector(ObjectDetector):
     def __init__(self, detector: ObjectDetector, min_score: float) -> None:
         super().__init__()
@@ -36,6 +37,7 @@ class ScoreFilteredObjectDetector(ObjectDetector):
         return [det for det in self.detector.detect(frame)
                         if det.score < 0 or det.score >= self.min_score]
 
+
 class LabelFilteredObjectDetector(ObjectDetector):
     def __init__(self, detector: ObjectDetector, accept_labels: List[str]) -> None:
         super().__init__()
@@ -47,6 +49,7 @@ class LabelFilteredObjectDetector(ObjectDetector):
         return [det for det in self.detector.detect(frame)
                         if det.label in self.labels]
 
+
 class BlindZoneObjectDetector(ObjectDetector):
     def __init__(self, detector: ObjectDetector, blind_zones: List[Box]) -> None:
         super().__init__()
@@ -57,6 +60,7 @@ class BlindZoneObjectDetector(ObjectDetector):
     def detect(self, frame: Frame) -> List[Detection]:
         return [det for det in self.detector.detect(frame)
                         if not any(zone.contains(det.bbox) for zone in self.blind_zones)]
+
 
 class LogReadingDetector(ObjectDetector):
     def __init__(self, det_file: Path) -> None:

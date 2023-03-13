@@ -1,10 +1,10 @@
 id: etri:06
 
 camera:
-  uri: data/2022/crops/etri_06_crop.mp4
+  # uri: data/2022/crops/etri_06_crop.mp4
   # uri: data/2021/etri_06.mp4
   # uri: data/etri_06_hot.mp4
-  # uri: data/2022/etri_064.mp4
+  uri: data/2022/etri_061.mp4
   sync: False
   # begin_frame: 100
 
@@ -32,7 +32,7 @@ publishing:
 #     # smoothing_factor: 1
   sort_by_frame_index: True
   
-  plugins:
+  # plugins:
 #   local_path:
 #     max_path_length: 100
 #   kafka:
