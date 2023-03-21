@@ -1,12 +1,25 @@
 from __future__ import annotations
-from typing import Union, List, Tuple, Generator
+from typing import Union, List, Tuple, Generator, Dict
+
+from dataclasses import dataclass
 
 from dna.tracker import TrackState
-from dna.node import TrackEvent
+from .types import TrackEvent, TrackId
+
+
+@dataclass(frozen=True, eq=True)
+class TrackletMeta:
+    node_id: str
+    track_id: str
+    enter_zone: str
+    exit_zone: str
+    length: int
+    first_ts: int
+    last_ts: int
 
 
 class Tracklet:
-    def __init__(self, track_id:str, tracks:List[TrackEvent], offset:int=0) -> None:
+    def __init__(self, track_id:TrackId, tracks:List[TrackEvent], offset:int=0) -> None:
         self.track_id = track_id
         self.tracks:List[TrackEvent] = tracks
 
@@ -74,3 +87,14 @@ class Tracklet:
         state_str = f'[D]' if self.tracks and self.tracks[-1].is_deleted() else ''
 
         return f'{self.track_id}{state_str}:{len(self.tracks)}[{seq_str}]'
+    
+
+def read_tracklets(tracklet_gen:Generator[TrackEvent, None, None]) -> Dict[TrackId, Tracklet]:
+    tracklets:Dict[TrackId, Tracklet] = dict()
+    for track in tracklet_gen:
+        tracklet = tracklets.get(track.track_id)
+        if not tracklet:
+            tracklet = Tracklet(track.track_id, [])
+            tracklets[track.track_id] = tracklet
+        tracklet.append(track)
+    return tracklets

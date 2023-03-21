@@ -8,9 +8,6 @@ class EventListener(metaclass=ABCMeta):
     def handle_event(self, ev: object) -> None:
         pass
 
-    def listen(self, queue: EventQueue) -> None:
-        queue.add_listener(self)
-
     @abstractmethod
     def close(self) -> None:
         pass

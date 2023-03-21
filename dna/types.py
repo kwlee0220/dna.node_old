@@ -291,6 +291,9 @@ class Box:
         tlwh = self.tlbr.copy()
         tlwh[2:] = self.br - self.tl
         return tlwh
+    
+    def to_points(self) -> Tuple[Point,Point]:
+        return Point.from_np(self.tlbr[:2]), Point.from_np(self.tlbr[2:])
 
     def to_xyah(self) -> np.ndarray:
         ret = self.to_tlwh()

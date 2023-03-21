@@ -121,7 +121,7 @@ def load_track_params(track_conf:OmegaConf) -> DNATrackParams:
     detection_confidence = track_conf.get('detection_confidence', DEFAULT_DETECTION_CONFIDENCE)
     detection_min_size = load_size2d(track_conf, 'detection_min_size', None)
     detection_max_size = load_size2d(track_conf, 'detection_max_size', None)
-    drop_border_detections = track_conf.get('drop_border_detections', True)
+    drop_border_detections = track_conf.get('drop_border_detections', False)
 
     iou_dist_threshold = DistanceIoUThreshold.from_config(track_conf, 'iou_dist_threshold', DEFAULT_IOU_DIST_THRESHOLD)
     iou_dist_threshold_loose = DistanceIoUThreshold.from_config(track_conf, 'iou_dist_threshold_loose',

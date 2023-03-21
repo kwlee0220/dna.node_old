@@ -22,7 +22,7 @@ from dna.tracker.matcher.cost_matrices import build_dist_cost, build_iou_cost, g
 from .kalman_filter import KalmanFilter
 from .dna_track_params import DNATrackParams
 from .dna_track import DNATrack
-from dna.node.track_event import TrackEvent
+from dna.node.types import TrackEvent
 
 _EMPTY_FEATURE = np.zeros(1024)
 

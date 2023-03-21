@@ -7,7 +7,7 @@ from .kafka_event import KafkaEvent
 @dataclass(frozen=True, eq=True, order=True)    # slots=True
 class LocalPathEvent(KafkaEvent):
     node_id: str
-    track_id: int
+    track_id: str
     camera_path:str = field(compare=False, repr=False, hash=False)
     world_path:str = field(compare=False, repr=False, hash=False)
     first_frame: int

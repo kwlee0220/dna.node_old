@@ -14,7 +14,7 @@ class ZoneSequenceCollector(EventProcessor):
     def __init__(self) -> None:
         super().__init__()
         
-        self.sequences:Dict[int,ZoneSequence] = dict()
+        self.sequences:Dict[str,ZoneSequence] = dict()
     
     def close(self) -> None:
         self.sequences.clear()
@@ -42,21 +42,14 @@ class ZoneSequenceCollector(EventProcessor):
             assert last.is_open()
             last.close(frame_index=ev.frame_index, ts=ev.ts)
         elif ev.is_through():
-            # 현재 특정 zone 안에 있는 경우는 해당 zone에서 leave하는 것을 추가함
             last = seq[-1] if len(seq) > 0 else None
-            if last and last.zone_id != ev.zone_id:
-                last.close(frame_index=ev.frame_index, ts=ev.ts)
-                self.publish_event(seq.duplicate())
-                last = None
+            assert last is None or last.is_closed()
 
-            if last is None:
-                last = ZoneVisit.open(ev)
-                seq.append(last)
-                self.publish_event(seq.duplicate())
-            else:
-                # 기존에 있던 zone이 현 through event와 동일한 경우는 enter event를 무시한다.
-                pass
-            last.close(frame_index=ev.frame_index, ts=ev.ts)
+            last = ZoneVisit.open(ev)
+            seq.append(last)
+            self.publish_event(seq.duplicate())
+            
+            last.close_at_event(ev)
         self.publish_event(seq.duplicate())
             
     def handle_track_deleted(self, ev:TrackDeleted):
@@ -68,7 +61,7 @@ class FinalZoneSequenceFilter(EventProcessor):
     def __init__(self) -> None:
         super().__init__()
         
-        self.sequences:Dict[int,ZoneSequence] = dict()
+        self.sequences:Dict[str,ZoneSequence] = dict()
     
     def close(self) -> None:
         self.sequences.clear()

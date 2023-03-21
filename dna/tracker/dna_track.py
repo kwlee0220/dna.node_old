@@ -10,7 +10,7 @@ from dna.detect import Detection
 from dna.tracker import ObjectTrack, TrackState
 from .kalman_filter import KalmanFilter
 from .dna_track_params import DNATrackParams
-from dna.node.track_event import TrackEvent
+from dna.node.types import TrackEvent
 
 
 def to_tlbr(xyah:np.ndarray) -> Box:
@@ -47,7 +47,7 @@ class DNATrackState:
 _UNKNOWN_ZONE_ID = -2
 
 class DNATrack(ObjectTrack):
-    def __init__(self, mean, covariance, track_id:int, frame_index:int, ts:float,
+    def __init__(self, mean, covariance, track_id:str, frame_index:int, ts:float,
                     params:DNATrackParams, detection:Detection) -> None:
         super().__init__(id=track_id, state=TrackState.Tentative, location=to_box(to_tlbr(mean[:4])),
                         frame_index=frame_index, timestamp=ts)
@@ -160,8 +160,8 @@ class DNATrack(ObjectTrack):
         self.state = TrackState.Deleted
 
     def to_track_event(self) -> TrackEvent:
-        return TrackEvent(node_id=None, track_id=self.id, state=self.state, location=self.location,
-                          frame_index=self.frame_index, ts=self.timestamp)
+        return TrackEvent(node_id=None, track_id=str(self.id), state=self.state, location=self.location,
+                          frame_index=self.frame_index, ts=int(round(self.timestamp * 1000)))
         
     @property
     def state_str(self) -> str:

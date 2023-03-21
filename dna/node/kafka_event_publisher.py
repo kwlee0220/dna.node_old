@@ -3,9 +3,8 @@ from kafka import KafkaProducer
 from omegaconf import OmegaConf
 import logging
 
-from .track_event import TrackEvent
+from .types import KafkaEvent, TrackEvent
 from .event_processor import EventProcessor
-from .kafka_event import KafkaEvent
 
 LOGGER = logging.getLogger("dna.node.event")
 

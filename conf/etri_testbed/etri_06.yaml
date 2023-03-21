@@ -6,23 +6,27 @@ camera:
   # uri: data/etri_06_hot.mp4
   uri: data/2022/etri_061.mp4
   sync: False
-  # begin_frame: 100
+  # begin_frame: 12015
 
 tracker:
   draw: ['tracks', 'track_zones']
   n_init: 5
   track_zones:
-    - [[205, 607], [792, 442], [941, 332], [1099, 332], [1297, 496], [1918, 638], [1920, 1076], [0, 1082], [0, 612]]
+    # - [[205, 607], [792, 442], [941, 332], [1099, 332], [1297, 496], [1918, 638], [1920, 1076], [0, 1082], [0, 612]]
+    - [[205, 607], [792, 442], [941, 332], [1099, 332], [1297, 496], [1826, 607], [1829, 1001], [6, 853], [4, 606]]
   magnifying_zones:
     - [700, 320, 1300, 690]
   exit_zones:
       - [1017, 275, 1111, 334]   # 정문 방향
       - [1600, 686, 1920, 1080]  # 12동 방향
-      - [3, 600, 189, 950]        # 7동 방향
+      - [3, 600, 120, 900]        # 7동 방향
 
 publishing:
-  refine_buffer_size: 60
-  min_path_length: 30
+  tick_interval: 1.0
+  refine_tracks:
+    buffer_size: 20
+    buffer_timeout: 3.0
+  min_path_length: 10
   attach_world_coordinates:
     camera_geometry: regions/etri_testbed/etri_testbed.json
     camera_index: 2
@@ -30,24 +34,19 @@ publishing:
 #   stabilization:
 #     look_ahead: 7
 #     # smoothing_factor: 1
-  sort_by_frame_index: True
-  
-  # plugins:
-#   local_path:
-#     max_path_length: 100
-#   kafka:
-#     bootstrap_servers: [localhost:9092]
-# #   bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
-#     topic: 'node-tracks'
-    # zone_pipeline:
-    #   zones:
-    #     0: [[1511, 498], [1567, 1075], [1203, 1072], [1358, 492]]
-    #     1: [[226, 580], [455, 511], [660, 1078], [258, 1075]]
-    #     2: [[634, 478], [1332, 470], [1498, 538], [460, 561]]
-    #   motions:
-    #       '01': '01'
-    #       '02': '02'
-    #       '10': '10'
-    #       '12': '12'
-    #       '20': '20'
-    #       '21': '21'
+  zone_pipeline:
+    zones:
+      A: [[1409, 516], [955, 721], [974, 1037], [1836, 1033], [1827, 606], [1409, 516]]
+      B: [[519, 521], [700, 714], [696, 1047], [20, 1051], [18, 562], [519, 521]]
+      C: [[651, 529], [1352, 526], [1122, 353], [896, 354], [651, 529]]
+  order_by_frame_index:
+    max_pending_frames: 10
+    timeout: 3.0
+        
+motions:
+    'AB': 'AB'
+    'AC': 'AC'
+    'BA': 'BA'
+    'BC': 'BC'
+    'CA': 'CA'
+    'CB': 'CB'

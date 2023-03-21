@@ -99,7 +99,7 @@ def exclude_configs(conf: OmegaConf, keys: Optional[List[str]]=None) -> OmegaCon
 
 from argparse import Namespace
 from dna.node.utils import read_node_config
-_DB_CONF_KEYS = ['db_host', 'db_port', 'db_name', 'db_user', 'db_password']
+_DB_CONF_KEYS = ['db_host', 'db_port', 'db_dbname', 'db_user', 'db_password']
 def load_node_conf(args: Namespace,
                    extra_node_configs:List[str]=[]) -> Tuple[OmegaConf,OmegaConf,OmegaConf]: # node_conf, db_conf, args_conf
     args_conf = OmegaConf.create(vars(args)) if isinstance(args, Namespace) else args

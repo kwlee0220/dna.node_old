@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 from omegaconf import OmegaConf
 import numpy as np
 
 from dna import Point
-from .track_event import TrackEvent
-from .event_processor import EventProcessor
-from .kafka_event import KafkaEvent
+from dna.node import TrackEvent, TimeElapsed, EventProcessor
+from .types import KafkaEvent
 
 
 ALPHA = 1   # smoothing hyper parameter
@@ -114,29 +113,32 @@ class Stabilizer(EventProcessor):
 
         super().close()
         
-    def handle_event(self, ev: KafkaEvent) -> None:
-        self.pending_events.append(ev)
-        x, y = ev.world_coord.to_tuple()
-        self.pending_xs.append(x)
-        self.pending_ys.append(y)
-        self.upper += 1
+    def handle_event(self, ev:Union[TrackEvent, TimeElapsed]) -> None:
+        if isinstance(ev, TimeElapsed):
+            self.pending_events.append(ev)
+            x, y = ev.world_coord.to_tuple()
+            self.pending_xs.append(x)
+            self.pending_ys.append(y)
+            self.upper += 1
 
-        if self.upper - self.current > self.look_ahead:
-            xs = stabilization_location(self.pending_xs, self.look_ahead)
-            ys = stabilization_location(self.pending_ys, self.look_ahead)
+            if self.upper - self.current > self.look_ahead:
+                xs = stabilization_location(self.pending_xs, self.look_ahead)
+                ys = stabilization_location(self.pending_ys, self.look_ahead)
 
-            pt = Point(x=xs[self.current], y=ys[self.current])
-            ev = self.pending_events[self.current]
-            stabilized = ev.updated(world_coord=pt)
-            # print(f"{stabilized.frame_index}: {ev.world_coord} -> {stabilized.world_coord}")
-            self.publish_event(stabilized)
+                pt = Point(x=xs[self.current], y=ys[self.current])
+                ev = self.pending_events[self.current]
+                stabilized = ev.updated(world_coord=pt)
+                # print(f"{stabilized.frame_index}: {ev.world_coord} -> {stabilized.world_coord}")
+                self.publish_event(stabilized)
 
-            self.current += 1
-            if self.current > self.look_ahead:
-                self.pending_events.pop(0)
-                self.pending_xs.pop(0)
-                self.pending_ys.pop(0)
-                self.current -= 1
-                self.upper -= 1
+                self.current += 1
+                if self.current > self.look_ahead:
+                    self.pending_events.pop(0)
+                    self.pending_xs.pop(0)
+                    self.pending_ys.pop(0)
+                    self.current -= 1
+                    self.upper -= 1
+        else:
+            self.publish_event(ev)
 
 

@@ -19,7 +19,7 @@ class ZoneSequenceDisplay(FrameProcessor,EventListener):
         self.motion_counts:Dict[str,int] = defaultdict(int)
         for motion_id in motion_definitions.values():
             self.motion_counts[motion_id] = 0
-        self.track_locations:Dict[int,Box] = dict()
+        self.track_locations:Dict[str,Box] = dict()
         self.motion_tracks:Set[int] = set()
         self.track_queue = track_queue
         self.motion_queue = motion_queue

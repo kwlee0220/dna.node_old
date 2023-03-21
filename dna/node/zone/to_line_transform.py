@@ -1,10 +1,10 @@
 from __future__ import annotations
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Dict, Optional, Any
 
 import logging
 
 from dna.tracker import TrackState
-from ..track_event import TrackEvent
+from ..types import TrackEvent
 from ..event_processor import EventProcessor
 from .types import LineTrack, TrackDeleted
 
@@ -12,40 +12,30 @@ from .types import LineTrack, TrackDeleted
 class ToLineTransform(EventProcessor):
     def __init__(self, logger:logging.Logger) -> None:
         EventProcessor.__init__(self)
-        self.last_events:Dict[int,TrackEvent] = dict()
+        self.last_events:Dict[str,TrackEvent] = dict()
         self.logger = logger
 
     def close(self) -> None:
         self.last_events.clear()
         super().close()
 
-    def handle_event(self, ev:TrackEvent) -> None:
-        last_event = self.last_events.get(ev.track_id)
-        if last_event:
-            self.publish_event(LineTrack.from_events(last_event, ev))
+    def handle_event(self, ev:Any) -> None:
+        if isinstance(ev, TrackEvent):
+            self.handle_track_event(ev)
         else:
-            if self.logger.isEnabledFor(logging.DEBUG):
-                self.logger.debug(f'track created: id={ev.track_id}')
-        self.last_events[ev.track_id] = ev
+            self.publish_event(ev)
 
-        if ev.state == TrackState.Deleted:
+    def handle_track_event(self, ev:TrackEvent) -> None:
+        if ev.state != TrackState.Deleted:
+            last_event = self.last_events.get(ev.track_id)
+            if last_event:
+                self.publish_event(LineTrack.from_events(last_event, ev))
+            else:
+                if self.logger.isEnabledFor(logging.DEBUG):
+                    self.logger.debug(f'track created: id={ev.track_id}')
+            self.last_events[ev.track_id] = ev
+        else:
             self.last_events.pop(ev.track_id, None)
             if self.logger.isEnabledFor(logging.DEBUG):
                 self.logger.debug(f'track deleted: id={ev.track_id}')
-            self.publish_event(TrackDeleted(track_id=ev.track_id, frame_index=ev.frame_index, ts=ev.ts))
-
-
-
-        # if ev.state == TrackState.Deleted:
-        #     self.last_events.pop(ev.track_id, None)
-        #     if self.logger.isEnabledFor(logging.DEBUG):
-        #         self.logger.debug(f'track deleted: id={ev.track_id}')
-        #     self.publish_event(TrackDeleted(track_id=ev.track_id, frame_index=ev.frame_index, ts=ev.ts))
-        # else:
-        #     last_event = self.last_events.get(ev.track_id)
-        #     if last_event:
-        #         self.publish_event(LineTrack.from_events(last_event, ev))
-        #     else:
-        #         if self.logger.isEnabledFor(logging.DEBUG):
-        #             self.logger.debug(f'track created: id={ev.track_id}')
-        #     self.last_events[ev.track_id] = ev
+            self.publish_event(TrackDeleted(track_id=ev.track_id, frame_index=ev.frame_index, ts=ev.ts, source=ev))

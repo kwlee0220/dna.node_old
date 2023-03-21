@@ -1,5 +1,10 @@
+from __future__ import annotations
+from typing import Union, List, Tuple, Generator, Dict
 
 from omegaconf import OmegaConf
+
+from .types import TrackEvent
+from dna.support.text_line_writer import TextLineWriter
 
 
 def read_node_config(db_conf: OmegaConf, node_id:str) -> OmegaConf:
@@ -27,3 +32,37 @@ def read_node_config(db_conf: OmegaConf, node_id:str) -> OmegaConf:
                 return conf
             else:
                 return None
+            
+
+def read_tracks_csv(track_file:str) -> Generator[TrackEvent, None, None]:
+    import csv
+    with open(track_file) as f:
+        reader = csv.reader(f)
+        for row in reader:
+            yield TrackEvent.from_csv(row)
+
+
+def read_tracks_json(track_file:str) -> Generator[TrackEvent, None, None]:
+    import json
+    with open(track_file) as f:
+        for line in f.readlines():
+            yield TrackEvent.from_json(line)
+
+
+class CsvTrackEventWriter(TextLineWriter):
+    def __init__(self, file_path: str) -> None:
+        super().__init__(file_path)
+
+    def handle_event(self, ev:TrackEvent) -> None:
+        x1, y1, x2, y2 = tuple(ev.location.tlbr)
+        line = f"{ev.frame_index},{ev.track_id},{x1:.0f},{y1:.0f},{x2:.0f},{y2:.0f},{ev.state.name},{ev.ts}"
+        self.write(line + '\n')
+       
+
+class JsonTrackEventWriter(TextLineWriter):
+    def __init__(self, file_path: str) -> None:
+        super().__init__(file_path)
+
+    def handle_event(self, ev: object) -> None:
+        self.write(ev.to_json() + '\n')
+

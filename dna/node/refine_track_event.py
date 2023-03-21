@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union
 from dataclasses import dataclass, field
 
 from dna.tracker.dna_track import TrackState
-from .track_event import TrackEvent
+from dna.node import TrackEvent, TimeElapsed
 from .event_processor import EventProcessor
 
 import logging
@@ -40,19 +40,26 @@ class Session:
 
 
 class RefineTrackEvent(EventProcessor):
-    __slots__ = ('sessions', 'max_pendings')
+    __slots__ = ('sessions', 'buffer_size', 'timeout')
 
-    def __init__(self, max_pendings:int=30) -> None:
+    def __init__(self, buffer_size:int=30, buffer_timeout:float=1.0) -> None:
         EventProcessor.__init__(self)
 
-        self.sessions: Dict[int, Session] = {}
-        self.max_pendings = max_pendings
+        self.sessions: Dict[str, Session] = {}
+        self.buffer_size = buffer_size
+        self.timeout = round(int(buffer_timeout * 1000))
 
     def close(self) -> None:
         self.sessions.clear()
         super().close()
 
-    def handle_event(self, ev:TrackEvent) -> None:
+    def handle_event(self, ev:Union[TrackEvent,TimeElapsed]) -> None:
+        if isinstance(ev, TrackEvent):
+            self.handle_track_event(ev)
+        elif isinstance(ev, TimeElapsed):
+            self.handle_time_elapsed(ev)
+
+    def handle_track_event(self, ev:TrackEvent) -> None:
         session:Session = self.sessions.get(ev.track_id, None)
         if ev.state == TrackState.Deleted:   # tracking이 종료된 경우
             if session:
@@ -66,6 +73,11 @@ class RefineTrackEvent(EventProcessor):
                 self.__on_tentative(session, ev)
             elif session.state == TrackState.TemporarilyLost:
                 self.__on_temporarily_lost(session, ev)
+
+    def handle_time_elapsed(self, ev:TimeElapsed) -> None:
+        for session in self.sessions.values():
+            self._publish_old_events(session, ev.ts)
+        self.publish_event(ev)
 
     def __on_initial(self, ev:TrackEvent) -> None:
         # track과 관련된 session 정보가 없다는 것은 이 track event가 한 물체의 첫번째 track event라는 것을 
@@ -104,7 +116,7 @@ class RefineTrackEvent(EventProcessor):
             # 본 trail을 임시 상태에서 정식의 trail 상태로 변환시키고,
             # 지금까지 pending된 모든 tentative event를 trail에 포함시킨다
             # self.logger.debug(f"accept tentative tracks: track={track.id}, count={len(session.pendings)}")
-            self.__publish_all_pended_events(session)
+            self._publish_all_pended_events(session)
             self.publish_event(ev)
             session.state = TrackState.Confirmed
         elif ev.state == TrackState.Tentative:
@@ -115,17 +127,23 @@ class RefineTrackEvent(EventProcessor):
     def __on_temporarily_lost(self, session:Session, ev: TrackEvent) -> None:
         if ev.state == TrackState.Confirmed:
             session.trim_right_to(ev.frame_index)
-            self.__publish_all_pended_events(session)
+            self._publish_all_pended_events(session)
             self.publish_event(ev)
             session.state = TrackState.Confirmed
         elif ev.state == TrackState.TemporarilyLost:
             insert_index = session.find_insert_index(ev.frame_index)
             if insert_index < 0:
                 session.pendings.append(ev)
-                while len(session.pendings) > self.max_pendings:
+                while len(session.pendings) > self.buffer_size:
                     self.publish_event(session.pendings.pop(0))
 
-    def __publish_all_pended_events(self, session):
+    def _publish_all_pended_events(self, session:Session):
         for pended in session.pendings:
             self.publish_event(pended)
         session.pendings.clear()
+
+    def _publish_old_events(self, session:Session, ts:int):
+        pos = next((idx for idx, pended in enumerate(session.pendings) if (ts - pended.ts) <= self.timeout), len(session.pendings))
+        for pending in session.pendings[:pos]:
+            self.publish_event(pending)
+        session.pendings = session.pendings[pos:]

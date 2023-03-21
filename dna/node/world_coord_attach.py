@@ -1,9 +1,11 @@
+
+from typing import List, Dict, Tuple, Union
 from collections import namedtuple
 
 from omegaconf import OmegaConf
 
 from dna import Point
-from dna.node.track_event import TrackEvent
+from dna.node import TrackEvent, TimeElapsed
 from dna.node.event_processor import EventProcessor
 
 import logging
@@ -26,10 +28,13 @@ class WorldCoordinateAttacher(EventProcessor):
                           f'epsg_code={epsg_code}, '
                           f'contact_point={self.contact_point}'))
 
-    def handle_event(self, ev:TrackEvent) -> None:
-        pt = self.localizer.select_contact_point(ev.location.tlbr)
-        world_coord, dist = self.localizer.to_world_coord(pt)
-        if world_coord is not None:
-            world_coord = Point.from_np(world_coord)
-        updated = ev.updated(world_coord=world_coord, distance=dist)
-        self.publish_event(updated)
+    def handle_event(self, ev:Union[TrackEvent, TimeElapsed]) -> None:
+        if isinstance(ev, TrackEvent):
+            pt_m, dist = self.localizer.from_camera_box(ev.location.tlbr)
+            world_coord = self.localizer.to_world_coord(pt_m) if pt_m is not None else None
+            if world_coord is not None:
+                world_coord = Point.from_np(world_coord)
+            updated = ev.updated(world_coord=world_coord, distance=dist)
+            self.publish_event(updated)
+        else:
+            self.publish_event(ev)

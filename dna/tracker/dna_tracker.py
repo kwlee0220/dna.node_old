@@ -23,7 +23,7 @@ from .dna_track_params import load_track_params, DNATrackParams
 from .feature_extractor import FeatureExtractor
 from .dna_track import DNATrack
 from .tracker import Tracker
-from dna.node.track_event import TrackEvent
+from dna.node.types import TrackEvent
 
 import logging
 LOGGER = logging.getLogger('dna.tracker')

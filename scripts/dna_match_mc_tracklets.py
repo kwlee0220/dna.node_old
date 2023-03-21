@@ -5,17 +5,19 @@ import sys
 from typing import List, Dict, Tuple, Generator, Set
 from dataclasses import replace
 import itertools
+from contextlib import closing
 
 from dna import  initialize_logger
 from dna.tracker import TrackState
 from dna.node import TrackEvent, Tracklet
-from dna.tracklet.tracklet_matcher import match_tracklets
-from dna.support.load_tracklets import read_tracks_json
+from dna.node.tracklet_matcher import match_tracklets
+from dna.node.utils import read_tracks_json
+from dna.support.text_line_writer import TextLineWriter
 
 import logging
 LOGGER = logging.getLogger('dna.node.sync_frames')
 
-def load_tracklets(track_file:str, offset:int, max_camera_dist:float) -> Tuple[str, Dict[int,Tracklet]]:
+def load_tracklets(track_file:str, offset:int, max_camera_dist:float) -> Tuple[str, Dict[str,Tracklet]]:
     def is_valid_track(ev:TrackEvent) -> bool:
         if ev.is_deleted():
             return True
@@ -24,7 +26,7 @@ def load_tracklets(track_file:str, offset:int, max_camera_dist:float) -> Tuple[s
         return ev.distance and ev.distance <= max_camera_dist and ev.world_coord
 
     node_id = ''
-    tracklets:Dict[int,Tracklet] = dict()
+    tracklets:Dict[str,Tracklet] = dict()
     for te in read_tracks_json(track_file):
         # 일부 TrackEvent의 "world_coord"와 "distance" 필드가 None 값을 갖기 때문에
         # 해당 event는 제외시킨다. 또한 대상 물체와 카메라와의 거리 (distance)가
@@ -58,11 +60,11 @@ def parse_args():
     parser.add_argument("--tracklet_distance", type=float, metavar="value", default=7, 
                         help="maximum valid average distance for matching tracklets (default: 7)")
     parser.add_argument("--offsets", metavar="csv", help="camera frame offsets")
-    parser.add_argument("--output", "-o", metavar="dir", help="output directory.", default=None)
+    parser.add_argument("--output", "-o", metavar="path", help="output matching file.", default='stdout')
     parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
     return parser.parse_known_args()
 
-def find_by_index(full_matches, index:int, track_id:int):
+def find_by_index(full_matches, index:int, track_id:str):
     for idx, full_match in enumerate(full_matches):
         if full_match[index] == track_id:
             return idx, full_match
@@ -96,13 +98,15 @@ def main():
                 full_match[pos1] = match[0]
                 full_match[pos2] = match[1]
             else:
-                full_match = [-1] * len(nodes)
+                full_match = ['X'] * len(nodes)
                 full_match[pos1] = match[0]
                 full_match[pos2] = match[1]
                 full_matches.append(full_match)
-                
-    for fm in full_matches:
-        print(fm)
+
+    with closing(TextLineWriter(args.output)) as writer:
+        for fm in full_matches:
+            line = ','.join(list(fm))
+            writer.write(line + "\n")
 
 if __name__ == '__main__':
     main()

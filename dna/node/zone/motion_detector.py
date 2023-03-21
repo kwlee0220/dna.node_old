@@ -1,23 +1,12 @@
 from __future__ import annotations
-from typing import Tuple, List, Dict, Set, Optional, Any
+from typing import Dict
 
 import logging
-from dataclasses import dataclass, field
 import itertools
 
-from ..event_processor import EventQueue, EventListener, EventProcessor
+from ..event_processor import EventProcessor
+from .types import Motion
 from .zone_sequence_collector import ZoneSequence
-
-
-@dataclass(frozen=True)
-class Motion:
-    track_id: int
-    id: str
-    frame_index: int
-    ts: float
-
-    def __repr__(self) -> str:
-        return f'Motion[track={self.track_id}, motion={self.id}, frame={self.frame_index}]'
     
 
 class MotionDetector(EventProcessor):
@@ -26,13 +15,18 @@ class MotionDetector(EventProcessor):
         self.motion_definitions = motion_definitons
         self.logger = logger
 
+    def close(self) -> None:
+        super().close()
+
     def handle_event(self, ev:ZoneSequence) -> None:
         if isinstance(ev, ZoneSequence):
             seq = ''.join([zone.zone_id for zone in ev])
             seq = ''.join(i for i, _ in itertools.groupby(seq))
             motion_id = self.motion_definitions.get(seq)
             if motion_id:
-                motion = Motion(track_id=ev.track_id, id=motion_id, frame_index=ev.frame_index, ts=ev.ts)
+                motion = Motion(track_id=ev.track_id, id=motion_id,
+                                first_frame_index=ev.first_frame_index, first_ts=ev.first_ts,
+                                last_frame_index=ev.frame_index, last_ts=ev.ts)
                 if self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'detect motion: track={ev.track_id}, seq={seq}, motion={motion.id}, frame={ev.frame_index}')
                 self.publish_event(motion)

@@ -7,20 +7,18 @@ import shapely.geometry as geometry
 
 from dna import Point
 from dna.tracker import TrackState
-from ..track_event import TrackEvent
-
-
-@dataclass(frozen=True)
-class TimeElapsed:
-    frame_index: int
-    ts: float
+from ..types import TrackEvent
 
 
 @dataclass(frozen=True)
 class TrackDeleted:
-    track_id: int
+    track_id: str
     frame_index: int
     ts: float
+    source: TrackEvent = field(default=None)
+        
+    def to_track_event(self) -> ZoneEvent:
+        return replace(self.source, zone_relation='D')
 
 
 def to_line_string(pt0:Point, pt1:Point) -> geometry.LineString:
@@ -31,16 +29,17 @@ def to_line_end_points(ls:geometry.LineString) -> Tuple[Point,Point]:
 
 @dataclass(frozen=True)
 class LineTrack:
-    track_id: int
+    track_id: str
     line: geometry.LineString
     frame_index: int
     ts: float
+    source: TrackEvent = field(default=None)
 
     @staticmethod
     def from_events(t0:TrackEvent, t1:TrackEvent):
         p0 = t0.location.center()
         p1 = t1.location.center()
-        return LineTrack(track_id=t1.track_id, line=to_line_string(p0, p1), frame_index=t1.frame_index, ts=t1.ts)
+        return LineTrack(track_id=t1.track_id, line=to_line_string(p0, p1), frame_index=t1.frame_index, ts=t1.ts, source=t1)
     
     def __repr__(self) -> str:
         if self.line:
@@ -60,11 +59,12 @@ class ZoneRelation(Enum):
 
 @dataclass(frozen=True)
 class ZoneEvent:
-    track_id: int
+    track_id: str
     relation: ZoneRelation
     zone_id: str
     frame_index: int
     ts: float
+    source: TrackEvent = field(default=None)
 
     def is_unassigned(self) -> bool:
         return self.relation == ZoneRelation.Unassigned
@@ -79,13 +79,30 @@ class ZoneEvent:
 
     @staticmethod
     def UNASSIGNED(track:LineTrack) -> ZoneEvent:
-        return ZoneEvent(track_id=track.track_id, relation=ZoneRelation.Unassigned,
-                         zone_id=None, frame_index=track.frame_index, ts=track.ts)
+        return ZoneEvent(track_id=track.track_id, relation=ZoneRelation.Unassigned, zone_id=None,
+                         frame_index=track.frame_index, ts=track.ts, source=track.source)
     
-    def copy(self, rel:ZoneRelation, zone_id:Optional[str]=None) -> ZoneEvent:
-        return ZoneEvent(track_id=self.track_id, relation=rel,
-                         zone_id=zone_id if zone_id else self.zone_id,
-                         frame_index=self.frame_index, ts=self.ts)
+    # def copy(self, rel:ZoneRelation, zone_id:Optional[str]=None) -> ZoneEvent:
+    #     return ZoneEvent(track_id=self.track_id, relation=rel,
+    #                      zone_id=zone_id if zone_id else self.zone_id,
+    #                      frame_index=self.frame_index, ts=self.ts)
+    
+    def relation_str(self) -> str:
+        if self.relation == ZoneRelation.Unassigned:
+            return f'U'
+        elif self.relation == ZoneRelation.Entered:
+            return f'E({self.zone_id})'
+        elif self.relation == ZoneRelation.Left:
+            return f'L({self.zone_id})'
+        elif self.relation == ZoneRelation.Through:
+            return f'T({self.zone_id})'
+        elif self.relation == ZoneRelation.Inside:
+            return f'I({self.zone_id})'
+        else:
+            raise ValueError(f'invalid zone_relation: {self.relation}')
+        
+    def to_track_event(self) -> ZoneEvent:
+        return replace(self.source, zone_relation=self.relation_str())
     
     def __repr__(self) -> str:
         name = f'Zone{self.relation.name}'
@@ -96,7 +113,7 @@ class ZoneEvent:
 
 @dataclass(frozen=True)
 class LocationChanged:
-    track_id: int
+    track_id: str
     zone_ids: Set[str]
     frame_index: int
     ts: float
@@ -115,9 +132,9 @@ from datetime import timedelta
 class ZoneVisit:
     zone_id: str
     enter_frame_index: int
-    enter_ts: float
+    enter_ts: int
     leave_frame_index: int
-    leave_ts: float
+    leave_ts: int
     
     @staticmethod
     def open(ev:ZoneEvent) -> ZoneVisit:
@@ -130,6 +147,10 @@ class ZoneVisit:
     def is_closed(self) -> bool:
         return self.leave_ts > 0
     
+    def close_at_event(self, zev:ZoneEvent) -> None:
+        self.leave_frame_index = zev.frame_index
+        self.leave_ts = zev.ts
+    
     def close(self, frame_index:int, ts:float) -> None:
         self.leave_frame_index = frame_index
         self.leave_ts = ts
@@ -138,7 +159,7 @@ class ZoneVisit:
         return replace(self)
     
     def duration(self) -> timedelta:
-        return timedelta(seconds=self.leave_ts - self.enter_ts) if self.is_closed() else None
+        return timedelta(milliseconds=self.leave_ts - self.enter_ts) if self.is_closed() else None
     
     def __repr__(self) -> str:
         dur = self.duration()
@@ -148,13 +169,23 @@ class ZoneVisit:
 
 
 class ZoneSequence:
-    __slots__ = ( 'track_id', 'visits', '_frame_index', '_ts' )
+    __slots__ = ( 'track_id', 'visits', '_first_frame_index', '_first_ts', '_frame_index', '_ts' )
 
-    def __init__(self, track_id:int, visits:List[ZoneVisit]) -> None:
+    def __init__(self, track_id:str, visits:List[ZoneVisit]) -> None:
         self.track_id = track_id
         self.visits = visits
+        self._first_frame_index = visits[0].enter_frame_index if visits else -1
+        self._first_ts = visits[0].enter_ts if visits else -1
         self._frame_index = -2
         self._ts = -2
+
+    @property
+    def first_frame_index(self) -> int:
+        return self._first_frame_index
+
+    @property
+    def first_ts(self) -> int:
+        return self._first_ts
 
     @property
     def frame_index(self) -> int:
@@ -204,6 +235,11 @@ class ZoneSequence:
         return ZoneIter(self.visits)
     
     def append(self, visit:ZoneVisit) -> None:
+        if self._first_frame_index < 0:
+            self._first_frame_index = visit.enter_frame_index
+        if self._first_ts < 0:
+            self._first_ts = visit.enter_ts
+
         self.visits.append(visit)
         
     def remove(self, idx:int) -> None:
@@ -217,3 +253,17 @@ class ZoneSequence:
         seq_str = ''.join([visit.zone_id for visit in self.visits])
         str = f'[{seq_str}]' if len(self.visits) == 0 or self[-1].is_closed() else f'[{seq_str})'
         return f'{self.track_id}:{str}, frame={self.frame_index}'
+    
+
+@dataclass(frozen=True)
+class Motion:
+    track_id: str
+    id: str
+    first_frame_index: int
+    first_ts: int
+    last_frame_index: int
+    last_ts: int
+
+    def __repr__(self) -> str:
+        return (f'Motion[track={self.track_id}, motion={self.id}, '
+                'frame=[{self.first_frame_index}-{self.last_frame_index}]]')

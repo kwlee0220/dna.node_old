@@ -12,7 +12,7 @@ from dna.camera import Camera
 from dna.camera.utils import create_camera_from_conf
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
 from dna.node import stabilizer
-from dna.support.load_tracklets import read_tracks_json, read_tracks_csv
+from dna.node.utils import read_tracks_json, read_tracks_csv
 
 
 _contact_point_choices = [t.name.lower() for t in ContactPointType]
@@ -23,7 +23,7 @@ def parse_args():
     parser.add_argument("track_file")
     parser.add_argument("--type", metavar="[csv|json]", default='csv', help="input track file type")
     parser.add_argument("--video", metavar="uri", help="video uri for background image")
-    parser.add_argument("--frame", metavar="number", default=1, help="video frame number")
+    parser.add_argument("--frame", metavar="number", default=1, type=int, help="video frame number")
     parser.add_argument("--camera_index", metavar="index", type=int, default=0, help="camera index")
     parser.add_argument("--contact_point", metavar="contact-point type", 
                         choices=_contact_point_choices, type=str.lower, default='centroid', help="contact-point type")
@@ -161,7 +161,7 @@ class TrajectoryDrawer:
                         self.localizer.contact_point_type = contact_point_type
                     elif key == ord('w') and self.localizer is not None:
                         self.show_world_coords = not self.show_world_coords
-                    elif key == ord('s'):
+                    elif key == ord('t'):
                         self.show_stabilized = not self.show_stabilized
 
                     bg_image = self.world_image if self.world_image is not None and self.show_world_coords else self.camera_image
@@ -172,7 +172,7 @@ class TrajectoryDrawer:
             cv2.destroyWindow(title)
         return convas
 
-    def draw_interactively(self, title='trajectories'):
+    def draw_interactively(self, title='trajectories', capture_file='capture.png'):
         id_list = sorted(self.box_trajs)
         try:
             idx = 0
@@ -202,9 +202,12 @@ class TrajectoryDrawer:
                     elif key == ord('w') and self.localizer is not None:
                         self.show_world_coords = not self.show_world_coords
                         break
-                    elif key == ord('s'):
+                    elif key == ord('t'):
                         self.show_stabilized = not self.show_stabilized
                         break
+                    elif key == ord('s'):
+                        out_file = capture_file if capture_file else 'output.png'
+                        cv2.imwrite(out_file, convas)
         finally:
             cv2.destroyWindow(title)
 
@@ -216,7 +219,7 @@ class TrajectoryDrawer:
             pts = [box.center() for box in traj]
             
         if self.show_world_coords:
-            pts = [self.localizer.to_image_coord(pt)[0] for pt in pts]
+            pts = [self.localizer.from_camera_coord(pt_c)[0] for pt_c in pts]
             
         if self.show_stabilized:
             pts = self.stabilize(pts)
@@ -256,9 +259,10 @@ def main():
                               localizer=localizer, stabilizer=stabilizer, traj_color=traj_color)
 
     if args.interactive:
-        drawer.draw_interactively()
+        kw_args = {'capture_file':args.output} if args.output else dict()
+        drawer.draw_interactively(**kw_args)
     else:
-        drawer.show_stabilized = stabilizer is not None
+        drawer.show_stabilized = False
         drawer.show_world_coords = args.world_view
         convas = drawer.draw(pause=args.pause or args.output is None)
         if args.output is not None:

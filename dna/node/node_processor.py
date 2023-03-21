@@ -12,6 +12,7 @@ from .zone.zone_sequences_display import ZoneSequenceDisplay
 
 
 _DEFAULT_EXEC_CONTEXT = NoOpExecutionContext()
+ 
 
 def build_node_processor(capture: ImageCapture, conf: OmegaConf,
                          context: ExecutionContext=_DEFAULT_EXEC_CONTEXT) -> ImageProcessor:
@@ -35,7 +36,7 @@ def build_node_processor(capture: ImageCapture, conf: OmegaConf,
         motion_queue = zone_pipeline.event_queues.get('motions')
         if motion_detector and motion_queue:
             display = ZoneSequenceDisplay(motion_definitions=motion_detector.motion_definitions,
-                                          track_queue=track_event_pipeline.track_event_queue,
+                                          track_queue=track_event_pipeline,
                                           motion_queue=motion_queue)
             if display:
                 img_proc.add_frame_processor(display)

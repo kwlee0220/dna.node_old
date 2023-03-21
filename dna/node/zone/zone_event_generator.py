@@ -14,55 +14,6 @@ from ..event_processor import EventProcessor
 from .types import LineTrack, TrackDeleted, ZoneRelation, ZoneEvent
 
 
-# class Zone:
-#     def __init__(self, geom:BaseGeometry) -> None:
-#         self.geom = geom
-
-#     @staticmethod
-#     def from_coords(coords:list) -> Zone:
-#         if isinstance(coords[0], numbers.Number):
-#             return Zone(geometry.box(coords).coords)
-#             # return Zone(geometry.Polygon(Box.from_tlbr(coords).coords))
-#         else:
-#             npoints = len(coords)
-#             if npoints > 2:
-#                 return Zone(geometry.Polygon([tuple(c) for c in coords]))
-#             elif npoints == 2:
-#                 return Zone(geometry.LineString([tuple(c) for c in coords]))
-    
-#     @property
-#     def coords(self):
-#         return self.geom.coords
-
-#     def covers(self, geom:BaseGeometry) -> bool:
-#         return self.geom.covers(geom)
-
-#     def covers_point(self, pt:Union[Point,Tuple,npt.ArrayLike]) -> bool:
-#         xy = pt.to_tuple() if isinstance(pt, Point) else tuple(pt)
-#         return self.geom.covers(Point(xy))
-    
-#     def intersects(self, geom:BaseGeometry):
-#         return self.geom.intersects(geom)
-    
-#     def distance(self, geom:BaseGeometry) -> float:
-#         return self.geom.distance(geom)
-
-#     def draw(self, convas:Image, color:BGR, line_thickness=2) -> Image:
-#         if isinstance(self.geom, geometry.LineString):
-#             return plot_utils.draw_line_string(convas, self.geom.coords, color=color, line_thickness=line_thickness)
-#         else:
-#             return plot_utils.draw_polygon(convas, list(self.geom.exterior.coords), color=color, line_thickness=line_thickness)
-
-#     def __repr__(self) -> str:
-#         return repr(self.geom)
-
-#     @staticmethod
-#     def find_covering_zone(pt:Point, zones:List[Zone]):
-#         for idx, zone in enumerate(zones):
-#             if zone.covers_point(pt):
-#                 return idx
-#         return -1
-
 class ZoneEventGenerator(EventProcessor):
     def __init__(self, named_zones:OmegaConf, logger:logging.Logger) -> None:
         EventProcessor.__init__(self)
@@ -80,7 +31,7 @@ class ZoneEventGenerator(EventProcessor):
         for zid, zone in self.zones.items(): 
             if zone.intersects(line_track.line):
                 rel = self.get_relation(zone, line_track.line)
-                zone_events.append(self.to_zone_line_corss(rel, zid, line_track))
+                zone_events.append(self.to_zone_event(rel, zid, line_track))
 
         # 특정 zone과 교집합이 없는 경우는 UNASSIGNED 이벤트를 발송함
         if len(zone_events) == 0:
@@ -140,6 +91,6 @@ class ZoneEventGenerator(EventProcessor):
         else:
             return ZoneRelation.Through
         
-    def to_zone_line_corss(self, rel:ZoneRelation, zone_id:str, track:LineTrack) -> ZoneEvent:
+    def to_zone_event(self, rel:ZoneRelation, zone_id:str, track:LineTrack) -> ZoneEvent:
         return ZoneEvent(track_id=track.track_id, relation=rel, zone_id=zone_id,
-                         frame_index=track.frame_index, ts=track.ts)
+                         frame_index=track.frame_index, ts=track.ts, source=track.source)

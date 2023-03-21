@@ -100,7 +100,8 @@ def main():
         begin_frames = [0] * len(args.video_uris)
 
     camera_list = [create_camera(uri, begin_frame=begin_frames[idx]) for idx, uri in enumerate(args.video_uris)]
-    size:Size2d = (camera_list[0].size() / 2).to_rint()
+    size:Size2d = (camera_list[0].size() * 0.7).to_rint()
+    # size:Size2d = camera_list[0].size().to_rint()
     camera_list = [camera.resize(size) for camera in camera_list]
 
     with multi_camera_context(camera_list) as caps:

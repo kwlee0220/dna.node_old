@@ -5,13 +5,14 @@ import json, pickle
 
 from omegaconf import OmegaConf
 import numpy as np
+import numpy.typing as npt
 from scipy.spatial.transform import Rotation
 from pathlib import Path
 import cv2
 
 from dna import Point
-from dna.node.track_event import TrackEvent
-from dna.node.event_processor import EventProcessor
+from .types import TrackEvent
+from .event_processor import EventProcessor
 
 import logging
 LOGGER = logging.getLogger("dna.node.pipeline")
@@ -43,28 +44,26 @@ class WorldCoordinateLocalizer:
         if epsg_code != _BASE_EPSG:
             self.transformer = Transformer.from_crs(_BASE_EPSG, epsg_code)
         self.contact_point_type = contact_point
-        
-    def to_world_coord_box(self, tlbr:np.array) -> Tuple[Optional[np.ndarray], np.double]:
-        pt = self.select_contact_point(tlbr, self.contact_point_type)
-        return self.to_world_coord(pt)
-        
-    def to_world_coord(self, pt:np.array) -> Tuple[Optional[np.ndarray], np.double]:
-        pt_m, dist = self.localize_point(pt)
-        if pt_m is None:
-            return None, None
+
+    def from_camera_coord(self, pt:npt.ArrayLike) -> Tuple[np.ndarray,np.double]:
+        pt_m, dist = self.localize_point(np.array(pt))
+        return (pt_m, dist) if pt_m is not None else (None, dist)
+
+    def from_camera_box(self, tlbr:npt.ArrayLike) -> Tuple[np.ndarray,np.double]:
+        pt = self.select_contact_point(tlbr)
+        return self.from_camera_coord(pt)
+    
+    def from_image_coord(self, pt_m:npt.ArrayLike) -> np.ndarray:
+        return conv_pixel2meter(np.array(pt_m), self.satellite['origin_pixel'], self.satellite['meter_per_pixel'])
+    
+    def to_world_coord(self, pt_m:npt.ArrayLike) -> np.ndarray:
+        pt_m = np.array(pt_m)
         pt_5186 = pt_m[0:2] + self.origin_utm
         pt_world = pt_5186 if self.transformer is None else self.transformer.transform(*pt_5186[::-1])[::-1]
-        return pt_world, dist
-        
-    def to_image_coord_box(self, tlbr:np.array) -> Tuple[Optional[np.ndarray], np.double]:
-        pt = self.select_contact_point(tlbr)
-        return self.to_image_coord(pt)
+        return pt_world
 
-    def to_image_coord(self, pt) -> Tuple[Point, np.double]:
-        pt_m, dist = self.localize_point(pt)
-        pt_m2p = conv_meter2pixel(pt_m, self.satellite['origin_pixel'], self.satellite['meter_per_pixel'])
-        # return np.rint(pt_m2p).astype('int32')
-        return Point.from_np(pt_m2p), dist
+    def to_image_coord(self, pt_m:npt.ArrayLike) -> np.ndarray:
+        return conv_meter2pixel(pt_m, self.satellite['origin_pixel'], self.satellite['meter_per_pixel'])
         
     def localize_point(self, pt) -> Tuple[Optional[np.ndarray], np.double]:
         '''Calculate 3D location (unit: [meter]) of the given point (unit: [pixel]) with the given camera configuration'''
@@ -205,11 +204,12 @@ if __name__ == '__main__':
     box = Box([323,679,715,995])
     pt = box.center().xy
 
-    coord, dist = localizer.to_world_coord(pt)
+    pt_m, dist = localizer.from_camera_coord(pt)
+    coord = localizer.to_world_coord(pt_m)
     print(coord, dist)
 
     img = cv2.imread("data/ETRI_221011.png", cv2.IMREAD_COLOR)
-    img_coord, _ = localizer.to_image_coord(pt)
+    img_coord, _ = localizer.to_image_coord(pt_m)
     img = cv2.circle(img, img_coord, 5, color.RED, -1)
     while ( True ):
         cv2.imshow('image', img)

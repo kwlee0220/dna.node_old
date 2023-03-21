@@ -1,52 +1,61 @@
 id: etri:05
 
 camera:
-  # uri: data/2021/etri_05.mp4
+  uri: data/2021/etri_05.mp4
   # uri: data/2022/crops/etri_05_crop.mp4
-  uri: data/2022/etri_051.mp4
+  # uri: data/2022/etri_051.mp4
   # size: [1920, 1080]
   sync: False
-  # begin_frame: 1250
+  # begin_frame: 1416
+  # end_frame: 500
 
 tracker:
   draw: ["tracks", "track_zones"]
+  n_init: 3
 
-  # cnu_siammot:
-  #   model: models/person_vehicle/models.pth
-  #   detector: configs/CenterNet_siammot.yaml
   track_zones:
-    - [[1, 624], [674, 367], [713, 322], [670, 293], [676, 195], [1026, 240], [1357, 311], [1785, 455],
-      [1764, 562], [1420, 534], [1224, 839], [1123, 1077], [1, 1078]]
+    # - [[1, 624], [674, 367], [713, 322], [670, 293], [676, 195], [1026, 240], [1357, 311], [1785, 455],
+    #   [1764, 562], [1420, 534], [1224, 839], [1123, 1077], [1, 1078]]
+    - [[85, 593], [674, 367], [713, 322], [670, 293], [675, 180], [1245, 258], [1790, 434],
+      [1764, 562], [1420, 534], [1187, 933], [235, 876]]
+    # - [[85, 593], [674, 367], [721, 309], [629, 274], [631, 174], [1245, 258], [1790, 434], [1764, 562],
+    #   [1420, 534], [1202, 891], [235, 876]]
   exit_zones:
     - [553, 177, 703, 316]  # 12동 방향
     - [1700, 388, 1900, 570]  # 7동 방향
     - [[103, 521], [347, 822], [372, 1078], [284, 1079], [0, 1080], [2, 521]] # 정문 방향
 
 publishing:
-  refine_buffer_size: 60
+  tick_interval: 1.0
+  refine_tracks:
+    buffer_size: 20
+    buffer_timeout: 3.0
   min_path_length: 10
   attach_world_coordinates:
     camera_geometry: regions/etri_testbed/etri_testbed.json
     camera_index: 1
     # epsg_code: "EPSG:5186"
-  sort_by_frame_index: True
+  zone_pipeline:
+    zones:
+      A: [[1126, 249], [660, 194], [644, 333], [937, 349], [1126, 249]]
+      B: [[1245, 273], [1345, 545], [1761, 561], [1806, 412], [1245, 273]]
+      C: [[609, 358], [1388, 584], [1165, 1064], [177, 936], [40, 530], [609, 358]]
+  order_by_frame_index:
+    max_pending_frames: 10
+    timeout: 3.0
 
   # plugins:
-#   local_path:
-#     max_path_length: 100
-#   kafka:
-#     bootstrap_servers: [localhost:9092]
-# #   bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
-#     topic: 'node-tracks'
-    # zone_pipeline:
-    #   zones:
-    #       0: [[664, 178], [1068, 184], [1063, 296], [897, 354], [506, 391]]
-    #       1: [[1517, 304], [1651, 304], [1651, 590], [1517, 590]]
-    #       2: [[423, 396], [1393, 688], [1302, 965], [176, 498]]
-    #   motions:
-    #       '01': '01'
-    #       '02': '02'
-    #       '10': '10'
-    #       '12': '12'
-    #       '20': '20'
-    #       '21': '21'
+  #   local_path:
+  #     max_path_length: 100
+  #   kafka:
+  #     bootstrap_servers: [localhost:9092]
+  #   # bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
+  #     topic: 'node-tracks'
+
+motions:
+    'AB': 'AB'
+    'AC': 'AC'
+    'BA': 'BA'
+    'BC': 'BC'
+    'CA': 'CA'
+    'CB': 'CB'

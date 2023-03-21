@@ -7,7 +7,6 @@ camera:
   end_frame: 3000
 
 tracker:
-  drop_border_detections: False
   draw: ["tracks", "track_zones", "blind_zones", "exit_zones"]
   metric_gate_distance: 300
   track_zones:

@@ -23,7 +23,7 @@ class Zone:
                 return Zone(geometry.LineString([tuple(c) for c in coords]))
             else:
                 if coords[0] == coords[-1]:
-                    return Zone(geometry.Polygon([tuple(c) for c in coords]))
+                    return Zone(geometry.Polygon([tuple(c) for c in coords[:-1]]))
                 else:
                     return Zone(geometry.LineString([tuple(c) for c in coords]))
             return Zone(line_string)

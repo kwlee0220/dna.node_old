@@ -11,18 +11,18 @@ LOGGER = logging.getLogger('dna.node.zone.Residents')
 
 @dataclass
 class Residents:
-    track_ids: Set[int]
+    track_ids: Set[str]
     frame_index: int
-    ts: float
+    ts: int
     
-    def add_resident(self, track_id:int) -> bool:
+    def add_resident(self, track_id:str) -> bool:
         if track_id not in self.track_ids:
             self.track_ids.add(track_id)
             return True
         else:
             return False
     
-    def remove_resident(self, track_id:int) -> bool:
+    def remove_resident(self, track_id:str) -> bool:
         if track_id in self.track_ids:
             self.track_ids.discard(track_id)
             return True

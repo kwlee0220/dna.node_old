@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Union
 from collections import defaultdict
 
 from dna.tracker import TrackState
-from .track_event import TrackEvent
+from dna.node import TrackEvent, TimeElapsed, TrackId
 from .event_processor import EventProcessor
 
 import logging
@@ -18,15 +18,21 @@ class DropShortTrail(EventProcessor):
         EventProcessor.__init__(self)
 
         self.min_trail_length = min_trail_length
-        self.long_trails: Set[str] = set()  # 'long trail' 여부
-        self.pending_dict: Dict[str, List[TrackEvent]] = defaultdict(list)
+        self.long_trails: Set[TrackId] = set()  # 'long trail' 여부
+        self.pending_dict: Dict[TrackId, List[TrackEvent]] = defaultdict(list)
 
     def close(self) -> None:
         super().close()
         self.pending_dict.clear()
         self.long_trails.clear()
 
-    def handle_event(self, ev) -> None:
+    def handle_event(self, ev:Union[TrackEvent,TimeElapsed]) -> None:
+        if isinstance(ev, TrackEvent):
+            self.handle_track_event(ev)
+        else:
+            self.publish_event(ev)
+
+    def handle_track_event(self, ev:TrackEvent) -> None:
         is_long_trail = ev.track_id in self.long_trails
         if ev.state == TrackState.Deleted:   # tracking이 종료된 경우
             if is_long_trail:

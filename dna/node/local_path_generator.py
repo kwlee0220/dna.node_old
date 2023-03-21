@@ -8,7 +8,7 @@ from dna import Point
 from dna.color import BGR
 from dna.tracker import TrackState
 from .local_path_event import LocalPathEvent
-from .track_event import TrackEvent
+from .types import TrackEvent
 from .event_processor import EventProcessor
 
 class Session:

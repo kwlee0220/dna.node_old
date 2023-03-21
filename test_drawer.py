@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 from omegaconf import OmegaConf
 
-from dna import Box, color, plot_utils
+from dna import Box, Point, color, plot_utils
 from dna.camera import Camera, ImageProcessor
 from dna.camera.utils import create_camera_from_conf
 from dna.utils import RectangleDrawer, PolygonDrawer
@@ -15,69 +15,58 @@ img = None
 
 camera_conf = OmegaConf.create()
 # camera_conf.uri = "data/2022/crops/etri_07_crop.mp4"
-# camera_conf.uri = "data/2022/etri_051.mp4"
-camera_conf.uri = "data/ai_city/ai_city_t3_c01.avi"
+camera_conf.uri = "data/2023/etri_06_join.mp4"
+# camera_conf.uri = "data/ai_city/ai_city_t3_c01.avi"
 # camera_conf.uri = "data/crossroads/crossroad_04.mp4"
 # camera_conf.uri = "output/track_07.mp4"
-camera_conf.begin_frame = 1000
+camera_conf.begin_frame = 83
 camera:Camera = create_camera_from_conf(camera_conf)
 
+localizer = None
+from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
+# localizer = WorldCoordinateLocalizer('regions/etri_testbed/etri_testbed.json', 0, contact_point=ContactPointType.Simulation)
+
 track_zones = [
+    [[205, 607], [792, 442], [941, 332], [1099, 332], [1297, 496], [1826, 607], [1829, 1001], [6, 853], [4, 606]]
 ]
 blind_zones = [
 ]
 exit_zones = [
-    # [1050, 200, 1245, 280],
-    # [1815, 335, 1920, 1080],
-    # [0, 960, 1920, 960],
-    # [0, 350, 90, 960]
+    [1017, 275, 1111, 334],
+    [1600, 686, 1920, 1080],
+    [3, 600, 120, 900],
 ]
 zones = [
-    # [[491, 376], [619, 428], [1333, 396], [1400, 297]],
-    # [[1531, 289], [1545, 466]],
-    # [[1376, 570], [1606, 467]],
-    # [[587, 589], [1025, 588]],
-    # [[288, 386], [289, 525]],
+    [[1409, 516], [955, 721], [974, 1037], [1836, 1033], [1827, 606], [1409, 516]],
+    [[519, 521], [700, 714], [696, 1047], [20, 1051], [18, 562], [519, 521]],
+    [[651, 529], [1352, 526], [1122, 353], [896, 354], [651, 529]],
 ]
-    # [[703, 268], [703, 421], [503, 425], [502, 263]]
-    # [[407, 239], [407, 422], [96, 452], [118, 206]]
 
 with closing(camera.open()) as cap:
     img = cap().image
-img = cv2.imread("output/output.png", cv2.IMREAD_COLOR)
+img = cv2.imread("output/2023/etri_06_trajs.jpg", cv2.IMREAD_COLOR)
+# img = cv2.imread("output/ETRI_221011.png", cv2.IMREAD_COLOR)
 
 for coords in track_zones:
-    img = plot_utils.draw_polygon(img, coords, color.GREEN, 2)
+    img = plot_utils.draw_polygon(img, coords, color.GREEN, 1)
 for coords in exit_zones:
     img = Zone.from_coords(coords).draw(img, color.ORANGE, line_thickness=2)
 for coords in blind_zones:
     img = Zone.from_coords(coords).draw(img, color.BLUE, line_thickness=2)
 for coords in zones:
-    img = Zone.from_coords(coords, as_line_string=True).draw(img, color.RED, line_thickness=3)
+    img = Zone.from_coords(coords, as_line_string=True).draw(img, color.RED, line_thickness=1)
+
+def image_to_world(localizer:WorldCoordinateLocalizer, pt_p):
+    pt_m = localizer.from_image_coord(pt_p)
+    return localizer.to_world_coord(pt_m).astype(int)
 
 polygon = []
-polygon = [[703, 268], [703, 421], [96, 452], [118, 206]]
+# polygon = [[182, 399], [182, 478], [523, 503], [799, 460], [1219, 288], [1221, 265],
+#       [1420, 265], [1362, 488], [1807, 595], [1814, 930], [4, 927], [0, 399]]
 coords = PolygonDrawer(img, polygon).run()
+if localizer:
+    coords = [list(image_to_world(localizer, coord)) for coord in coords]
+
 print(coords)
 
-cv2.destroyAllWindows() 
-
-# 04
-# [[952, 382], [1132, 408], [1115, 438], [920, 409]]
-# [[1167, 347], [1163, 396], [1143, 391], [1146, 342]]
-# [[975, 330], [955, 362], [984, 367], [1001, 333]]
-
-# 05
-# [[649, 394], [547, 440], [1107, 749], [1180, 649]]
-# [[1441, 354], [1419, 486], [1485, 506], [1501, 378]]
-# [[814, 215], [724, 302], [770, 329], [885, 228]]
-
-# 06
-# [[1152, 420], [871, 411], [860, 463], [1168, 459]]
-# [[490, 574], [451, 1021], [570, 1026], [601, 561]]
-# [[1421, 542], [1422, 1048], [1584, 1045], [1538, 560]]
-
-# 07
-# [[276, 517], [69, 662], [132, 704], [313, 531]]
-# [[1339, 563], [1296, 1045], [1410, 1054], [1466, 595]]
-# [[1068, 348], [1028, 381], [1275, 491], [1305, 398]]
+cv2.destroyAllWindows()

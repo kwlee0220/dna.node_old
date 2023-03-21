@@ -40,9 +40,11 @@ def parse_args():
 
 
 def load_json(track_file:str, localizer:WorldCoordinateLocalizer) -> Tuple[str, Dict[int, List[Location]]]:
-    def parse_line(line:str) -> Tuple[str, int, int, TrackState, Location]:
+    def parse_line(line:str) -> Tuple[str, str, int, TrackState, Location]:
         ev = TrackEvent.from_json(line)
-        pt, dist = localizer.to_image_coord_box(ev.location.tlbr)
+
+        pt_m, dist = localizer.from_camera_box(ev.location.tlbr)
+        pt = Point.from_np(localizer.to_image_coord(pt_m))
         loc = Location(luid=ev.track_id, point=pt, distance=dist)
         return (ev.node_id, ev.track_id, ev.frame_index, ev.state, loc)
 
@@ -51,15 +53,15 @@ def load_json(track_file:str, localizer:WorldCoordinateLocalizer) -> Tuple[str, 
         indexed_locations = defaultdict(list)
         state_accum = defaultdict(int)
         for line in f.readlines():
-            node_id, luid, index, state, loc = parse_line(line)
+            node_id, track_id, index, state, loc = parse_line(line)
             if state == TrackState.TemporarilyLost:
-                state_accum[luid] += 1
-            if state != TrackState.Deleted and state_accum[luid] < 3:
+                state_accum[track_id] += 1
+            if state != TrackState.Deleted and state_accum[track_id] < 3:
                 indexed_locations[index].append(loc)
             if state == TrackState.Confirmed:
-                state_accum[luid] = 0
+                state_accum[track_id] = 0
             elif state == TrackState.Deleted:
-                del state_accum[luid]
+                del state_accum[track_id]
             
     return node_id, dict(indexed_locations)
 
