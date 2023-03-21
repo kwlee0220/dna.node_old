@@ -93,4 +93,4 @@ class ZoneEventGenerator(EventProcessor):
         
     def to_zone_event(self, rel:ZoneRelation, zone_id:str, track:LineTrack) -> ZoneEvent:
         return ZoneEvent(track_id=track.track_id, relation=rel, zone_id=zone_id,
-                         frame_index=track.frame_index, ts=track.ts, source=track.source)
+                         frame_index=track.frame_index, ts=track.ts)

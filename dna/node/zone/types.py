@@ -16,9 +16,6 @@ class TrackDeleted:
     frame_index: int
     ts: float
     source: TrackEvent = field(default=None)
-        
-    def to_track_event(self) -> ZoneEvent:
-        return replace(self.source, zone_relation='D')
 
 
 def to_line_string(pt0:Point, pt1:Point) -> geometry.LineString:
@@ -33,7 +30,6 @@ class LineTrack:
     line: geometry.LineString
     frame_index: int
     ts: float
-    source: TrackEvent = field(default=None)
 
     @staticmethod
     def from_events(t0:TrackEvent, t1:TrackEvent):
@@ -64,7 +60,6 @@ class ZoneEvent:
     zone_id: str
     frame_index: int
     ts: float
-    source: TrackEvent = field(default=None)
 
     def is_unassigned(self) -> bool:
         return self.relation == ZoneRelation.Unassigned
@@ -80,7 +75,7 @@ class ZoneEvent:
     @staticmethod
     def UNASSIGNED(track:LineTrack) -> ZoneEvent:
         return ZoneEvent(track_id=track.track_id, relation=ZoneRelation.Unassigned, zone_id=None,
-                         frame_index=track.frame_index, ts=track.ts, source=track.source)
+                         frame_index=track.frame_index, ts=track.ts)
     
     # def copy(self, rel:ZoneRelation, zone_id:Optional[str]=None) -> ZoneEvent:
     #     return ZoneEvent(track_id=self.track_id, relation=rel,
@@ -100,9 +95,6 @@ class ZoneEvent:
             return f'I({self.zone_id})'
         else:
             raise ValueError(f'invalid zone_relation: {self.relation}')
-        
-    def to_track_event(self) -> ZoneEvent:
-        return replace(self.source, zone_relation=self.relation_str())
     
     def __repr__(self) -> str:
         name = f'Zone{self.relation.name}'

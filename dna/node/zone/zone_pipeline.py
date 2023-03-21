@@ -74,11 +74,3 @@ class ZonePipeline(EventListener):
     
     def handle_event(self, ev: object) -> None:
         self.event_source.publish_event(ev)
-
-
-from dna.node import TrackEvent
-from dna.node.zone import ZoneEvent
-class ToTrackEvent(EventProcessor):
-    def handle_event(self, ev:ZoneEvent) -> None:
-        if ev.source:
-            self.publish_event(ev.to_track_event())

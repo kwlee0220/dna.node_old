@@ -144,12 +144,12 @@ class ZoneEventRefiner(EventProcessor):
     def publish_entered(self, zone_ev:ZoneEvent, zone_id:Optional[str]=None) -> None:
         ev = ZoneEvent(track_id=zone_ev.track_id, relation=ZoneRelation.Entered,
                        zone_id=zone_id if zone_id else zone_ev.zone_id,
-                       frame_index=zone_ev.frame_index, ts=zone_ev.ts, source=zone_ev.source)
+                       frame_index=zone_ev.frame_index, ts=zone_ev.ts)
         self.publish_event(ev)
         
     def publish_left(self, zone_ev:ZoneEvent, zone_id:Optional[str]=None) -> None:
         ev = ZoneEvent(track_id=zone_ev.track_id, relation=ZoneRelation.Left,
                        zone_id=zone_id if zone_id else zone_ev.zone_id,
-                       frame_index=zone_ev.frame_index, ts=zone_ev.ts, source=zone_ev.source)
+                       frame_index=zone_ev.frame_index, ts=zone_ev.ts)
         self.publish_event(ev)
     
