@@ -35,7 +35,7 @@ class LineTrack:
     def from_events(t0:TrackEvent, t1:TrackEvent):
         p0 = t0.location.center()
         p1 = t1.location.center()
-        return LineTrack(track_id=t1.track_id, line=to_line_string(p0, p1), frame_index=t1.frame_index, ts=t1.ts, source=t1)
+        return LineTrack(track_id=t1.track_id, line=to_line_string(p0, p1), frame_index=t1.frame_index, ts=t1.ts)
     
     def __repr__(self) -> str:
         if self.line:

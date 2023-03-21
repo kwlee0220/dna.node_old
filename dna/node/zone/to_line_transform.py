@@ -38,4 +38,4 @@ class ToLineTransform(EventProcessor):
             self.last_events.pop(ev.track_id, None)
             if self.logger.isEnabledFor(logging.DEBUG):
                 self.logger.debug(f'track deleted: id={ev.track_id}')
-            self.publish_event(TrackDeleted(track_id=ev.track_id, frame_index=ev.frame_index, ts=ev.ts, source=ev))
+            self.publish_event(TrackDeleted(track_id=ev.track_id, frame_index=ev.frame_index, ts=ev.ts))
