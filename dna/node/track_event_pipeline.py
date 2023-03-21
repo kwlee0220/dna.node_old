@@ -80,18 +80,6 @@ class TrackEventPipeline(TrackProcessor,EventQueue):
 
         self.append_processor(_DROP_TIME_ELAPSED)
             
-        zone_pipeline_conf = OmegaConf.select(publishing_conf, 'zone_pipeline')
-        if zone_pipeline_conf is not None:
-            from .zone.zone_pipeline import ZonePipeline
-            zone_pipeline = ZonePipeline(zone_pipeline_conf)
-            self.add_plugin('zone_pipeline', zone_pipeline)
-
-            # if OmegaConf.select(zone_pipeline_conf, 'to_track_event', default=False):
-            #     from .zone.zone_pipeline import ToTrackEvent
-            #     track_event_conv = ToTrackEvent()
-            #     zone_pipeline.event_queues['zone_events'].add_listener(track_event_conv)
-            #     self.output_queue = track_event_conv
-            
         conf = OmegaConf.select(publishing_conf, "order_by_frame_index", default=None)
         if conf:
             from .event_processors import order_by_frame_index

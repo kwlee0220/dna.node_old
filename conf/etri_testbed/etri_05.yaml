@@ -34,15 +34,15 @@ publishing:
   attach_world_coordinates:
     camera_geometry: regions/etri_testbed/etri_testbed.json
     camera_index: 1
-    # epsg_code: "EPSG:5186"
-  zone_pipeline:
-    zones:
-      A: [[1126, 249], [660, 194], [644, 333], [937, 349], [1126, 249]]
-      B: [[1245, 273], [1345, 545], [1761, 561], [1806, 412], [1245, 273]]
-      C: [[609, 358], [1388, 584], [1165, 1064], [177, 936], [40, 530], [609, 358]]
   order_by_frame_index:
     max_pending_frames: 10
     timeout: 3.0
+  plugins:
+    zone_pipeline:
+      zones:
+        A: [[1126, 249], [660, 194], [644, 333], [937, 349], [1126, 249]]
+        B: [[1245, 273], [1345, 545], [1761, 561], [1806, 412], [1245, 273]]
+        C: [[609, 358], [1388, 584], [1165, 1064], [177, 936], [40, 530], [609, 358]]
 
   # plugins:
   #   local_path:
