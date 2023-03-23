@@ -38,8 +38,10 @@ class Yolov5Detector(ObjectDetector):
         if (v := kwargs.get('max_det')) is not None:
             self.model.max_det = int(v)
         if (v := kwargs.get('classes')) is not None:
-            class_idxes = [self.names.index(cls) if isinstance(cls, str) else int(cls) for cls in v.split(',')]
-            self.model.classes = [idx for idx in class_idxes if idx < len(self.names)]
+            from dna import utils
+            class_names = self.names if utils.has_method(self.names, 'index') else list(self.names.values())
+            class_idxes = [class_names.index(cls) if isinstance(cls, str) else int(cls) for cls in v.split(',')]
+            self.model.classes = [idx for idx in class_idxes if idx < len(class_names)]
         if (v := kwargs.get('agnostic')) is not None:
             self.model.agnostic = bool(v)
         if (v := kwargs.get('device')) is not None:

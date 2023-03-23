@@ -88,6 +88,11 @@ def initialize_logger(conf_file_path: Optional[str]=None):
         logging.config.dictConfig(config)
         
         
+
+def has_method(obj, name:str) -> bool:
+    method = getattr(obj, name, None)
+    return callable(method) if method else False
+        
 _RADIUS = 4
 class RectangleDrawer:
     def __init__(self, image: np.ndarray) -> None:
