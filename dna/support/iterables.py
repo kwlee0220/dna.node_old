@@ -1,5 +1,5 @@
 
-from typing import List, Any, TypeVar, Iterable, Generator
+from typing import List, Any, TypeVar, Iterable, Generator, Optional
 
 import itertools
 from heapq import heappush
@@ -13,6 +13,9 @@ def mean(iterable) -> float:
     if not isinstance(iterable, list) and not isinstance(iterable, tuple):
         iterable = list(iterable)
     return sum(iterable) / len(iterable)
+
+def first(iterable:Iterable[T]) -> Optional[T]:
+    return next(iter(iterable), None)
 
 def flatmap(func, iterable):
     return itertools.chain.from_iterable(map(func, iterable))

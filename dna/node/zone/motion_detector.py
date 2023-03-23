@@ -29,7 +29,7 @@ class MotionDetector(EventProcessor):
                                 last_frame_index=ev.frame_index, last_ts=ev.ts)
                 if self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'detect motion: track={ev.track_id}, seq={seq}, motion={motion.id}, frame={ev.frame_index}')
-                self.publish_event(motion)
+                self._publish_event(motion)
             else:
                 if self.logger.isEnabledFor(logging.WARN):
                     self.logger.warn(f'unknown motion: track={ev.track_id}, seq={seq}, frame={ev.frame_index}')

@@ -73,4 +73,4 @@ class ZonePipeline(EventListener):
         self.event_source.close()
     
     def handle_event(self, ev: object) -> None:
-        self.event_source.publish_event(ev)
+        self.event_source._publish_event(ev)

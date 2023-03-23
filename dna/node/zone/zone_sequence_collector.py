@@ -47,14 +47,14 @@ class ZoneSequenceCollector(EventProcessor):
 
             last = ZoneVisit.open(ev)
             seq.append(last)
-            self.publish_event(seq.duplicate())
+            self._publish_event(seq.duplicate())
             
             last.close_at_event(ev)
-        self.publish_event(seq.duplicate())
+        self._publish_event(seq.duplicate())
             
     def handle_track_deleted(self, ev:TrackDeleted):
         self.sequences.pop(ev.track_id, None)
-        self.publish_event(ev)
+        self._publish_event(ev)
 
 
 class FinalZoneSequenceFilter(EventProcessor):
@@ -73,4 +73,4 @@ class FinalZoneSequenceFilter(EventProcessor):
         elif isinstance(ev, TrackDeleted):
             zseq = self.sequences.get(ev.track_id)
             if zseq:
-                self.publish_event(zseq)
+                self._publish_event(zseq)

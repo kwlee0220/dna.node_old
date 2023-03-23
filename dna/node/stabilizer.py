@@ -109,7 +109,7 @@ class Stabilizer(EventProcessor):
                 ev = self.pending_events[i]
                 stabilized = ev.updated(world_coord=pt)
                 # print(f"{stabilized.frame_index}: {ev.world_coord} -> {stabilized.world_coord}")
-                self.publish_event(stabilized)
+                self._publish_event(stabilized)
 
         super().close()
         
@@ -129,7 +129,7 @@ class Stabilizer(EventProcessor):
                 ev = self.pending_events[self.current]
                 stabilized = ev.updated(world_coord=pt)
                 # print(f"{stabilized.frame_index}: {ev.world_coord} -> {stabilized.world_coord}")
-                self.publish_event(stabilized)
+                self._publish_event(stabilized)
 
                 self.current += 1
                 if self.current > self.look_ahead:
@@ -139,6 +139,6 @@ class Stabilizer(EventProcessor):
                     self.current -= 1
                     self.upper -= 1
         else:
-            self.publish_event(ev)
+            self._publish_event(ev)
 
 

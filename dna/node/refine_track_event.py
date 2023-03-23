@@ -77,7 +77,7 @@ class RefineTrackEvent(EventProcessor):
     def handle_time_elapsed(self, ev:TimeElapsed) -> None:
         for session in self.sessions.values():
             self._publish_old_events(session, ev.ts)
-        self.publish_event(ev)
+        self._publish_event(ev)
 
     def __on_initial(self, ev:TrackEvent) -> None:
         # track과 관련된 session 정보가 없다는 것은 이 track event가 한 물체의 첫번째 track event라는 것을 
@@ -86,7 +86,7 @@ class RefineTrackEvent(EventProcessor):
         if ev.state == TrackState.Tentative:
             self.sessions[ev.track_id].pendings.append(ev)
         elif ev.state == TrackState.Confirmed:
-            self.publish_event(ev)
+            self._publish_event(ev)
         else:
             raise AssertionError(f"unexpected track event (invalid track state): {ev.track}")
 
@@ -100,11 +100,11 @@ class RefineTrackEvent(EventProcessor):
         elif session.state == TrackState.TemporarilyLost:
             if LOGGER.isEnabledFor(logging.DEBUG):
                 LOGGER.debug(f"discard all pending lost track events: track_id={ev.track_id}, count={len(session.pendings)}")
-        self.publish_event(ev)
+        self._publish_event(ev)
 
     def __on_confirmed(self, session:Session, ev:TrackEvent) -> None:
         if ev.state == TrackState.Confirmed:
-            self.publish_event(ev)
+            self._publish_event(ev)
         elif ev.state == TrackState.TemporarilyLost:
             session.pendings.append(ev)
             session.state = TrackState.TemporarilyLost
@@ -117,7 +117,7 @@ class RefineTrackEvent(EventProcessor):
             # 지금까지 pending된 모든 tentative event를 trail에 포함시킨다
             # self.logger.debug(f"accept tentative tracks: track={track.id}, count={len(session.pendings)}")
             self._publish_all_pended_events(session)
-            self.publish_event(ev)
+            self._publish_event(ev)
             session.state = TrackState.Confirmed
         elif ev.state == TrackState.Tentative:
             session.pendings.append(ev)
@@ -128,22 +128,22 @@ class RefineTrackEvent(EventProcessor):
         if ev.state == TrackState.Confirmed:
             session.trim_right_to(ev.frame_index)
             self._publish_all_pended_events(session)
-            self.publish_event(ev)
+            self._publish_event(ev)
             session.state = TrackState.Confirmed
         elif ev.state == TrackState.TemporarilyLost:
             insert_index = session.find_insert_index(ev.frame_index)
             if insert_index < 0:
                 session.pendings.append(ev)
                 while len(session.pendings) > self.buffer_size:
-                    self.publish_event(session.pendings.pop(0))
+                    self._publish_event(session.pendings.pop(0))
 
     def _publish_all_pended_events(self, session:Session):
         for pended in session.pendings:
-            self.publish_event(pended)
+            self._publish_event(pended)
         session.pendings.clear()
 
     def _publish_old_events(self, session:Session, ts:int):
         pos = next((idx for idx, pended in enumerate(session.pendings) if (ts - pended.ts) <= self.timeout), len(session.pendings))
         for pending in session.pendings[:pos]:
-            self.publish_event(pending)
+            self._publish_event(pending)
         session.pendings = session.pendings[pos:]

@@ -12,6 +12,7 @@ class EventListener(metaclass=ABCMeta):
     def close(self) -> None:
         pass
 
+
 class EventQueue:
     def __init__(self) -> None:
         self.listeners:List[EventListener] = []
@@ -23,9 +24,17 @@ class EventQueue:
     def add_listener(self, listener:EventListener) -> None:
         self.listeners.append(listener)
 
-    def publish_event(self, ev:object) -> None:
+    def remove_listener(self, listener:EventListener) -> bool:
+        if listener in self.listeners:
+            self.listeners.remove(listener)
+            return True
+        else:
+            return False
+
+    def _publish_event(self, ev:object) -> None:
         for sub in self.listeners:
             sub.handle_event(ev)
+
 
 class EventProcessor(EventListener, EventQueue):
     def __init__(self) -> None:

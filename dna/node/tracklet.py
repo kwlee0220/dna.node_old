@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, List, Tuple, Generator, Dict
+from typing import Union, List, Tuple, Generator, Dict, ByteString
 
 from dataclasses import dataclass
 
@@ -16,6 +16,15 @@ class TrackletMeta:
     length: int
     first_ts: int
     last_ts: int
+    
+    
+@dataclass(frozen=True)
+class ReIDFeature:
+    node_id: str
+    track_id: str
+    feature: ByteString
+    frame_index: int
+    ts: int    
 
 
 class Tracklet:

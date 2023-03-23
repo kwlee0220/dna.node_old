@@ -23,13 +23,13 @@ class ToLineTransform(EventProcessor):
         if isinstance(ev, TrackEvent):
             self.handle_track_event(ev)
         else:
-            self.publish_event(ev)
+            self._publish_event(ev)
 
     def handle_track_event(self, ev:TrackEvent) -> None:
         if ev.state != TrackState.Deleted:
             last_event = self.last_events.get(ev.track_id)
             if last_event:
-                self.publish_event(LineTrack.from_events(last_event, ev))
+                self._publish_event(LineTrack.from_events(last_event, ev))
             else:
                 if self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'track created: id={ev.track_id}')
@@ -38,4 +38,4 @@ class ToLineTransform(EventProcessor):
             self.last_events.pop(ev.track_id, None)
             if self.logger.isEnabledFor(logging.DEBUG):
                 self.logger.debug(f'track deleted: id={ev.track_id}')
-            self.publish_event(TrackDeleted(track_id=ev.track_id, frame_index=ev.frame_index, ts=ev.ts))
+            self._publish_event(TrackDeleted(track_id=ev.track_id, frame_index=ev.frame_index, ts=ev.ts))

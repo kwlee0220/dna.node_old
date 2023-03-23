@@ -265,7 +265,7 @@ def main():
     global_tracklet_mappings = load_tracklet_matches(tracklet_match_file, args.start_gidx) if tracklet_match_file else None
 
     publishing_conf = OmegaConf.select(conf, 'publishing')
-    track_pipeline = TrackEventPipeline(conf.id, publishing_conf)
+    track_pipeline = TrackEventPipeline(publishing_conf)
     zone_pipeline:ZonePipeline = track_pipeline.plugins.get('zone_pipeline')
 
     node_dir = Path(args.output)
@@ -273,7 +273,7 @@ def main():
     zone_pipeline.event_queues['zone_events'].add_listener(collector)
     
     for track_ev in read_tracks_json(args.track_file):
-        track_pipeline.input_queue.publish_event(track_ev)
+        track_pipeline._input_queue._publish_event(track_ev)
     track_pipeline.close()
     
     # 카메라 설정 정보 추가

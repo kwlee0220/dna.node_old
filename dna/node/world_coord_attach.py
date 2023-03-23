@@ -35,6 +35,6 @@ class WorldCoordinateAttacher(EventProcessor):
             if world_coord is not None:
                 world_coord = Point.from_np(world_coord)
             updated = ev.updated(world_coord=world_coord, distance=dist)
-            self.publish_event(updated)
+            self._publish_event(updated)
         else:
-            self.publish_event(ev)
+            self._publish_event(ev)

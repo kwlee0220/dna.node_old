@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, List, NewType
+from typing import Optional, List, NewType, Iterable
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field, asdict
 
@@ -11,6 +11,7 @@ import json
 import numpy as np
 
 from dna import Point, Box
+from dna.detect import Detection
 from dna.tracker import TrackState, ObjectTrack
 
 
@@ -34,6 +35,13 @@ class KafkaEvent(metaclass=ABCMeta):
     def serialize(self) -> str: pass
 
 
+def box_to_json(box:Box) -> List[float]:
+    return [round(v, 2) for v in box.tlbr.tolist()] if box else None
+
+def json_to_box(tlbr_list:Optional[Iterable[float]]) -> Box:
+    return Box.from_tlbr(np.array(tlbr_list)) if tlbr_list else None
+
+
 @dataclass(frozen=True, eq=True, order=False, repr=False)    # slots=True
 class TrackEvent(KafkaEvent):
     node_id: NodeId     # node id
@@ -44,13 +52,22 @@ class TrackEvent(KafkaEvent):
     ts: int = field(hash=False)
     world_coord: Optional[Point] = field(default=None, repr=False, hash=False)
     distance: Optional[float] = field(default=None, repr=False, hash=False)
-    zone_relation: str = field(default=None)
+    detection_box: Optional[Box] = field(default=None)  # local-only
 
     def key(self) -> str:
         return self.node_id.encode('utf-8')
     
     def is_deleted(self) -> bool:
         return self.state == TrackState.Deleted
+    
+    def is_confirmed(self) -> bool:
+        return self.state == TrackState.Confirmed
+    
+    def is_tentative(self) -> bool:
+        return self.state == TrackState.Tentative
+    
+    def is_temporarily_lost(self) -> bool:
+        return self.state == TrackState.TemporarilyLost
 
     def __lt__(self, other) -> bool:
         if self.frame_index < other.frame_index:
@@ -73,41 +90,39 @@ class TrackEvent(KafkaEvent):
         if world_coord is not None:
             world_coord = Point.from_np(world_coord)
         distance = json_obj.get('distance', None)
-        zone_rel = json_obj.get('zone_relation', None)
+        detection_box = json_to_box(json_obj.get('detection_box', None))
 
         return TrackEvent(node_id=json_obj['node'],
                             track_id=json_obj['track_id'],
                             state=TrackState[json_obj['state']],
-                            location=Box.from_tlbr(np.array(json_obj['location'])),
+                            location=json_to_box(json_obj['location']),
                             frame_index=json_obj['frame_index'],
                             ts=json_obj['ts'],
                             world_coord=world_coord,
                             distance=distance,
-                            zone_relation=zone_rel)
+                            detection_box=detection_box)
 
     def to_json(self) -> str:
-        tlbr_expr = [round(v, 2) for v in self.location.tlbr.tolist()]
         serialized = {'node':self.node_id, 'track_id':self.track_id, 'state':self.state.name,
-                    'location':tlbr_expr, 'frame_index':self.frame_index, 'ts': self.ts}
+                    'location':box_to_json(self.location), 'frame_index':self.frame_index, 'ts': self.ts}
         if self.world_coord is not None:
             serialized['world_coord'] = [round(v, _WGS84_PRECISION) for v in self.world_coord.to_tuple()]
         if self.distance is not None:
             serialized['distance'] = round(self.distance, _DIST_PRECISION)
-        if self.zone_relation:
-            serialized['zone_relation'] = self.zone_relation
+        if self.detection_box:
+            serialized['detection_box'] = box_to_json(self.detection_box)
 
         return json.dumps(serialized, separators=(',', ':'))
 
     def serialize(self) -> str:
-        tlbr_expr = [round(v, 2) for v in self.location.tlbr.tolist()]
         serialized = {'node':self.node_id, 'track_id':self.track_id, 'state':self.state.name,
-                    'location':tlbr_expr, 'frame_index':self.frame_index, 'ts': self.ts}
+                    'location':box_to_json(self.location), 'frame_index':self.frame_index, 'ts': self.ts}
         if self.world_coord is not None:
             serialized['world_coord'] = [round(v, _WGS84_PRECISION) for v in self.world_coord.to_tuple()]
         if self.distance is not None:
             serialized['distance'] = round(self.distance, _DIST_PRECISION)
-        if self.zone_relation:
-            serialized['zone_relation'] = self.zone_relation
+        if self.detection_box:
+            serialized['detection_box'] = box_to_json(self.detection_box)
 
         return self.to_json().encode('utf-8')
 

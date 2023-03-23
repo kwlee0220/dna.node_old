@@ -9,7 +9,7 @@ from omegaconf import OmegaConf
 
 from dna import Box, Image, BGR, color, Frame, Point, initialize_logger
 from dna.conf import load_node_conf
-from dna.node import EventQueue, EventListener, TrackEventPipeline
+from dna.node import EventQueue, EventListener, TrackEventPipeline, LogTrackEventPipeline, load_plugins
 from dna.node.tracklet import Tracklet, read_tracklets
 from dna.node.event_processors import PrintEvent
 from dna.node.zone import Motion
@@ -46,15 +46,12 @@ def main():
 
     initialize_logger(args.logger)
     conf, _, args_conf = load_node_conf(args)
-
-    queue = EventQueue()
-    node_id = conf.id
-    tracklets = read_tracklets(read_tracks_json(args.track_file))
-
-    publishing_conf = OmegaConf.select(conf, 'publishing')
-    track_pipeline = TrackEventPipeline(node_id, publishing_conf)
-    zone_pipeline:ZonePipeline = track_pipeline.plugins.get('zone_pipeline')
     
+    track_pipeline = LogTrackEventPipeline()
+    plugins_conf = OmegaConf.select(conf, 'publishing.plugins')
+    load_plugins(track_pipeline, plugins_conf)
+    zone_pipeline:ZonePipeline = track_pipeline.plugins.get('zone_pipeline')
+
     motions = zone_pipeline.services.get('motions')
     if not motions:
         from dna.node.zone.motion_detector import MotionDetector
@@ -65,9 +62,8 @@ def main():
         zone_pipeline.event_queues['last_zone_sequences'].add_listener(motions)
     motions.add_listener(MotionEventWriter(args_conf.output))
 
-    for tracklet in tracklets.values():
-        for track in tracklet:
-            track_pipeline.input_queue.publish_event(track)
+    for track in read_tracks_json(args.track_file):
+        track_pipeline._publish_event(track)
     track_pipeline.close()
 
 if __name__ == '__main__':

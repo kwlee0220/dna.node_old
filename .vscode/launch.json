@@ -22,11 +22,11 @@
             "program": "${workspaceFolder}/scripts/dna_node.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--camera", "data/2023/etri_06_join.mp4",
-                "--conf", "conf/etri_testbed/etri_06.yaml",
+                "--camera", "data/2022/etri_074.mp4",
+                "--conf", "conf/etri_testbed/etri_07.yaml",
                 // "--conf", "conf/ai_city/ai_city_t3_c01.yaml",
-                "--output", "D:/Temp/dna.node_output/etri_06_event.json",   // -o <file>
-                // "--output_video", "D:/Temp/dna.node_output/etri_04_track.mp4",   // -v <file>
+                "--output", "D:/Temp/dna.node_output/etri_074_event.json",   // -o <file>
+                "--output_video", "D:/Temp/dna.node_output/etri_074_track.mp4",   // -v <file>
                 // "--begin_frame", "1000",
                 // "--end_frame", "1000",
                 // "--show", //"1280x720",
@@ -41,7 +41,7 @@
             "args": [
                 // "--camera", "data/2021/etri_05.mp4",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
-                "--conf", "conf/etri_testbed/etri_05.yaml",
+                "--conf", "conf/etri_testbed/etri_04.yaml",
                 // "--conf", "conf/ai_city/ai_city_09.yaml",
                 // "--output", "output/etri_07_2021.csv",   // -o <file>
                 // "--output_video", "output/etri_041.mp4",   // -v <file>
@@ -96,8 +96,24 @@
                 "--conf", "conf/etri_testbed/etri_06.yaml",
                 "--margin", "5",
                 "--motions", "output/2022/motions_064.csv",
+                "--matches", "output/2022/tracklet_matches_1.csv",
+                "--start_gidx", "110",
+                "--output", "d:/Temp/training"
+            ],
+            "justMyCode": true
+        },
+        { "name": "GenerateTrainSet2",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_gen_trainset2.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "data/2022/etri_074.mp4",
+                "output/2022/etri_074_event.json",
+                "--conf", "conf/etri_testbed/etri_07.yaml",
+                "--margin", "5",
                 "--matches", "output/2022/tracklet_matches_4.csv",
                 "--start_gidx", "110",
+                "--min_size", "90x90",
                 "--output", "d:/Temp/training"
             ],
             "justMyCode": true
@@ -185,10 +201,10 @@
             "args": [
                 // "format", "-f",
                 "upload",
-                    "output/2022/etri_041_event.json",
-                    "output/2022/etri_042_event.json",
-                    "output/2022/etri_043_event.json",
-                    "output/2022/etri_044_event.json",
+                    "output/2023/etri_04_event.json",
+                    "output/2023/etri_05_event.json",
+                    "output/2023/etri_06_event.json",
+                    "output/2023/etri_07_event.json",
                     "--batch", "20",
                 // "update", "etri:04", "1",
             ],
@@ -241,19 +257,6 @@
             "args": [
                 "--request_qname", "track_requests",
                 "--sync"
-            ],
-            "justMyCode": true
-        },
-        { "name": "Play",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/play_videos.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "output/2022/etri_04_track_raw.mp4",
-                "output/result.mp4",
-                "--begin_frame", "59",
-                "--end_frame", "112",
-                "--tlbr", "0,452,1440,624",
             ],
             "justMyCode": true
         },

@@ -24,7 +24,7 @@ class ZoneEventGenerator(EventProcessor):
         if isinstance(ev, LineTrack):
             self.handle_line_track(ev)
         else:
-            self.publish_event(ev)
+            self._publish_event(ev)
         
     def handle_line_track(self, line_track:LineTrack) -> None:
         zone_events:List[ZoneEvent] = []
@@ -35,13 +35,13 @@ class ZoneEventGenerator(EventProcessor):
 
         # 특정 zone과 교집합이 없는 경우는 UNASSIGNED 이벤트를 발송함
         if len(zone_events) == 0:
-            self.publish_event(ZoneEvent.UNASSIGNED(line_track))
+            self._publish_event(ZoneEvent.UNASSIGNED(line_track))
         elif len(zone_events) == 1:
             # 가장 흔한 케이스로 1개의 zone과 연관된 경우는 바로 해당 event를 발송
             if self.logger.isEnabledFor(logging.DEBUG):
                 if rel == ZoneRelation.Entered or rel == ZoneRelation.Left:
                     self.logger.debug(f'{zone_events[0]}')
-            self.publish_event(zone_events[0])
+            self._publish_event(zone_events[0])
         else:
             # 한 line에 여러 zone event가 발생 가능하기 때문에 이 경우 zone event 발생 순서를 조정함.
             #
@@ -52,12 +52,12 @@ class ZoneEventGenerator(EventProcessor):
                 left_event = zone_events.pop(idx)
                 if self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'{left_event}')
-                self.publish_event(left_event)
+                self._publish_event(left_event)
 
             from dna.utils import split_list
             enter_events, through_events = split_list(zone_events, lambda ev: ev.relation == ZoneRelation.Entered)
             if len(through_events) == 1:
-                self.publish_event(through_events[0])
+                self._publish_event(through_events[0])
             elif len(through_events) > 1:
                 def distance_to_cross(line, zone_id) -> geometry.Point:
                     overlap = self.zones[zone_id].intersection(line_track.line)
@@ -68,16 +68,16 @@ class ZoneEventGenerator(EventProcessor):
                 zone_dists = [(idx, distance_to_cross(line_track.line, thru_ev.zone_id)) for idx, thru_ev in enumerate(through_events)]
                 zone_dists.sort(key=lambda zd: zd[1])
                 for idx, dist in zone_dists:
-                    self.publish_event(through_events[idx])
+                    self._publish_event(through_events[idx])
 
             # 마지막으로 enter event가 존재하는가 확인하여 이들을 발송함.
             for enter_ev in enter_events:
                 if self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'{enter_ev}')
-                self.publish_event(enter_ev)
+                self._publish_event(enter_ev)
         
     def handle_track_deleted(self, ev:TrackDeleted) -> None:
-        self.publish_event(ev)
+        self._publish_event(ev)
         
     def get_relation(self, zone:Zone, line:geometry.LineString) -> ZoneRelation:
         start_cond = zone.covers_point(line.coords[0])

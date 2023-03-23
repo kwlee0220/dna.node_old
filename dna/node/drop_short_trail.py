@@ -30,20 +30,20 @@ class DropShortTrail(EventProcessor):
         if isinstance(ev, TrackEvent):
             self.handle_track_event(ev)
         else:
-            self.publish_event(ev)
+            self._publish_event(ev)
 
     def handle_track_event(self, ev:TrackEvent) -> None:
         is_long_trail = ev.track_id in self.long_trails
         if ev.state == TrackState.Deleted:   # tracking이 종료된 경우
             if is_long_trail:
                 self.long_trails.discard(ev.track_id)
-                self.publish_event(ev)
+                self._publish_event(ev)
             else:
                 pendings = self.pending_dict.pop(ev.track_id, [])
                 if pendings:
                     LOGGER.info(f"drop short track events: track_id={ev.track_id}, length={len(pendings)}")
         elif is_long_trail:
-            self.publish_event(ev)
+            self._publish_event(ev)
         else:
             pendings = self.pending_dict[ev.track_id]
             pendings.append(ev)
@@ -57,4 +57,4 @@ class DropShortTrail(EventProcessor):
 
     def __publish_pendings(self, pendings:List[TrackEvent]) -> None:
         for pev in pendings:
-            self.publish_event(pev)
+            self._publish_event(pev)

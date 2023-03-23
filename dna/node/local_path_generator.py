@@ -58,7 +58,7 @@ class LocalPathGenerator(EventProcessor):
         # build local paths from the unfinished sessions and upload them
         for session in self.sessions.values():
             pev = session.build_local_path(cont=False)
-            self.publish_event(pev)
+            self._publish_event(pev)
         self.sessions.clear()
 
 
@@ -72,11 +72,11 @@ class LocalPathGenerator(EventProcessor):
             self.sessions.pop(ev.track_id, None)
             if session.length > 0:
                 pev = session.build_local_path(length=session.length, cont=False)
-                self.publish_event(pev)
+                self._publish_event(pev)
         else:
             if session.length >= self.max_path_length + 10:
                 pev = session.build_local_path(length=self.max_path_length, cont=True)
-                self.publish_event(pev)
+                self._publish_event(pev)
 
                 # refresh the current session
                 # session = Session(ev.node_id, ev.luid)

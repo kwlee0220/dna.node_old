@@ -63,7 +63,7 @@ class ZoneEventRefiner(EventProcessor):
                     self.publish_left(zone_ev, zone_id=zid) 
                 self.update_zone_locations(track_id=zone_ev.track_id,
                                            track_locs=TrackLocations([], zone_ev.frame_index, zone_ev.ts))
-            self.publish_event(zone_ev)
+            self._publish_event(zone_ev)
         elif zone_ev.relation == ZoneRelation.Left:
             # 추적 물체가 해당 zone에 포함되지 않은 상태면, 먼저 해당 물체를 zone 안에 넣는 event를 추가한다.
             if zone_ev.zone_id not in located_zones:
@@ -71,11 +71,11 @@ class ZoneEventRefiner(EventProcessor):
                     self.logger.debug(f'generate a ENTERED(track={zone_ev.track_id}, zone={zone_ev.zone_id}, frame={zone_ev.frame_index})')
                 self.publish_entered(zone_ev)
                 self.enter_zone(zone_ev)
-            self.publish_event(zone_ev)
+            self._publish_event(zone_ev)
             self.leave_zone(zone_ev)
         elif zone_ev.relation == ZoneRelation.Entered:
             if zone_ev.zone_id not in located_zones:
-                self.publish_event(zone_ev)
+                self._publish_event(zone_ev)
                 self.enter_zone(zone_ev)
             else:
                 if self.logger.isEnabledFor(logging.WARN):
@@ -88,7 +88,7 @@ class ZoneEventRefiner(EventProcessor):
                     self.logger.debug(f'generate a ENTERED(track={zone_ev.track_id}, zone={zone_ev.zone_id}, frame={zone_ev.frame_index})')
                 self.publish_entered(zone_ev)
                 self.enter_zone(zone_ev)
-            self.publish_event(zone_ev)
+            self._publish_event(zone_ev)
         elif zone_ev.relation == ZoneRelation.Through:
             if zone_ev.zone_id in located_zones:
                 self.leave_zone(zone_ev)
@@ -97,7 +97,7 @@ class ZoneEventRefiner(EventProcessor):
                                       f'a LEFT(track={zone_ev.track_id}, zone={zone_ev.zone_id}, frame={zone_ev.frame_index})')
                 self.publish_left(zone_ev)
             else:
-                self.publish_event(zone_ev) 
+                self._publish_event(zone_ev) 
         else:
             raise ValueError(f'invalid ZoneEvent: {zone_ev}')
                 
@@ -116,7 +116,7 @@ class ZoneEventRefiner(EventProcessor):
         # 삭제된 track의 location 정보를 삭제한다
         self.locations.pop(track_id, None)
         # TrackDeleted 이벤트를 re-publish한다
-        self.publish_event(ev)
+        self._publish_event(ev)
 
     def enter_zone(self, zone_ev:ZoneEvent) -> TrackLocations:
         track_locs = self.locations.get(zone_ev.track_id)
@@ -139,17 +139,17 @@ class ZoneEventRefiner(EventProcessor):
         self.locations[track_id] = track_locs
         location_changed = LocationChanged(track_id=track_id, zone_ids=track_locs.zones,
                                            frame_index=track_locs.frame_index, ts=track_locs.ts)
-        self.location_event_queue.publish_event(location_changed)
+        self.location_event_queue._publish_event(location_changed)
         
     def publish_entered(self, zone_ev:ZoneEvent, zone_id:Optional[str]=None) -> None:
         ev = ZoneEvent(track_id=zone_ev.track_id, relation=ZoneRelation.Entered,
                        zone_id=zone_id if zone_id else zone_ev.zone_id,
                        frame_index=zone_ev.frame_index, ts=zone_ev.ts)
-        self.publish_event(ev)
+        self._publish_event(ev)
         
     def publish_left(self, zone_ev:ZoneEvent, zone_id:Optional[str]=None) -> None:
         ev = ZoneEvent(track_id=zone_ev.track_id, relation=ZoneRelation.Left,
                        zone_id=zone_id if zone_id else zone_ev.zone_id,
                        frame_index=zone_ev.frame_index, ts=zone_ev.ts)
-        self.publish_event(ev)
+        self._publish_event(ev)
     

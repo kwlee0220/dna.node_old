@@ -48,7 +48,7 @@ class ResidentChanges(EventProcessor):
         elif isinstance(ev, TrackDeleted):
             self.handle_track_deleted(ev)
         else:
-            self.publish_event(ev)
+            self._publish_event(ev)
             if LOGGER.isEnabledFor(logging.INFO):
                 LOGGER.info(f'unknown event: {ev}')
                 
@@ -63,7 +63,7 @@ class ResidentChanges(EventProcessor):
         residents.frame_index =  ev.frame_index
         residents.ts = ev.ts
         if publish_event:
-            self.publish_event(self._create_resident_changed(ev.zone_id, residents))
+            self._publish_event(self._create_resident_changed(ev.zone_id, residents))
                 
     def handle_track_deleted(self, ev:TrackDeleted) -> None:
         # 제거된 track id를 갖는 residents를 검색하여 그 residents에서 삭제한다.
@@ -72,7 +72,7 @@ class ResidentChanges(EventProcessor):
             if residents.remove_resident(track_id):
                 residents.frame_index =  ev.frame_index
                 residents.ts = ev.ts
-                self.publish_event(self._create_resident_changed(zone_id, residents))
+                self._publish_event(self._create_resident_changed(zone_id, residents))
                 return
         
     def _get_residents(self, zone_id:str) -> Residents:
