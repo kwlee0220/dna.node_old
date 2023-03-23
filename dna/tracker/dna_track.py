@@ -160,8 +160,10 @@ class DNATrack(ObjectTrack):
         self.state = TrackState.Deleted
 
     def to_track_event(self) -> TrackEvent:
+        d_box = d.bbox if (d := self.detections[-1]) else None
         return TrackEvent(node_id=None, track_id=str(self.id), state=self.state, location=self.location,
-                          frame_index=self.frame_index, ts=int(round(self.timestamp * 1000)))
+                          frame_index=self.frame_index, ts=int(round(self.timestamp * 1000)),
+                          detection_box=d_box)
         
     @property
     def state_str(self) -> str:

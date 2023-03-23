@@ -8,7 +8,7 @@ from scipy.stats import multivariate_normal
 import torch
 import torchvision
 
-from dna import Image
+from dna import Image, Box
 from dna.detect import Detection
 
 class FeatureExtractor:
@@ -25,6 +25,18 @@ class FeatureExtractor:
                             torchvision.transforms.ToPILImage(),\
                             torchvision.transforms.Resize((128,128)),\
                             torchvision.transforms.ToTensor()])
+        
+    def extract_boxes(self, image:Image, boxes:List[Box]) -> np.ndarray:
+        tlwh_list = [box.to_tlwh() for box in boxes]
+        processed_crops = self.pre_process(image, tlwh_list).cuda()
+        processed_crops = self.gaussian_mask * processed_crops
+
+        features = self.encoder.forward_once(processed_crops)
+        features = features.detach().cpu().numpy()
+        if len(features.shape)==1:
+            features = np.expand_dims(features,0)
+        
+        return features
 
     def extract(self, image:Image, detections: List[Detection]):
         if detections:
