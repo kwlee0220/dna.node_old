@@ -59,10 +59,11 @@ class CsvTrackEventWriter(TextLineWriter):
         self.write(line + '\n')
        
 
-class JsonTrackEventWriter(TextLineWriter):
+class JsonTrackEventGroupWriter(TextLineWriter):
     def __init__(self, file_path: str) -> None:
         super().__init__(file_path)
 
-    def handle_event(self, ev: object) -> None:
-        self.write(ev.to_json() + '\n')
+    def handle_event(self, group:List[TrackEvent]) -> None:
+        for track in group:
+            self.write(track.to_json() + '\n')
 

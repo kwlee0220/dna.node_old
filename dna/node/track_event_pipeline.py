@@ -8,13 +8,14 @@ import time
 from datetime import timedelta
 from omegaconf import OmegaConf
 
-from dna import Frame
+from dna import Frame, Size2d
+from dna.camera import ImageProcessor
 from dna.tracker import TrackProcessor, ObjectTrack, TrackState
 from dna.tracker.dna_tracker import DNATracker
 from .types import TimeElapsed, TrackEvent
 from .event_processor import EventQueue, EventListener, EventProcessor
-from .event_processors import DropEventByType
-from .refine_track_event import RefineTrackEvent
+from .event_processors import DropEventByType, GroupByFrameIndex, EventRelay
+from .zone.zone_pipeline import ZonePipeline
 
 _DEFAULT_BUFFER_SIZE = 30
 _DEFAULT_BUFFER_TIMEOUT = 5.0
@@ -41,19 +42,15 @@ class TimeElapsedGenerator(threading.Thread):
     def run(self):
         while not self.stopped.wait(self.interval.total_seconds()):
             self.publishing_queue._publish_event(TimeElapsed())
-            
-
-class PipelineEventPublisher(EventProcessor):
-    def handle_event(self, ev:Any) -> None:
-        self._publish_event(ev)
         
         
 class LogTrackEventPipeline(EventQueue):
     __slots__ = ('plugins')
 
-    def __init__(self, ) -> None:
+    def __init__(self, track_file) -> None:
         super().__init__()
 
+        self.track_file = track_file
         self.plugins = dict()
         self.sorted_event_queue = self
 
@@ -62,42 +59,63 @@ class LogTrackEventPipeline(EventQueue):
             if hasattr(plugin, 'close') and callable(plugin.close):
                 plugin.close()
         super().close()
+    
+    @property
+    def group_event_queue(self) -> EventQueue:
+        if not self._group_event_queue:
+            from .event_processors import GroupByFrameIndex
+            self._group_event_queue = GroupByFrameIndex(max_pending_frames=1, timeout=0.5)
+            self.add_listener(self._group_event_queue)
+        return self._group_event_queue
 
     def add_plugin(self, id:str, plugin:EventListener, queue:Optional[EventQueue]=None) -> None:
         queue = queue if queue else self
         queue.add_listener(plugin)
         self.plugins[id] = plugin
-
+        
+    def run(self) -> None:
+        from dna.node.utils import read_tracks_json
+        for track in read_tracks_json(self.track_file):
+            self._publish_event(track)
+        self.close()
 
 
 class TrackEventPipeline(EventQueue):
-    __slots__ = ('_input_queue', '_last_queue', 'plugins', 'tick_gen', 'sorted_event_queue')
+    __slots__ = ('node_id', 'plugins', '_tick_gen', '_input_queue', '_output_queue',
+                 '_last_queue', '_group_event_queue')
 
-    def __init__(self, node_id:str, publishing_conf: OmegaConf, load_plugins:bool=True) -> None:
+    def __init__(self, node_id:str, publishing_conf: OmegaConf,
+                 image_processor:Optional[ImageProcessor]=None) -> None:
         super().__init__()
 
         self.node_id = node_id
+        self.plugins = dict()
+        self._tick_gen = None
+        
         self._input_queue = EventQueue()
         self._last_queue = self._input_queue
-        self.plugins = dict()
-        self.tick_gen = None
-        self.sorted_event_queue = self._last_queue
+        self._event_publisher = EventRelay(self)
+        self._last_queue.add_listener(self._event_publisher)
+        self._group_event_queue:GroupByFrameIndex = None
         
-        self._output_queue = PipelineEventPublisher()
-        self._last_queue.add_listener(self._output_queue)
+        self._refine_tracks = None
+        self._drop_short_trail = None
         
         # drop unnecessary tracks (eg. trailing 'TemporarilyLost' tracks)
         refind_track_conf = OmegaConf.select(publishing_conf, 'refine_tracks', default=None)
         if refind_track_conf:
+            from .refine_track_event import RefineTrackEvent
             buffer_size = OmegaConf.select(refind_track_conf, 'buffer_size', default=_DEFAULT_BUFFER_SIZE)
             buffer_timeout = OmegaConf.select(refind_track_conf, 'buffer_timeout', default=_DEFAULT_BUFFER_TIMEOUT)
-            self._append_processor(RefineTrackEvent(buffer_size=buffer_size, buffer_timeout=buffer_timeout))
+            self._refine_tracks = RefineTrackEvent(buffer_size=buffer_size, buffer_timeout=buffer_timeout)
+            self._append_processor(self._refine_tracks)
 
         # drop too-short tracks of an object
         self.min_path_length = OmegaConf.select(publishing_conf, 'min_path_length', default=_DEFAULT_MIN_PATH_LENGTH)
         if self.min_path_length > 0:
             from .drop_short_trail import DropShortTrail
-            self._append_processor(DropShortTrail(self.min_path_length))
+            self._drop_short_trail = DropShortTrail(self.min_path_length)
+            self._append_processor(self._drop_short_trail)
 
         # attach world-coordinates to each track
         if OmegaConf.select(publishing_conf, 'attach_world_coordinates', default=None):
@@ -108,38 +126,38 @@ class TrackEventPipeline(EventQueue):
             from .stabilizer import Stabilizer
             self._append_processor(Stabilizer(publishing_conf.stabilization))
         self._append_processor(_DROP_TIME_ELAPSED)
+        
+        # generate zone-based events
+        zone_pipeline_conf = OmegaConf.select(publishing_conf, 'zone_pipeline')
+        if zone_pipeline_conf:
+            zone_pipeline = ZonePipeline(self.node_id, zone_pipeline_conf)
+            self._last_queue.add_listener(zone_pipeline)
+            self.plugins['zone_pipeline'] = zone_pipeline
             
-        conf = OmegaConf.select(publishing_conf, "order_by_frame_index", default=None)
-        if conf:
-            from .event_processors import order_by_frame_index
-            max_pending_frames = OmegaConf.select(conf, 'max_pending_frames', default=30)
-            timeout = OmegaConf.select(refind_track_conf, 'timeout', default=5.0)
-            self.sorted_event_queue = order_by_frame_index(self._last_queue, max_pending_frames, timeout)
-        else:
-            self.sorted_event_queue = self._last_queue
+            self._last_queue.remove_listener(self._event_publisher)
+            transform = ZoneToTrackEventTransform()
+            transform.add_listener(self._event_publisher)
+            self._last_queue = transform
+            zone_pipeline.event_queues['zone_events'].add_listener(transform)
+    
+        # 알려진 TrackEventPipeline의 plugin 을 생성하여 등록시킨다.
+        plugins_conf = OmegaConf.select(publishing_conf, "plugins", default=None)
+        if plugins_conf:
+            load_plugins(plugins_conf, self, image_processor)
 
         tick_interval = OmegaConf.select(publishing_conf, 'tick_interval', default=-1)
         if tick_interval > 0:
-            self.tick_gen = TimeElapsedGenerator(timedelta(seconds=tick_interval), self._input_queue)
-            self.tick_gen.start()
+            self._tick_gen = TimeElapsedGenerator(timedelta(seconds=tick_interval), self._input_queue)
+            self._tick_gen.start()
 
     def close(self) -> None:
-        if self.tick_gen:
-            self.tick_gen.stop()
+        if self._tick_gen:
+            self._tick_gen.stop()
         self._input_queue.close()
-        for plugin in self.plugins.values():
+        super().close()
+        for plugin in reversed(self.plugins.values()):
             if hasattr(plugin, 'close') and callable(plugin.close):
                 plugin.close()
-        super().close()
-
-    def add_listener(self, listener:EventListener) -> None:
-        self._output_queue.add_listener(listener)
-
-    def remove_listener(self, listener:EventListener) -> bool:
-        return self._output_queue.remove_listener(listener)
-
-    def _publish_event(self, ev:object) -> None:
-        self._output_queue._publish_event(ev)
             
     def handle_event(self, track:TrackEvent) -> None:
         """TrackEvent pipeline으로 입력으로 주어진 track event를 입력시킨다.
@@ -148,11 +166,17 @@ class TrackEventPipeline(EventQueue):
             track (TrackEvent): 입력 TrackEvent
         """
         self._input_queue._publish_event(track)
-
-    def add_plugin(self, id:str, plugin:EventListener, queue:Optional[EventQueue]=None) -> None:
-        queue = queue if queue else self
-        queue.add_listener(plugin)
-        self.plugins[id] = plugin
+    
+    @property
+    def group_event_queue(self) -> EventQueue:
+        if not self._group_event_queue:
+            from .event_processors import GroupByFrameIndex
+            len1 = self._refine_tracks.buffer_size if self._refine_tracks else 0
+            len2 = self._drop_short_trail.min_trail_length if self._drop_short_trail else 0
+            buffer_size = max(len1, len2)
+            self._group_event_queue = GroupByFrameIndex(max_pending_frames=buffer_size, timeout=5.0)
+            self.add_listener(self._group_event_queue)
+        return self._group_event_queue
         
     def track_started(self, tracker) -> None: pass
     def track_stopped(self, tracker) -> None:
@@ -161,79 +185,83 @@ class TrackEventPipeline(EventQueue):
     def process_tracks(self, tracker:DNATracker, frame:Frame, tracks:List[ObjectTrack]) -> None:
         for ev in tracker.last_event_tracks:
             ev = dataclasses.replace(ev, node_id=self.node_id)
-            self._publish_event(ev)
+            # self._publish_event(ev)
+            self.handle_event(ev)
 
     def _append_processor(self, proc:EventProcessor) -> None:
-        listeners = self._last_queue.listeners.copy()
-        for listener in listeners:
-            self._last_queue.remove_listener(listener)
+        self._last_queue.remove_listener(self._event_publisher)
+        proc.add_listener(self._event_publisher)
         self._last_queue.add_listener(proc)
-        
         self._last_queue = proc
-        for listener in listeners:
-            self._last_queue.add_listener(listener)
-            
-    def _load_plugins(self, plugins_conf:OmegaConf) -> None:
-        cvs_file = OmegaConf.select(plugins_conf, 'output_csv')
-        if cvs_file is not None:
-            from .utils import CsvTrackEventWriter
-            writer = CsvTrackEventWriter(cvs_file)
-            self.add_plugin('output_csv', writer, self.sorted_event_queue)
-            
-        json_file = OmegaConf.select(plugins_conf, 'output')
-        if json_file is not None:
-            from .utils import JsonTrackEventWriter
-            writer = JsonTrackEventWriter(json_file)
-            self.add_plugin('output', writer, self.sorted_event_queue)
-            
-        zone_pipeline_conf = OmegaConf.select(plugins_conf, 'zone_pipeline')
-        if zone_pipeline_conf is not None:
-            from .zone.zone_pipeline import ZonePipeline
-            self.add_plugin('zone_pipeline', ZonePipeline(zone_pipeline_conf))
-
-        local_path_conf = OmegaConf.select(plugins_conf, 'local_path')
-        if local_path_conf is not None:
-            from .local_path_generator import LocalPathGenerator
-            self.add_plugin('local_path', LocalPathGenerator(local_path_conf))
-            
-        kafka_conf = OmegaConf.select(plugins_conf, 'kafka')
-        if kafka_conf is not None:
-            from .kafka_event_publisher import KafkaEventPublisher
-            self.add_plugin('kafka', KafkaEventPublisher(kafka_conf))
-        else:
-            import logging
-            logger = logging.getLogger('dna.node.kafka')
-            logger.warning(f'Kafka publishing is not specified')
-
-
-def load_plugins(pipeline:TrackEventPipeline, plugins_conf:OmegaConf) -> None:
-    cvs_file = OmegaConf.select(plugins_conf, 'output_csv')
-    if cvs_file is not None:
-        from .utils import CsvTrackEventWriter
-        writer = CsvTrackEventWriter(cvs_file)
-        pipeline.add_plugin('output_csv', writer, pipeline.sorted_event_queue)
         
-    json_file = OmegaConf.select(plugins_conf, 'output')
-    if json_file is not None:
-        from .utils import JsonTrackEventWriter
-        writer = JsonTrackEventWriter(json_file)
-        pipeline.add_plugin('output', writer, pipeline.sorted_event_queue)
         
-    zone_pipeline_conf = OmegaConf.select(plugins_conf, 'zone_pipeline')
-    if zone_pipeline_conf is not None:
-        from .zone.zone_pipeline import ZonePipeline
-        pipeline.add_plugin('zone_pipeline', ZonePipeline(zone_pipeline_conf))
+from dataclasses import replace
+from .zone import ZoneEvent, TrackDeleted
+class ZoneToTrackEventTransform(EventProcessor):
+    def handle_event(self, ev:ZoneEvent|TrackDeleted) -> None:
+        if isinstance(ev, ZoneEvent):
+            if ev.source:
+                track_ev = replace(ev.source, zone_relation=ev.relation_str())
+                self._publish_event(track_ev)
+        elif isinstance(ev, TrackDeleted):
+            if ev.source:
+                track_ev = replace(ev.source, zone_relation='D')
+                self._publish_event(track_ev)
+
+
+def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
+                 image_processor:Optional[ImageProcessor]=None) -> None:
+    zone_pipeline:ZonePipeline = pipeline.plugins['zone_pipeline']
+    
+    output_file = OmegaConf.select(plugins_conf, 'output')
+    if output_file is not None:
+        from .utils import JsonTrackEventGroupWriter
+        writer = JsonTrackEventGroupWriter(output_file)
+        pipeline.group_event_queue.add_listener(writer)
+        pipeline.plugins['output'] = writer
 
     local_path_conf = OmegaConf.select(plugins_conf, 'local_path')
-    if local_path_conf is not None:
+    if local_path_conf:
         from .local_path_generator import LocalPathGenerator
-        pipeline.add_plugin('local_path', LocalPathGenerator(local_path_conf))
+        plugin = LocalPathGenerator(local_path_conf)
+        pipeline.plugins['local_path'] = plugin
+        pipeline.add_listener(plugin)
         
-    kafka_conf = OmegaConf.select(plugins_conf, 'kafka')
-    if kafka_conf is not None:
+    publish_tracks_conf = OmegaConf.select(plugins_conf, 'publish_tracks')
+    if publish_tracks_conf:
         from .kafka_event_publisher import KafkaEventPublisher
-        pipeline.add_plugin('kafka', KafkaEventPublisher(kafka_conf))
-    else:
-        import logging
-        logger = logging.getLogger('dna.node.kafka')
-        logger.warning(f'Kafka publishing is not specified')
+        plugin = KafkaEventPublisher(publish_tracks_conf)
+        pipeline.plugins['publish_tracks'] = plugin
+        pipeline.add_listener(plugin)
+        
+    publish_motions_conf = OmegaConf.select(plugins_conf, 'publish_motions')
+    if publish_motions_conf:
+        from .kafka_event_publisher import KafkaEventPublisher
+        motions = zone_pipeline.event_queues.get('motions')
+        if motions:
+            plugin = KafkaEventPublisher(publish_motions_conf)
+            pipeline.plugins['publish_motions'] = plugin
+            motions.add_listener(plugin)
+            
+    # 'PublishReIDFeatures' plugin은 ImageProcessor가 지정된 경우에만 등록시킴
+    publish_features_conf = OmegaConf.select(plugins_conf, "publish_features", default=None)
+    if publish_features_conf and image_processor:
+        from dna.support.sql_utils import SQLConnector
+        from dna.node import TrackletStore
+        from dna.tracker.dna_tracker import load_feature_extractor
+        from .reid_features import PublishReIDFeatures
+        frame_buf_size = pipeline.group_event_queue.max_pending_frames + 2
+        distinct_distance = publish_features_conf.get('distinct_distance', 0.0)
+        min_crop_size = Size2d.from_expr(publish_features_conf.get('min_crop_size', '80x80'))
+        publish = PublishReIDFeatures(frame_buffer_size=frame_buf_size,
+                                        extractor=load_feature_extractor(normalize=True),
+                                        distinct_distance=distinct_distance,
+                                        min_crop_size=min_crop_size)
+        pipeline.group_event_queue.add_listener(publish)
+        image_processor.add_frame_processor(publish)
+        
+        # tracklet_store = TrackletStore(SQLConnector.from_conf(publish_features_conf))
+        from .kafka_event_publisher import KafkaEventPublisher
+        plugin = KafkaEventPublisher(publish_features_conf)
+        pipeline.plugins['publish_features'] = plugin
+        publish.add_listener(plugin)

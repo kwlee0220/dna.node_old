@@ -5,6 +5,7 @@ from omegaconf import OmegaConf
 from contextlib import closing
 import psycopg2
 import itertools
+from collections import defaultdict
 
 from dna import initialize_logger
 from dna.conf import load_node_conf
@@ -39,9 +40,10 @@ def parse_args():
     update_parser.add_argument("node_id", metavar="id", help="target node id")
     update_parser.add_argument("track_id", metavar="id", help="target tracklet id")
 
+    listen_parser = subparsers.add_parser('listen')
+    listen_parser.add_argument("--topic", nargs='+', help="Kafka listen port(s)")
+    listen_parser.add_argument("--boostrap_servers", default=['localhost:9092'], help="kafka server")
 
-    # parser.add_argument("track_files", nargs='+', help="track json files")
-    # parser.add_argument("--batch", metavar="count", type=int, default=30, help="upload batch count")
     return parser.parse_known_args()
 
 def format(args_conf, store:TrackletStore) -> None:
@@ -52,13 +54,42 @@ def format(args_conf, store:TrackletStore) -> None:
 def upload(args_conf, tracklet_store:TrackletStore) -> None:
     total = 0
     for track_file in args_conf.track_files:
-        count = tracklet_store.insert_tracks(read_tracks_json(track_file))
+        count = tracklet_store.insert_track_events(read_tracks_json(track_file))
         print(f'upload track file: {track_file}, count={count}')
         total += count
     print(f'uploaded: total count = {total}')
 
 def update_tracklet(args_conf, store:TrackletStore) -> None:
     store.insert_or_update_tracklet(args_conf.node_id, args_conf.track_id)
+    
+    
+def listen(args_conf, store:TrackletStore) -> None:
+    from kafka import KafkaConsumer
+    from dna.node import TrackFeature
+    from dna.node.zone import Motion
+    
+    # consumer = KafkaConsumer(['track-events', 'track-motions'],
+    consumer = KafkaConsumer(bootstrap_servers=args_conf.boostrap_servers,
+                             auto_offset_reset='earliest',
+                             key_deserializer=lambda x: x.decode('utf-8'))
+    consumer.subscribe(args_conf.topic)
+    # consumer.subscribe(['track-features'])
+    while True:
+        partitions = consumer.poll(timeout_ms=500, max_records=100)
+        if partitions:
+            with closing(store.connect()) as conn:
+                for topic_info, partition in partitions.items():
+                    match topic_info.topic:
+                        case 'track-events':
+                            tracks = [TrackEvent.deserialize(serialized.value) for serialized in partition]
+                            store.insert_track_events_conn(conn, tracks, batch_size=30)
+                        case 'track-motions':
+                            metas = [Motion.deserialize(serialized.value) for serialized in partition]
+                            store.insert_tracklet_meta_conn(conn, metas, batch_size=30)
+                        case 'track-features':
+                            features = [TrackFeature.deserialize(serialized.value) for serialized in partition]
+                            features = [feature for feature in features if feature.zone_relation != 'D']
+                            store.insert_track_features_conn(conn, features, batch_size=8)
 
 
 def main():
@@ -74,6 +105,8 @@ def main():
         store.drop()
     elif args_conf.subparsers == 'upload':
         upload(args_conf, store)
+    elif args_conf.subparsers == 'listen':
+        listen(args_conf, store)
     
     # total = 0
     # for track_file in args.track_files:

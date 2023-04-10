@@ -29,8 +29,8 @@ class DistanceIoUThreshold:
 
 DEFAULT_DETECTIION_CLASSES = ['car', 'bus', 'truck']
 DEFAULT_DETECTION_CONFIDENCE = 0.37
-DEFAULT_DETECTION_MIN_SIZE = Size2d(15, 15)
-DEFAULT_DETECTION_MAX_SIZE = Size2d(768, 768)
+DEFAULT_DETECTION_MIN_SIZE = Size2d([15, 15])
+DEFAULT_DETECTION_MAX_SIZE = Size2d([768, 768])
 DEFAULT_DETECTION_ROIS = []
 
 DEFAULT_IOU_DIST_THRESHOLD = DistanceIoUThreshold(distance=70, iou=0.75)
@@ -39,8 +39,8 @@ DEFAULT_IOU_DIST_THRESHOLD_LOOSE = DistanceIoUThreshold(distance=90, iou=0.85)
 # DEFAULT_METRIC_TIGHT_THRESHOLD = 0.3
 DEFAULT_METRIC_THRESHOLD = 0.55
 DEFAULT_METRIC_GATE_DISTANCE = 600
-DEFAULT_METRIC_MIN_DETECTION_SIZE = Size2d(30, 30)
-DEFAULT_METRIC_REGISTRY_MIN_DETECTION_SIZE = Size2d(35, 35)
+DEFAULT_METRIC_MIN_DETECTION_SIZE = Size2d([30, 30])
+DEFAULT_METRIC_REGISTRY_MIN_DETECTION_SIZE = Size2d([35, 35])
 DEFAULT_MAX_FEATURE_COUNT = 50
 
 DEFAULT_N_INIT = 3
@@ -146,7 +146,7 @@ def load_track_params(track_conf:OmegaConf) -> DNATrackParams:
     exit_zones = parse_zones(track_conf, 'exit_zones')
     stable_zones = parse_zones(track_conf, 'stable_zones')
     zones_expr = OmegaConf.select(track_conf, 'magnifying_zones', default=[])
-    magnifying_zones = [Box.from_tlbr(zone) for zone in zones_expr]
+    magnifying_zones = [Box(zone) for zone in zones_expr]
     
     draw = track_conf.get("draw", [])
 

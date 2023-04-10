@@ -8,7 +8,6 @@ camera:
   sync: False
   # begin_frame: 350
   # end_frame: 200
-  # open_ts: 590
   open_ts: 0
 
 tracker:
@@ -16,9 +15,15 @@ tracker:
   detection_min_size: [30, 30]
   max_age: 30
   track_zones:
-    - [[268, 485], [669, 450], [1194, 299], [1408, 313], [1362, 488], [1807, 595], [1814, 930], [4, 927], [0, 698]]
+    - [[182, 399], [182, 478], [523, 503], [799, 460], [1194, 299],
+      [1408, 313], [1362, 488], [1807, 595], [1814, 930], [4, 927], [0, 399]]
+  magnifying_zones:
+    - [0, 420, 640, 1060]
+  stable_zones:
+    - [[93, 482], [328, 667], [-25, 812], [-17, 519]]
   exit_zones:
-    - [[0, 704], [271, 485], [203, 445], [2, 587]]      # 정문 방향 출구
+    - [[55, 492], [7, 505], [7, 441], [103, 440], [100, 459]] # 7동 진입로
+    - [175, 395, 257, 485]      # 정문 방향 출구
     - [1148, 200, 1415, 310]    # 테니스장 출구
     - [600, 930, 1918, 1080]    # 테니스장 뒷쪽 출구
 
@@ -37,8 +42,8 @@ dna_kafka_connection: &dna_kafka_connection
 publishing:
   # tick_interval: 1.0
   refine_tracks:
-    buffer_size: 10
-    buffer_timeout: 1.5
+    buffer_size: 60
+    buffer_timeout: 7.0
   # min_path_length: 10
   attach_world_coordinates:
     camera_geometry: regions/etri_testbed/etri_testbed.json
@@ -53,6 +58,10 @@ publishing:
       'AE': 'AE'
       'DA': 'DA'
       'EA': 'EA'
+  order_by_frame_index:
+    max_pending_frames: 60
+    timeout: 7.0
+
   plugins:
     publish_tracks:
       <<: *local_kafka_connection

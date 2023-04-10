@@ -15,9 +15,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Display a video")
     parser.add_argument("--conf", metavar="file path", help="configuration file path")
     
-    parser.add_argument("--camera", metavar="uri", help="target camera uri")
+    parser.add_argument("--camera", metavar="uri", default=argparse.SUPPRESS, help="target camera uri")
     parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number", default=1)
-    parser.add_argument("--end_frame", type=int, metavar="number", help="the last frame number")
+    parser.add_argument("--end_frame", type=int, metavar="number", default=argparse.SUPPRESS,
+                        help="the last frame number")
+    parser.add_argument("--nosync", action='store_true')
 
     parser.add_argument("--show", "-s", nargs='?', const='0x0', default='0x0')
     parser.add_argument("--loop", action='store_true')
@@ -33,6 +35,7 @@ def main():
     
     # 카메라 설정 정보 추가
     conf.camera = load_camera_conf(get_config(conf, "camera", OmegaConf.create()), args_conf)
+    conf.camera.sync = not args.nosync
     camera = create_camera_from_conf(conf.camera)
 
     while True:

@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import List, NewType, Tuple, Optional, Union, Any
+from typing import List, NewType, Tuple, Optional, Union, Any, Callable
 
 import numbers
 from dataclasses import dataclass, field
-from collections import Sequence, Iterable
+from collections.abc import Iterable, Sequence
 import math
 
 import numpy as np
@@ -16,42 +16,83 @@ Image = NewType('Image', np.ndarray)
 
 
 class Point:
-    __slots__ = ('__xy', )
+    """A point coordinate in 2d plane.
 
-    def __init__(self, x: Union[int, float], y: Union[int, float]) -> None:
-        self.__xy = np.array([x, y])
+    Attributes:
+        xy (numpy.ndarray): (x,y) coordinate as a numpy array.
+    """
+    __slots__ = ('xy', )
+
+    def __init__(self, xy:npt.ArrayLike) -> None:
+        """(x,y) 좌표를 갖는 Point 객체를 반환한다.
+
+        Args:
+            xy (npt.ArrayLike): (x,y) 좌표
+        """
+        self.xy:np.ndarray = np.array(xy)
 
     @property
-    def x(self) -> Union[int, float]:
-        return self.__xy[0]
+    def x(self) -> int|float:
+        """Point 객체 좌표의 x축 값.
+
+        Returns:
+            int|float: 좌표의 x축 값.
+        """
+        return self.xy[0]
 
     @property
-    def y(self) -> Union[int, float]:
-        return self.__xy[1]
+    def y(self) -> int|float:
+        """Point 객체 좌표의 y축 값.
 
-    @property
-    def xy(self):
-        return self.__xy
-
-    def to_tuple(self) -> Tuple[Union[int, float], Union[int, float]]:
-        return tuple(self.__xy)
-
-    @classmethod
-    def from_np(cls, xy: np.ndarray) -> Point:
-        return Point(xy[0], xy[1])
+        Returns:
+            int|float: 좌표의 y축 값.
+        """
+        return self.xy[1]
+        
+    def __array__(self, dtype=None):
+        if not dtype or dtype == self.xy.dtype:
+            return self.xy
+        else:
+            return self.xy.astype(dtype)
 
     def distance_to(self, pt:Point) -> float:
+        """Returns an Euclidean distance to the point pt.
+
+        Args:
+            pt (Point): target Point object to calculate distance to.
+
+        Returns:
+            float: distance.
+        """
         return np.linalg.norm(self.xy - pt.xy)
 
-    def angle_with(self, pt:Point) -> float:
-        delta = pt - self
-        return math.atan2(delta.height, delta.width)
+    def angle_between(self, pt:Point) -> float:
+        """본 Point 객체 벡터와 인자 Point 객체 벡터 사이의 각(radian)을 반환한다.
 
-    @staticmethod
-    def line_function(pt1:Point, pt2:Point):
-        delta = pt1.xy - pt2.xy
+        Args:
+            pt (Point): 각을 계산할 대상 Point 객체.
+
+        Returns:
+            float: 두 벡터 사이의 각 (단위: radian)
+        """
+        return np.arctan2(np.cross(self.xy, pt.xy), np.dot(self.xy, pt.xy))
+
+    def line_function_to(self, pt2:Point) -> Callable[[numbers.Number],numbers.Number]:
+        """본 Point 객체와 인자로 주어진 Point까지를 잇는 1차원 함수를 반환한다.
+
+        Args:
+            pt2 (Point): 목표 Point 객체.
+
+        Raises:
+            ValueError: 목표 Point 객체의 위치를 잇는 1차원 함수를 구할 수 없는 경우.
+                        예를들어 두 Point의 x좌표가 동일한 경우.
+
+        Returns:
+            Callable[[numbers.Number],numbers.Number]: 1차원 함수.
+        """
+        delta = self.xy - pt2.xy
         if delta[0] == 0:
-            raise ValueError(f"Cannot find a line function: {pt1} - {pt2}")
+            raise ValueError(f"Cannot find a line function: {self} - {pt2}")
         slope = delta[1] / delta[0]
         y_int = pt2.y - (slope * pt2.x)
 
@@ -59,55 +100,59 @@ class Point:
             return (slope * x) + y_int
         return func
 
-    @staticmethod
-    def split_points(pt1:Point, pt2:Point, npoints:int) -> List[Point]:
-        func = Point.line_function(pt1, pt2)
-        step_x = (pt2.x - pt1.x) / (npoints+1)
-        xs = [pt1.x + (idx * step_x) for idx in range(1, npoints+1)]
-        return [Point.from_np(np.array([x, func(x)])) for x in xs]
+    def split_points_to(self, pt2:Point, npoints:int) -> List[Point]:
+        func = self.line_function_to(pt2)
+        step_x = (pt2.x - self.x) / (npoints+1)
+        xs = [self.x + (idx * step_x) for idx in range(1, npoints+1)]
+        return [Point([x, func(x)]) for x in xs]
 
     def to_rint(self) -> Point:
-        return Point.from_np(np.rint(self.__xy).astype(int))
+        """본 Point 객체의 좌표값을 int형식으로 반올림한 좌표를 갖는 Point 객체를 반환한다.
+
+        Returns:
+            Point: int형식으로 반올림한 좌표를 갖는 Point 객체.
+        """
+        return Point(np.rint(self.xy).astype(int))
 
     def __add__(self, rhs) -> Point:
         if isinstance(rhs, Point):
-            return Point.from_np(self.xy + rhs.xy)
+            return Point(self.xy + rhs.xy)
         elif isinstance(rhs, Size2d):
-            return Point.from_np(self.xy + rhs.wh)
+            return Point(self.xy + rhs.wh)
         elif (isinstance(rhs, np.ndarray) or isinstance(rhs, tuple) or isinstance(rhs, list)) and len(rhs) >= 2:
-            return Point(self.x + rhs[0], self.y + rhs[1])
+            return Point(self.xy + np.array(rhs))
         elif isinstance(rhs, int) or isinstance(rhs, float):
-            return Point(self.x + rhs, self.y + rhs)
+            return Point(self.xy + rhs)
         else:
             raise ValueError(f"invalid rhs: rhs={rhs}")
 
     def __sub__(self, rhs) -> Union[Point,Size2d]:
         if isinstance(rhs, Point):
-            return Size2d.from_np(self.xy - rhs.xy)
+            return Size2d(self.xy - rhs.xy)
         elif isinstance(rhs, Size2d):
-            return Point.from_np(self.xy - rhs.wh)
-        elif isinstance(rhs, tuple) and len(rhs) >= 2:
-            return Point(self.x - rhs[0], self.y - rhs[1])
+            return Point(self.xy - rhs.wh)
+        elif (isinstance(rhs, np.ndarray) or isinstance(rhs, tuple) or isinstance(rhs, list)) and len(rhs) >= 2:
+            return Point(self.xy - np.array(rhs))
         elif isinstance(rhs, int) or isinstance(rhs, float):
-            return Point(self.x - rhs, self.y - rhs)
+            return Point(self.xy - rhs)
         else:
             raise ValueError(f"invalid rhs: rhs={rhs}")
 
     def __mul__(self, rhs) -> Point:
         if isinstance(rhs, int) or isinstance(rhs, float):
-            return Point(self.x * rhs, self.y * rhs)
+            return Point(self.xy * rhs)
         elif isinstance(rhs, Size2d):
-            return Point.from_np(self.xy * rhs.wh)
-        elif isinstance(rhs, tuple) and len(rhs) >= 2:
-            return Point(self.x * rhs[0], self.y * rhs[1])
+            return Point(self.xy * rhs.wh)
+        elif (isinstance(rhs, np.ndarray) or isinstance(rhs, tuple) or isinstance(rhs, list)) and len(rhs) >= 2:
+            return Point(self.xy * np.array(rhs))
         else:
             raise ValueError(f"invalid rhs: rhs={rhs}")
 
     def __truediv__(self, rhs) -> Point:
         if isinstance(rhs, Size2d):
-            return Point(self.x / rhs.width, self.y / rhs.height)
+            return Point(self.xy / rhs.wh)
         elif isinstance(rhs, int) or isinstance(rhs, float):
-            return Point(self.x / rhs, self.y / rhs)
+            return Point(self.xy / rhs)
         else:
             raise ValueError('invalid right-hand-side:', rhs)
     
@@ -117,244 +162,356 @@ class Point:
         else:
             return '({:.1f},{:.1f})'.format(*self.xy)
 
+
 class Size2d:
-    __slots__ = ('__wh',)
+    """A size object in 2d plane.
 
-    def __init__(self, width: Union[int, float], height: Union[int, float]) -> None:
-        self.__wh = np.array([width, height])
+    Attributes:
+        wh (numpy.ndarray): (width, height) as a numpy array.
+    """
+    __slots__ = ('wh',)
 
-    @classmethod
-    def from_np(cls, wh:np.ndarray) -> Size2d:
-        return Size2d(wh[0], wh[1])
+    def __init__(self, wh:npt.ArrayLike) -> None:
+        """width와 height를 구성된 Size2d 객체를 반환한다.
 
-    @classmethod
-    def from_expr(cls, expr:Any) -> Size2d:
+        Args:
+            wh (npt.ArrayLike): 2차원 크기의 넓이(w)와 높이(h) 값의 배열
+        """
+        self.wh = np.array(wh)
+
+    @staticmethod
+    def from_expr(expr:Any) -> Size2d:
+        """인자 값을 'Size2d' 객체로 형 변화시킨다.
+        - 인자가 Size2d인 경우는 별도의 변환없이 인자를 복사하여 반환한다.
+        - 인자가 문자열인 경우에는 '<width> x <height>' 형식으로 파싱하여 Size2d를 생성함.
+        - 그렇지 않은 경우는 numpy.array() 함수를 통해 numpy array로 변환하고 이를 다시 Size2d로 생성함.
+
+        Args:
+            expr (Any): 형 변환시킬 대상 객체.
+
+        Returns:
+            Size2d: 형 변환된 Size2d 객체.
+        """
         if isinstance(expr, Size2d):
-            return Size2d(expr.__wh[0], expr.__wh[1])
-        elif isinstance(expr, np.ndarray):
-            return Size2d.from_np(expr)
-        elif isinstance(expr, Sequence):
-            return Size2d(expr[0], expr[1])
-        elif isinstance(expr, Iterable):
-            t = tuple(expr)
-            return Size2d(t[0], t[1])
+            return Size2d(expr.wh)
         elif isinstance(expr, str):
             return Size2d.parse_string(expr)
+        else:
+            return Size2d(expr)
 
-    @classmethod
-    def parse_string(cls, expr:str) -> Size2d:
-        parts: List[int] = [int(p) for p in expr.split("x")]
+    @staticmethod
+    def parse_string(expr:str) -> Size2d:
+        """'<width> x <height>' 형식으로 표기된 문자열을 파싱하여 Size2d 객체를 생성한다.
+
+        Args:
+            expr (str): '<width> x <height>' 형식의 문자열.
+
+        Raises:
+            ValueError: '<width> x <height>' 형식의 문자열이 아닌 경우.
+
+        Returns:
+            Size2d: Size2d 객체.
+        """
+        parts: List[float] = [float(p) for p in expr.split("x")]
         if len(parts) == 2:
-            return Size2d(parts[0], parts[1])
+            return Size2d(parts)
         raise ValueError(f"invalid Size2d string: {expr}")
 
-    def to_tuple(self) -> Tuple[Union[int, float],Union[int, float]]:
-        # return tuple(np.rint(self.wh).astype(int))
-        return tuple(self.__wh)
-
     def is_valid(self) -> bool:
-        return self.__wh[0] >= 0 and self.__wh[1] >= 0
+        """Size2d 객체의 유효성 여부를 반환한다.
+
+        Returns:
+            bool: 유효성 여부. 넓이와 높이가 모두 0보다 크거나 같은지 여부.
+        """
+        return self.wh[0] >= 0 and self.wh[1] >= 0
 
     @property
-    def wh(self) -> np.ndarray:
-        return self.__wh
+    def width(self) -> int|float:
+        """본 Size2d의 넓이 값.
 
-    @property
-    def width(self) -> Union[int, float]:
-        return self.__wh[0]
+        Returns:
+            int|float: 본 Size2d의 넓이 값.
+        """
+        return self.wh[0]
     
     @property
-    def height(self) -> Union[int, float]:
-        return self.__wh[1]
+    def height(self) -> int|float:
+        """본 Size2d의 높이 값.
+
+        Returns:
+            int|float: 본 Size2d의 높이 값.
+        """
+        return self.wh[1]
+        
+    def __array__(self, dtype=None):
+        if not dtype or dtype == self.wh.dtype:
+            return self.wh
+        else:
+            return self.wh.astype(dtype)
 
     def aspect_ratio(self) -> float:
-        return self.__wh[0] / self.__wh[1]
+        """본 Size2d의 aspect ratio (=w/h)를 반환한다.
+
+        Returns:
+            float: aspect ratio
+        """
+        return self.wh[0] / self.wh[1]
 
     def area(self) -> float:
-        return self.__wh[0] * self.__wh[1]
+        """본 Size2d에 해당하는 영역을 반환한다.
 
-    def abs(self) -> Size2d:
-        return Size2d.from_np(np.abs(self.__wh))
+        Returns:
+            float: 영역.
+        """
+        return self.wh[0] * self.wh[1]
 
     def to_rint(self) -> Size2d:
-        return Size2d.from_np(np.rint(self.wh).astype(int))
+        """본 Size2d 크기 값을 int형식으로 반올림한 값을 갖는 Size2d 객체를 반환한다.
 
-    def norm(self):
-        return np.linalg.norm(self.wh)
+        Returns:
+            Size2d: int형식으로 반올림한 크기를 갖는 Size2d 객체.
+        """
+        return Size2d(np.rint(self.wh).astype(int))
 
     def __add__(self, rhs) -> Size2d:
         if isinstance(rhs, Size2d):
-            return Size2d.from_np(self.wh + rhs.wh)
+            return Size2d(self.wh + rhs.wh)
         elif isinstance(rhs, int) or isinstance(rhs, float):
-            return Size2d.from_np(self.wh - np.array([rhs, rhs]))
+            return Size2d(self.wh + rhs)
         else:
-            raise ValueError('invalid right-hand-side:', rhs)
+            return Size2d(self.wh + np.array(rhs))
 
     def __sub__(self, rhs) -> Size2d:
         if isinstance(rhs, Size2d):
-            return Size2d.from_np(self.wh - rhs.wh)
+            return Size2d(self.wh - rhs.wh)
         elif isinstance(rhs, int) or isinstance(rhs, float):
-            return Size2d.from_np(self.wh - np.array([rhs, rhs]))
+            return Size2d(self.wh - rhs)
         else:
-            raise ValueError('invalid right-hand-side:', rhs)
+            return Size2d(self.wh - np.array(rhs))
 
     def __mul__(self, rhs) -> Size2d:
         if isinstance(rhs, Size2d):
-            return Size2d.from_np(self.wh * rhs.wh)
+            return Size2d(self.wh * rhs.wh)
         elif isinstance(rhs, int) or isinstance(rhs, float):
-            return Size2d.from_np(self.wh * np.array([rhs, rhs]))
+            return Size2d(self.wh * rhs)
         else:
-            raise ValueError('invalid right-hand-side:', rhs)
+            return Size2d(self.wh * np.array(rhs))
 
     def __truediv__(self, rhs) -> Size2d:
         if isinstance(rhs, Size2d):
-            return Size2d.from_np(self.wh / rhs.wh)
+            return Size2d(self.wh / rhs.wh)
         elif isinstance(rhs, int) or isinstance(rhs, float):
-            return Size2d.from_np(self.wh / np.array([rhs, rhs]))
+            return Size2d(self.wh / rhs)
         else:
-            raise ValueError('invalid right-hand-side:', rhs)
+            return Size2d(self.wh / np.array(rhs))
 
     def __eq__(self, other):
         if isinstance(other, Size2d):
-            return np.array_equal(self.__wh, other.__wh)
+            return np.array_equal(self.wh, other.wh)
         else:
             return False
 
     def __gt__(self, other:Size2d):
         if isinstance(other, Size2d):
-            return self.__wh[0] > other.__wh[0] and self.__wh[1] > other.__wh[1]
+            return self.wh[0] > other.wh[0] and self.wh[1] > other.wh[1]
         else:
             raise ValueError(f'invalid Size2d object: {self}')
 
     def __ge__(self, other:Size2d):
         if isinstance(other, Size2d):
-            return self.__wh[0] >= other.__wh[0] and self.__wh[1] >= other.__wh[1]
+            return self.wh[0] >= other.wh[0] and self.wh[1] >= other.wh[1]
         else:
             raise ValueError(f'invalid Size2d object: {self}')
 
     def __lt__(self, other:Size2d):
         if isinstance(other, Size2d):
-            return self.__wh[0] < other.__wh[0] and self.__wh[1] < other.__wh[1]
+            return self.wh[0] < other.wh[0] and self.wh[1] < other.wh[1]
         else:
             raise ValueError(f'invalid Size2d object: {self}')
 
     def __le__(self, other:Size2d):
         if isinstance(other, Size2d):
-            return self.__wh[0] <= other.__wh[0] and self.__wh[1] <= other.__wh[1]
+            return self.wh[0] <= other.wh[0] and self.wh[1] <= other.wh[1]
         else:
             raise ValueError(f'invalid Size2d object: {self}')
     
     def __repr__(self) -> str:
         if isinstance(self.wh[0], np.int32):
-            return '{}x{}'.format(*self.__wh)
+            return '{}x{}'.format(*self.wh)
         else:
-            return '{:.1f}x{:.1f}'.format(*self.__wh)
-EMPTY_SIZE2D: Size2d = Size2d(-1, -1)
+            return '{:.1f}x{:.1f}'.format(*self.wh)
+INVALID_SIZE2D: Size2d = Size2d([-1, -1])
 
 
 class Box:
+    """A box object in 2d plane.
+
+    Attributes:
+        tlbr (numpy.ndarray): (x1, y1, x2, y2), where (x1, y1) is the coordinate of the top-left corner
+                                and (x2, y2) is the coordinate of the bottom-right corner as a numpy arrays.
+    """
     __slots__ = ('tlbr', )
 
-    def __init__(self, tlbr: np.ndarray) -> None:
-        self.tlbr = np.array(tlbr)
+    def __init__(self, tlbr:npt.ArrayLike) -> None:
+        """두 개의 좌표 (x1,y2), (x2, y2) 로 구성된 Box 객체를 반환한다.
 
-    @classmethod
-    def from_points(self, tl: Point, br: Point) -> Box:
-        return Box(np.hstack([tl.xy, br.xy]))
-
-    @classmethod
-    def from_tlbr(cls, tlbr:npt.ArrayLike) -> Box:
+        Args:
+            tlbr (npt.ArrayLike): (l,t), (r, b) 좌표
+        """
         tlbr = np.array(tlbr)
         if tlbr.shape == (2,2):
             tlbr = tlbr.flatten()
-        return Box(tlbr)
+        self.tlbr = tlbr
 
-    @classmethod
-    def from_tlwh(cls, tlwh: np.ndarray) -> Box:
+    @staticmethod
+    def from_points(tl:Point, br:Point) -> Box:
+        """두 개의 Point tl, br로 구성된 Box 객체를 반환한다.
+
+        Args:
+            tl (Point): 왼쪽 위 꼭지점 좌표.
+            br (Point): 오른쪽 아래 꼭지점 좌표.
+
+        Returns:
+            Box: Box 객체
+        """
+        return Box(np.hstack([tl.xy, br.xy]))
+
+    @staticmethod
+    def from_tlwh(tlwh:npt.ArrayLike) -> Box:
+        """Box의 좌상단 꼭지점의 좌표와 box의 넓이와 높이 정보를 이용하여 Box 객체를 생성한다.
+
+        Args:
+            tlwh (npt.ArrayLike): 좌상단 꼭지점의 좌표 (tl)와 넓이(w)와 높이(h)
+
+        Returns:
+            Box: Box 객체
+        """
+        tlwh = np.array(tlwh)
         tlbr = tlwh.copy()
         tlbr[2:] = tlwh[:2] + tlwh[2:]
         return Box(tlbr)
 
     @staticmethod
-    def from_size(size:Union[Size2d,tuple]) -> Box:
-        w, h = size.to_tuple() if isinstance(size, Size2d) else size
-        return Box(np.array([0, 0, w, h]))
+    def from_size(size:Union[Size2d,npt.ArrayLike]) -> Box:
+        w, h = tuple(size.wh) if isinstance(size, Size2d) else tuple(np.array(size))
+        return Box([0, 0, w, h])
 
-    def translate(self, delta:Size2d) -> Box:
-        delta = np.array([delta.width, delta.height, delta.width, delta.height])
+    def translate(self, delta:Union[Size2d,npt.ArrayLike]) -> Box:
+        """본 Box 객체를 주어진 거리만큼 평행 이동시킨다.
+
+        Args:
+            delta (Union[Size2d,npt.ArrayLike]): 평행 이동 거리.
+
+        Returns:
+            Box: 평행 이동된 Box 객체.
+        """
+        w, h = tuple(delta.wh) if isinstance(delta, Size2d) else tuple(np.array(delta))
+        delta = np.array([w, h, w, h])
         return Box(self.tlbr + delta)
 
     def is_valid(self) -> bool:
-        return self.tlbr[0] <= self.tlbr[2] and self.tlbr[1] <= self.tlbr[3]
+        """본 Box의 유효성 여부를 반환한다.
 
-    def to_tlwh(self) -> np.ndarray:
+        Returns:
+            bool: 유효성 여부.  l <= r and t <= b
+        """
+        return self.tlbr[0] <= self.tlbr[2] and self.tlbr[1] <= self.tlbr[3]
+        
+    def __array__(self, dtype=None):
+        if not dtype or dtype == self.xy.dtype:
+            return self.tlbr
+        else:
+            return self.tlbr.astype(dtype)
+
+    @property
+    def tlwh(self) -> np.ndarray:
+        """``tlwh`` (top-left corner coordinates, width, and height) of this box object.
+
+        Returns:
+            np.ndarray: ``tlwh`` (top-left corner coordinates, width, and height)
+        """
         tlwh = self.tlbr.copy()
         tlwh[2:] = self.br - self.tl
         return tlwh
-    
-    def to_points(self) -> Tuple[Point,Point]:
-        return Point.from_np(self.tlbr[:2]), Point.from_np(self.tlbr[2:])
 
-    def to_xyah(self) -> np.ndarray:
-        ret = self.to_tlwh()
+    @property
+    def xyah(self) -> np.ndarray:
+        """``xyah`` (x/y coordinate for the top-left corner, aspect ratio, and height) of this box object.
+
+        Returns:
+            np.ndarray: ``xyah`` (x/y coordinate for the top-left corner, aspect ratio, and height)
+        """
+        ret = self.tlwh
         ret[:2] += ret[2:] / 2
         ret[2] /= ret[3]
         return ret
 
     def to_rint(self) -> Box:
+        """Returns a box object whose coordindates are round to integers.
+
+        Returns:
+            Box: ``Box`` object of integer coordinates.
+        """
         return Box(np.rint(self.tlbr).astype(int))
 
     @property
     def tl(self) -> np.ndarray:
+        '''Returns the coordinate of top-left corner of this box object.'''
         return self.tlbr[:2]
 
     @property
     def br(self) -> np.ndarray:
+        '''Returns the coordinate of bottom-right corner of this box object.'''
         return self.tlbr[2:]
 
     @property
     def wh(self) -> np.ndarray:
+        '''Returns width and height pair of this box object.'''
         return self.br - self.tl
 
     @property
     def width(self) -> Union[float,int]:
+        '''Returns width of this box object.'''
         return self.wh[0]
 
     @property
     def height(self) -> Union[float,int]:
+        '''Returns height of this box object.'''
         return self.wh[1]
     
     @property
-    def coords(self) -> np.ndarray:
-        return np.array([[self.tlbr[0], self.tlbr[1]],
-                            [self.tlbr[2], self.tlbr[1]],
-                            [self.tlbr[2], self.tlbr[3]],
-                            [self.tlbr[0], self.tlbr[3]]])
+    def coords(self) -> List:
+        """Returns a list of four corners of this box object.
+        The order of corners are top-left, top-right, bottom-right, bottom-left.
+
+        Returns:
+            List: a list of corner coordinates.
+        """
+        return [[self.tlbr[0], self.tlbr[1]],
+                [self.tlbr[2], self.tlbr[1]],
+                [self.tlbr[2], self.tlbr[3]],
+                [self.tlbr[0], self.tlbr[3]]]
 
     def top_left(self) -> Point:
-        return Point.from_np(self.tl)
+        return Point(self.tl)
 
     def bottom_right(self) -> Point:
-        return Point.from_np(self.br)
+        return Point(self.br)
 
     def center(self) -> Point:
-        return Point.from_np(self.tl + (self.wh / 2.))
+        return Point(self.tl + (self.wh / 2.))
 
     def size(self) -> Size2d:
-        return Size2d.from_np(self.wh) if self.is_valid() else EMPTY_SIZE2D
-
-    def aspect_ratio(self) -> float:
-        return self.wh[0] / self.wh[1]
+        return Size2d(self.wh) if self.is_valid() else INVALID_SIZE2D
 
     def area(self) -> float:
-        return self.size().area() if self.is_valid() else 0
+        """Returns the area of this box.
+        If the box is invalid, a negative value will be returned.
 
-    def area_int(self) -> int:
-        if self.is_valid():
-            wh = self.wh + 1
-            return wh[0] * wh[1]
-        else:
-            return 0
+        Returns:
+            float: area
+        """
+        return self.size().area() if self.is_valid() else 0
 
     def distance_to(self, box:Box) -> float:
         tlbr1 = self.tlbr
@@ -367,38 +524,11 @@ class Box:
         dist = np.linalg.norm(np.concatenate([u, v]))
         return dist
 
-    def min_distance_to(self, box:Box) -> float:
-        y1, x1, y1b, x1b = tuple(self.tlbr)
-        y2, x2, y2b, x2b = tuple(box.tlbr)
-
-        left = x2b < x1
-        right = x1b < x2
-        bottom = y2b < y1
-        top = y1b < y2
-        if top and left:
-            return Point(x1, y1b).distance_to(Point(x2b, y2))
-        elif left and bottom:
-            return Point(x1, y1).distance_to(Point(x2b, y2b))
-        elif bottom and right:
-            return Point(x1b, y1).distance_to(Point(x2, y2b))
-        elif right and top:
-            return Point(x1b, y1b).distance_to(Point(x2, y2))
-        elif left:
-            return x1 - x2b
-        elif right:
-            return x2 - x1b
-        elif bottom:
-            return y1 - y2b
-        elif top:
-            return y2 - y1b
-        else:             # rectangles intersect
-            return 0.
-
     def contains_point(self, pt:Point) -> bool:
-        x, y = pt.to_tuple()
+        x, y = tuple(pt.xy)
         return x >= self.tlbr[0] and y >= self.tlbr[1] and x < self.tlbr[2] and y < self.tlbr[3]
 
-    def contains(self,box:Box) -> bool:
+    def contains(self, box:Box) -> bool:
         return self.tlbr[0] <= box.tlbr[0] and self.tlbr[1] <= box.tlbr[1] \
                 and self.tlbr[2] >= box.tlbr[2] and self.tlbr[3] >= box.tlbr[3]
 
@@ -408,20 +538,11 @@ class Box:
         x2 = min(self.tlbr[2], bbox.tlbr[2])
         y2 = min(self.tlbr[3], bbox.tlbr[3])
         
-        return Box.from_tlbr(np.array([x1, y1, x2, y2]))
-        # if x1 >= x2 or y1 >= y2:
-        #     return EMPTY_BOX
-        # else:
-        #     return Box.from_tlbr(np.array([x1, y1, x2, y2]))
+        return Box([x1, y1, x2, y2])
 
     def iou(self, box:Box) -> float:
         inter_area = self.intersection(box).area()
         area1, area2 = self.area(), box.area()
-        return inter_area / (area1 + area2 - inter_area)
-
-    def iou_int(self,box:Box) -> float:
-        inter_area = self.intersection(box).area_int()
-        area1, area2 = self.area_int(), self.area_int()
         return inter_area / (area1 + area2 - inter_area)
 
     def overlap_ratios(self, other:Box) -> Tuple[float,float,float]:
@@ -432,14 +553,13 @@ class Box:
         return (r1, r2, iou)
 
     def draw(self, convas:Image, color:BGR, line_thickness=2):
-        tlbr_int = self.tlbr.astype(int)
-        return cv2.rectangle(convas, tlbr_int[0:2], tlbr_int[2:4], color,
+        box_int = self.to_rint()
+        return cv2.rectangle(convas, box_int.tl, box_int.br, color,
                             thickness=line_thickness, lineType=cv2.LINE_AA)
 
     def crop(self, img:Image) -> Image:
-        tl = self.tl
-        br = self.br
-        return img[tl[1]:br[1], tl[0]:br[0]]
+        x1, y1, x2, y2 = tuple(self.tlbr)
+        return img[y1:y2, x1:x2]
     
     def expand(self, margin) -> Box:
         if isinstance(margin, numbers.Number):
@@ -450,7 +570,7 @@ class Box:
             self.tlbr + [-w, -h, w, h]
             return Box(tlbr)
         elif isinstance(margin, Size2d):
-            w, h = margin.to_tuple()
+            w, h = tuple(margin.wh)
             self.tlbr + [-w, -h, w, h]
             return Box(tlbr)
         else:
@@ -462,14 +582,14 @@ class Box:
         tar_img[y:y+h, x:x+w] = src_img
     
     def __repr__(self):
-        return '{}:{}'.format(self.top_left(), self.size())
+        return '{}:{}'.format(Point(self.tl), self.size())
 
 EMPTY_BOX:Box = Box(np.array([0,0,-1,-1]))
 
 
 @dataclass(frozen=True, eq=True)    # slots=True
 class Frame:
-    image: Image = field(repr=False)
+    image: Image = field(repr=False, compare=False, hash=False)
     index: int
     ts: float
     

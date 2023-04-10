@@ -14,7 +14,7 @@ from .base import INVALID_DIST_DISTANCE, INVALID_IOU_DISTANCE, INVALID_METRIC_DI
 def build_dist_cost(kf:KalmanFilter, tracks:List[ObjectTrack], detections:List[Detection]) -> np.ndarray:
     dist_matrix = np.ones((len(tracks), len(detections)))
     if tracks and detections:
-        measurements = np.asarray([det.bbox.to_xyah() for det in detections])
+        measurements = np.asarray([det.bbox.xyah for det in detections])
         for t_idx, track in enumerate(tracks):
             mahalanovis_dist = kf.gating_distance(track.mean, track.covariance, measurements)
             # detection과 여러 frame동안 association이 없는 track의 경우, detection들과의 거리 값이 다른 track들에

@@ -10,15 +10,16 @@ import torchvision
 
 from dna import Image, Box
 from dna.detect import Detection
+from .types import MetricExtractor
 
-class FeatureExtractor:
-    def __init__(self, wt_path:Path, logger:logging.Logger=None) -> None:
+
+class DeepSORTMetricExtractor(MetricExtractor):
+    def __init__(self, wt_path:Path, normalize:bool=False) -> None:
         #loading this encoder is slow, should be done only once.	
         self.encoder = torch.load(wt_path)			
-            
         self.encoder = self.encoder.cuda()
         self.encoder = self.encoder.eval()
-        logger.info(f"DeepSORT model from {wt_path}")
+        self.normalize = normalize
 
         self.gaussian_mask = get_gaussian_mask().cuda()
         self.transforms = torchvision.transforms.Compose([ \
@@ -26,8 +27,29 @@ class FeatureExtractor:
                             torchvision.transforms.Resize((128,128)),\
                             torchvision.transforms.ToTensor()])
         
+    def distance(self, metric1:np.ndarray, metric2:np.ndarray) -> float:
+        if not self.normalize:
+            metric1 = metric1 / np.linalg.norm(metric1, axis=1, keepdims=True)
+            metric2 = metric2 / np.linalg.norm(metric2, axis=1, keepdims=True)
+            
+        return 1. - np.dot(metric1, metric2.T)
+    
+    def extract_crops(self, crops:List[Image]) -> np.ndarray:
+        processed_crops = [self.transforms(crop) for crop in crops]
+        processed_crops = torch.stack(processed_crops)
+        processed_crops = processed_crops.cuda()
+        processed_crops = self.gaussian_mask * processed_crops
+
+        features = self.encoder.forward_once(processed_crops)
+        features = features.detach().cpu().numpy()
+        if len(features.shape)==1:
+            features = np.expand_dims(features,0)
+        if self.normalize:
+            features = features / np.linalg.norm(features, axis=1, keepdims=True)
+        return features
+        
     def extract_boxes(self, image:Image, boxes:List[Box]) -> np.ndarray:
-        tlwh_list = [box.to_tlwh() for box in boxes]
+        tlwh_list = [box.tlwh for box in boxes]
         processed_crops = self.pre_process(image, tlwh_list).cuda()
         processed_crops = self.gaussian_mask * processed_crops
 
@@ -35,12 +57,13 @@ class FeatureExtractor:
         features = features.detach().cpu().numpy()
         if len(features.shape)==1:
             features = np.expand_dims(features,0)
-        
+        if self.normalize:
+            features = features / np.linalg.norm(features, axis=1, keepdims=True)
         return features
 
-    def extract(self, image:Image, detections: List[Detection]):
+    def extract_dets(self, image:Image, detections:List[Detection]):
         if detections:
-            tlwh_list = [det.bbox.to_tlwh() for det in detections]
+            tlwh_list = [det.bbox.tlwh for det in detections]
             processed_crops = self.pre_process(image, tlwh_list).cuda()
             processed_crops = self.gaussian_mask * processed_crops
 
@@ -48,11 +71,12 @@ class FeatureExtractor:
             features = features.detach().cpu().numpy()
             if len(features.shape)==1:
                 features = np.expand_dims(features,0)
-
+            if self.normalize:
+                features = features / np.linalg.norm(features, axis=1, keepdims=True)
             return features
         else:
             return []
-		
+ 
     def pre_process(self, frame, tlwhs):
         crops = []
         for d in tlwhs:
@@ -103,3 +127,11 @@ def get_gaussian_mask():
 	mask = torch.from_numpy(z)
 
 	return mask
+
+class TestEuclideanMetricExtractor(DeepSORTMetricExtractor):
+    def __init__(self, wt_path: Path) -> None:
+        super().__init__(wt_path, normalize=True)
+        
+    def distance(self, metric1:np.ndarray, metric2:np.ndarray) -> float:
+        l2 = np.linalg.norm(metric1 - metric2)
+        return (2 - l2*l2) / 2

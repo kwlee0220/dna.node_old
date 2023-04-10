@@ -1,110 +1,111 @@
-[track_hot_04.mp4]
-1092 - 1188
-1402 - 1480
-1760 - 1803
-2080 - 2189
-
-[track_07.mp4]
-1052 - 1137 1179
-2017 - 2103
-2497 - 2557
-DNA 기반 국가 지능화 핵심기술 개발
-
-[track_07_2021.mp4]
-202 - 290
-202 - 375
-1443 - 1491
-1680 - 1743
-2192 - 2239
-2251 - 2303
-3366 - 3372
-*3368 - 3390
-*3368 - 3409
-*3368 - 3459
-3368 - 3615
-*3368 - 3688
-3366 - 3468
-3520 - 3584
-*4090 - 4154
-
-[track_07_crop_2021.mp4]
-1396	- 1472
-				- 1479
-				- 1482
-				- 1490
-				- 1644
-				- 1688
-				- 1719
-1887 - 1958 (해결)
-				- 1981 (해결 못함, metric 정확도 문제)
-2641 - 2689: 해결. metrix cost matrix 생성할 때 버그가 있었음.
-2827 - 2888 - 2909: (해결 stable_zone의 크기를 늘이는 방식으로 해결)
-2928 - 3001 - 3020: 해결 metric 대상 detection에서 exit-zone에 있는 것을 제외시키는 방법 사용
-3073 - 3127 - 3148 (어쩔 수 없음. exit-zone으로 빠짐)
-
-A: [[233101.304, 420534.337], [233786.304, 420535.337], [233788.304, 420692.337], [233107.304, 420711.337]]
-B: [[232814.304, 420755.337], [232975.304, 420752.337], [232984.304, 421265.337], [232811.304, 421263.337]]
-C: [[232996.304, 421285.337], [233513.304, 421286.337], [233523.304, 421427.337], [232996.304, 421425.337]]
-D: [[232814.304, 420393.337], [233023.304, 420391.337], [233028.304, 420700.337], [232814.304, 420700.337]]
-
-dna_node --conf conf/etri_testbed/etri_04.yaml --camera data/2023/etri_04_join.mp4 --output D:/Temp/dna.node_output/etri_04_event.json --show_progress
-dna_node --conf conf/etri_testbed/etri_05.yaml --camera data/2023/etri_05_join.mp4 --output D:/Temp/dna.node_output/etri_05_event.json --show_progress
-dna_node --conf conf/etri_testbed/etri_06.yaml --camera data/2023/etri_06_join.mp4 --output D:/Temp/dna.node_output/etri_06_event.json --show_progress
-dna_node --conf conf/etri_testbed/etri_07.yaml --camera data/2023/etri_07_join.mp4 --output D:/Temp/dna.node_output/etri_07_event.json --show_progress
 
 
---------------------------- Node --------------------------------------------------
-dna_node --conf conf/etri_testbed/etri_04.yaml --camera data/2023/etri_04_join.mp4 --output D:/Temp/dna.node_output/etri_04_event.json --output_video D:/Temp/dna.node_output/etri_04_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_05.yaml --camera data/2023/etri_05_join.mp4 --output D:/Temp/dna.node_output/etri_05_event.json --output_video D:/Temp/dna.node_output/etri_05_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_06.yaml --camera data/2023/etri_06_join.mp4 --output D:/Temp/dna.node_output/etri_06_event.json --output_video D:/Temp/dna.node_output/etri_06_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_07.yaml --camera data/2023/etri_07_join.mp4 --output D:/Temp/dna.node_output/etri_07_event.json --output_video D:/Temp/dna.node_output/etri_07_track.mp4 --show_progress
+======================================================================== Node =================================================================================================================
+python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2023/etri_04_join.mp4 --output D:/Temp/dna_output/etri_04_event.json --output_video D:/Temp/dna_output/etri_04_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2023/etri_05_join.mp4 --output D:/Temp/dna_output/etri_05_event.json --output_video D:/Temp/dna_output/etri_05_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2023/etri_06_join.mp4 --output D:/Temp/dna_output/etri_06_event.json --output_video D:/Temp/dna_output/etri_06_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2023/etri_07_join.mp4 --output D:/Temp/dna_output/etri_07_event.json --output_video D:/Temp/dna_output/etri_07_track.mp4 --show_progress
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_041.mp4 --output D:/Temp/dna_output/etri_041_event.json --output_video D:/Temp/dna_output/etri_041_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_042.mp4 --output D:/Temp/dna_output/etri_042_event.json --output_video D:/Temp/dna_output/etri_042_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_043.mp4 --output D:/Temp/dna_output/etri_043_event.json --output_video D:/Temp/dna_output/etri_043_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_044.mp4 --output D:/Temp/dna_output/etri_044_event.json --output_video D:/Temp/dna_output/etri_044_track.mp4 --show_progress
 
-dna_node --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_041.mp4 --output D:/Temp/dna.node_output/etri_041_event.json --output_video D:/Temp/dna.node_output/etri_041_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_042.mp4 --output D:/Temp/dna.node_output/etri_042_event.json --output_video D:/Temp/dna.node_output/etri_042_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_043.mp4 --output D:/Temp/dna.node_output/etri_043_event.json --output_video D:/Temp/dna.node_output/etri_043_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_044.mp4 --output D:/Temp/dna.node_output/etri_044_event.json --output_video D:/Temp/dna.node_output/etri_044_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_051.mp4 --output D:/Temp/dna_output/etri_051_event.json --output_video D:/Temp/dna_output/etri_051_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_052.mp4 --output D:/Temp/dna_output/etri_052_event.json --output_video D:/Temp/dna_output/etri_052_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_053.mp4 --output D:/Temp/dna_output/etri_053_event.json --output_video D:/Temp/dna_output/etri_053_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_054.mp4 --output D:/Temp/dna_output/etri_054_event.json --output_video D:/Temp/dna_output/etri_054_track.mp4 --show_progress
 
-dna_node --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_051.mp4 --output D:/Temp/dna.node_output/etri_051_event.json --output_video D:/Temp/dna.node_output/etri_051_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_052.mp4 --output D:/Temp/dna.node_output/etri_052_event.json --output_video D:/Temp/dna.node_output/etri_052_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_053.mp4 --output D:/Temp/dna.node_output/etri_053_event.json --output_video D:/Temp/dna.node_output/etri_053_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_054.mp4 --output D:/Temp/dna.node_output/etri_054_event.json --output_video D:/Temp/dna.node_output/etri_054_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_061.mp4 --output D:/Temp/dna_output/etri_061_event.json --output_video D:/Temp/dna_output/etri_061_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_062.mp4 --output D:/Temp/dna_output/etri_062_event.json --output_video D:/Temp/dna_output/etri_062_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_063.mp4 --output D:/Temp/dna_output/etri_063_event.json --output_video D:/Temp/dna_output/etri_063_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_064.mp4 --output D:/Temp/dna_output/etri_064_event.json --output_video D:/Temp/dna_output/etri_064_track.mp4 --show_progress
 
-dna_node --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_061.mp4 --output D:/Temp/dna.node_output/etri_061_event.json --output_video D:/Temp/dna.node_output/etri_061_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_062.mp4 --output D:/Temp/dna.node_output/etri_062_event.json --output_video D:/Temp/dna.node_output/etri_062_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_063.mp4 --output D:/Temp/dna.node_output/etri_063_event.json --output_video D:/Temp/dna.node_output/etri_063_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_064.mp4 --output D:/Temp/dna.node_output/etri_064_event.json --output_video D:/Temp/dna.node_output/etri_064_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_071.mp4 --output D:/Temp/dna_output/etri_071_event.json --output_video D:/Temp/dna_output/etri_071_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_072.mp4 --output D:/Temp/dna_output/etri_072_event.json --output_video D:/Temp/dna_output/etri_072_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_073.mp4 --output D:/Temp/dna_output/etri_073_event.json --output_video D:/Temp/dna_output/etri_073_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_074.mp4 --output D:/Temp/dna_output/etri_074_event.json --output_video D:/Temp/dna_output/etri_074_track.mp4 --show_progress
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-dna_node --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_071.mp4 --output D:/Temp/dna.node_output/etri_071_event.json --output_video D:/Temp/dna.node_output/etri_071_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_072.mp4 --output D:/Temp/dna.node_output/etri_072_event.json --output_video D:/Temp/dna.node_output/etri_072_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_073.mp4 --output D:/Temp/dna.node_output/etri_073_event.json --output_video D:/Temp/dna.node_output/etri_073_track.mp4 --show_progress
-dna_node --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_074.mp4 --output D:/Temp/dna.node_output/etri_074_event.json --output_video D:/Temp/dna.node_output/etri_074_track.mp4 --show_progress
+===================================================================== Motions =================================================================================================================
+python scripts/dna_motions.py output/2023/etri_04_event.json --conf conf/etri_testbed/etri_04.yaml --output output/motions_04.csv
+python scripts/dna_motions.py output/2023/etri_05_event.json --conf conf/etri_testbed/etri_05.yaml --output output/motions_05.csv
+python scripts/dna_motions.py output/2023/etri_06_event.json --conf conf/etri_testbed/etri_06.yaml --output output/motions_06.csv
+python scripts/dna_motions.py output/2023/etri_07_event.json --conf conf/etri_testbed/etri_07.yaml --output output/motions_07.csv
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+python scripts/dna_motions.py output/2022/etri_041_event.json --conf conf/etri_testbed/etri_04.yaml --output output/motions_041.csv
+python scripts/dna_motions.py output/2022/etri_042_event.json --conf conf/etri_testbed/etri_04.yaml --output output/motions_042.csv
+python scripts/dna_motions.py output/2022/etri_043_event.json --conf conf/etri_testbed/etri_04.yaml --output output/motions_043.csv
+python scripts/dna_motions.py output/2022/etri_044_event.json --conf conf/etri_testbed/etri_04.yaml --output output/motions_044.csv
+python scripts/dna_motions.py output/2022/etri_051_event.json --conf conf/etri_testbed/etri_05.yaml --output output/motions_051.csv
+python scripts/dna_motions.py output/2022/etri_052_event.json --conf conf/etri_testbed/etri_05.yaml --output output/motions_052.csv
+python scripts/dna_motions.py output/2022/etri_053_event.json --conf conf/etri_testbed/etri_05.yaml --output output/motions_053.csv
+python scripts/dna_motions.py output/2022/etri_054_event.json --conf conf/etri_testbed/etri_05.yaml --output output/motions_054.csv
+python scripts/dna_motions.py output/2022/etri_061_event.json --conf conf/etri_testbed/etri_06.yaml --output output/motions_061.csv
+python scripts/dna_motions.py output/2022/etri_062_event.json --conf conf/etri_testbed/etri_06.yaml --output output/motions_062.csv
+python scripts/dna_motions.py output/2022/etri_063_event.json --conf conf/etri_testbed/etri_06.yaml --output output/motions_063.csv
+python scripts/dna_motions.py output/2022/etri_064_event.json --conf conf/etri_testbed/etri_06.yaml --output output/motions_064.csv
+python scripts/dna_motions.py output/2022/etri_071_event.json --conf conf/etri_testbed/etri_07.yaml --output output/motions_071.csv
+python scripts/dna_motions.py output/2022/etri_072_event.json --conf conf/etri_testbed/etri_07.yaml --output output/motions_072.csv
+python scripts/dna_motions.py output/2022/etri_073_event.json --conf conf/etri_testbed/etri_07.yaml --output output/motions_073.csv
+python scripts/dna_motions.py output/2022/etri_074_event.json --conf conf/etri_testbed/etri_07.yaml --output output/motions_074.csv
+================================================================================================================================================================================================
 
---------------------------- Motions --------------------------------------------------
-dna_motions output/2023/etri_04_event.json --conf conf/etri_testbed/etri_04.yaml --output output/motions_04.csv
-dna_motions output/2023/etri_05_event.json --conf conf/etri_testbed/etri_05.yaml --output output/motions_05.csv
-dna_motions output/2023/etri_06_event.json --conf conf/etri_testbed/etri_06.yaml --output output/motions_06.csv
-dna_motions output/2023/etri_07_event.json --conf conf/etri_testbed/etri_07.yaml --output output/motions_07.csv
+======================================================================GenTrainset===============================================================================================================
+python scripts/dna_gen_trainset.py data/2022/etri_041.mp4 output/2022/etri_041_event.json --conf conf/etri_testbed/etri_04.yaml --margin 5 --motions output/2022/motions_041.csv --matches output/2022/tracklet_matches_1.csv --start_gidx 0 --output d:/Temp/training
+python scripts/dna_gen_trainset.py data/2022/etri_051.mp4 output/2022/etri_051_event.json --conf conf/etri_testbed/etri_05.yaml --margin 5 --motions output/2022/motions_051.csv --matches output/2022/tracklet_matches_1.csv --start_gidx 0 --output d:/Temp/training
+python scripts/dna_gen_trainset.py data/2022/etri_061.mp4 output/2022/etri_061_event.json --conf conf/etri_testbed/etri_06.yaml --margin 5 --motions output/2022/motions_061.csv --matches output/2022/tracklet_matches_1.csv --start_gidx 0 --output d:/Temp/training
+python scripts/dna_gen_trainset.py data/2022/etri_071.mp4 output/2022/etri_071_event.json --conf conf/etri_testbed/etri_07.yaml --margin 5 --motions output/2022/motions_071.csv --matches output/2022/tracklet_matches_1.csv --start_gidx 0 --output d:/Temp/training
+
+python scripts/dna_gen_trainset.py data/2022/etri_042.mp4 output/2022/etri_042_event.json --conf conf/etri_testbed/etri_04.yaml --margin 5 --motions output/2022/motions_042.csv --matches output/2022/tracklet_matches_2.csv --start_gidx 30 --output d:/Temp/training
+python scripts/dna_gen_trainset.py data/2022/etri_052.mp4 output/2022/etri_052_event.json --conf conf/etri_testbed/etri_05.yaml --margin 5 --motions output/2022/motions_052.csv --matches output/2022/tracklet_matches_2.csv --start_gidx 30 --output d:/Temp/training
+python scripts/dna_gen_trainset.py data/2022/etri_062.mp4 output/2022/etri_062_event.json --conf conf/etri_testbed/etri_06.yaml --margin 5 --motions output/2022/motions_062.csv --matches output/2022/tracklet_matches_2.csv --start_gidx 30 --output d:/Temp/training
+python scripts/dna_gen_trainset.py data/2022/etri_072.mp4 output/2022/etri_072_event.json --conf conf/etri_testbed/etri_07.yaml --margin 5 --motions output/2022/motions_072.csv --matches output/2022/tracklet_matches_2.csv --start_gidx 30 --output d:/Temp/training
+
+python scripts/dna_gen_trainset.py data/2022/etri_043.mp4 output/2022/etri_043_event.json --conf conf/etri_testbed/etri_04.yaml --margin 5 --motions output/2022/motions_043.csv --matches output/2022/tracklet_matches_3.csv --start_gidx 70 --output d:/Temp/training
+python scripts/dna_gen_trainset.py data/2022/etri_053.mp4 output/2022/etri_053_event.json --conf conf/etri_testbed/etri_05.yaml --margin 5 --motions output/2022/motions_053.csv --matches output/2022/tracklet_matches_3.csv --start_gidx 70 --output d:/Temp/training
+python scripts/dna_gen_trainset.py data/2022/etri_063.mp4 output/2022/etri_063_event.json --conf conf/etri_testbed/etri_06.yaml --margin 5 --motions output/2022/motions_063.csv --matches output/2022/tracklet_matches_3.csv --start_gidx 70 --output d:/Temp/training
+python scripts/dna_gen_trainset.py data/2022/etri_073.mp4 output/2022/etri_073_event.json --conf conf/etri_testbed/etri_07.yaml --margin 5 --motions output/2022/motions_073.csv --matches output/2022/tracklet_matches_3.csv --start_gidx 70 --output d:/Temp/training
+
+python scripts/dna_gen_trainset.py data/2022/etri_044.mp4 output/2022/etri_044_event.json --conf conf/etri_testbed/etri_04.yaml --margin 5 --motions output/2022/motions_044.csv --matches output/2022/tracklet_matches_4.csv --start_gidx 110 --output d:/Temp/training
+python scripts/dna_gen_trainset.py data/2022/etri_054.mp4 output/2022/etri_054_event.json --conf conf/etri_testbed/etri_05.yaml --margin 5 --motions output/2022/motions_054.csv --matches output/2022/tracklet_matches_4.csv --start_gidx 110 --output d:/Temp/training
+python scripts/dna_gen_trainset.py data/2022/etri_064.mp4 output/2022/etri_064_event.json --conf conf/etri_testbed/etri_06.yaml --margin 5 --motions output/2022/motions_064.csv --matches output/2022/tracklet_matches_4.csv --start_gidx 110 --output d:/Temp/training
+python scripts/dna_gen_trainset.py data/2022/etri_074.mp4 output/2022/etri_074_event.json --conf conf/etri_testbed/etri_07.yaml --margin 5 --motions output/2022/motions_074.csv --matches output/2022/tracklet_matches_4.csv --start_gidx 110 --output d:/Temp/training
+=================================================================================================================================================================================================
+python scripts/dna_gen_trainset2.py data/2022/etri_041.mp4 output/2022/etri_041_event.json --conf conf/etri_testbed/etri_04.yaml --margin 5 --motions output/2022/motions_041.csv --matches output/2022/tracklet_matches_1.csv --start_gidx 0 --output d:/Temp/training2
+python scripts/dna_gen_trainset2.py data/2022/etri_051.mp4 output/2022/etri_051_event.json --conf conf/etri_testbed/etri_05.yaml --margin 5 --motions output/2022/motions_051.csv --matches output/2022/tracklet_matches_1.csv --start_gidx 0 --output d:/Temp/training2
+python scripts/dna_gen_trainset2.py data/2022/etri_061.mp4 output/2022/etri_061_event.json --conf conf/etri_testbed/etri_06.yaml --margin 5 --motions output/2022/motions_061.csv --matches output/2022/tracklet_matches_1.csv --start_gidx 0 --output d:/Temp/training2
+python scripts/dna_gen_trainset2.py data/2022/etri_071.mp4 output/2022/etri_071_event.json --conf conf/etri_testbed/etri_07.yaml --margin 5 --motions output/2022/motions_071.csv --matches output/2022/tracklet_matches_1.csv --start_gidx 0 --output d:/Temp/training2
+
+python scripts/dna_gen_trainset2.py data/2022/etri_042.mp4 output/2022/etri_042_event.json --conf conf/etri_testbed/etri_04.yaml --margin 5 --motions output/2022/motions_042.csv --matches output/2022/tracklet_matches_2.csv --start_gidx 30 --output d:/Temp/training2
+python scripts/dna_gen_trainset2.py data/2022/etri_052.mp4 output/2022/etri_052_event.json --conf conf/etri_testbed/etri_05.yaml --margin 5 --motions output/2022/motions_052.csv --matches output/2022/tracklet_matches_2.csv --start_gidx 30 --output d:/Temp/training2
+python scripts/dna_gen_trainset2.py data/2022/etri_062.mp4 output/2022/etri_062_event.json --conf conf/etri_testbed/etri_06.yaml --margin 5 --motions output/2022/motions_062.csv --matches output/2022/tracklet_matches_2.csv --start_gidx 30 --output d:/Temp/training2
+python scripts/dna_gen_trainset2.py data/2022/etri_072.mp4 output/2022/etri_072_event.json --conf conf/etri_testbed/etri_07.yaml --margin 5 --motions output/2022/motions_072.csv --matches output/2022/tracklet_matches_2.csv --start_gidx 30 --output d:/Temp/training2
+
+python scripts/dna_gen_trainset2.py data/2022/etri_043.mp4 output/2022/etri_043_event.json --conf conf/etri_testbed/etri_04.yaml --margin 5 --motions output/2022/motions_043.csv --matches output/2022/tracklet_matches_3.csv --start_gidx 70 --output d:/Temp/training2
+python scripts/dna_gen_trainset2.py data/2022/etri_053.mp4 output/2022/etri_053_event.json --conf conf/etri_testbed/etri_05.yaml --margin 5 --motions output/2022/motions_053.csv --matches output/2022/tracklet_matches_3.csv --start_gidx 70 --output d:/Temp/training2
+python scripts/dna_gen_trainset2.py data/2022/etri_063.mp4 output/2022/etri_063_event.json --conf conf/etri_testbed/etri_06.yaml --margin 5 --motions output/2022/motions_063.csv --matches output/2022/tracklet_matches_3.csv --start_gidx 70 --output d:/Temp/training2
+python scripts/dna_gen_trainset2.py data/2022/etri_073.mp4 output/2022/etri_073_event.json --conf conf/etri_testbed/etri_07.yaml --margin 5 --motions output/2022/motions_073.csv --matches output/2022/tracklet_matches_3.csv --start_gidx 70 --output d:/Temp/training2
+
+python scripts/dna_gen_trainset2.py data/2022/etri_044.mp4 output/2022/etri_044_event.json --conf conf/etri_testbed/etri_04.yaml --margin 5 --motions output/2022/motions_044.csv --matches output/2022/tracklet_matches_4.csv --start_gidx 110 --output d:/Temp/training2
+python scripts/dna_gen_trainset2.py data/2022/etri_054.mp4 output/2022/etri_054_event.json --conf conf/etri_testbed/etri_05.yaml --margin 5 --motions output/2022/motions_054.csv --matches output/2022/tracklet_matches_4.csv --start_gidx 110 --output d:/Temp/training2
+python scripts/dna_gen_trainset2.py data/2022/etri_064.mp4 output/2022/etri_064_event.json --conf conf/etri_testbed/etri_06.yaml --margin 5 --motions output/2022/motions_064.csv --matches output/2022/tracklet_matches_4.csv --start_gidx 110 --output d:/Temp/training2
+python scripts/dna_gen_trainset2.py data/2022/etri_074.mp4 output/2022/etri_074_event.json --conf conf/etri_testbed/etri_07.yaml --margin 5 --motions output/2022/motions_074.csv --matches output/2022/tracklet_matches_4.csv --start_gidx 110 --output d:/Temp/training2
+=================================================================================================================================================================================================
+python scripts/dna_reduce_trainset.py d:/Temp/training2 d:/Temp/reduced --min_k 16 --max_k 28
+=================================================================================================================================================================================================
 
 
-==========================================================================================================================================
 
 
-dna_generate_training_data data/2022/etri_041.mp4 output/etri_041_event.json --margin 5 --output output/training/etri041
-dna_generate_training_data data/2022/etri_042.mp4 output/etri_042_event.json --margin 5 --output output/training/etri042
-dna_generate_training_data data/2022/etri_043.mp4 output/etri_043_event.json --margin 5 --output output/training/etri043
-dna_generate_training_data data/2022/etri_044.mp4 output/etri_044_event.json --margin 5 --output output/training/etri044
 
-dna_generate_training_data data/2022/etri_051.mp4 output/etri_051_event.json --margin 5 --output output/training/etri051
-dna_generate_training_data data/2022/etri_052.mp4 output/etri_052_event.json --margin 5 --output output/training/etri052
-dna_generate_training_data data/2022/etri_053.mp4 output/etri_053_event.json --margin 5 --output output/training/etri053
-dna_generate_training_data data/2022/etri_054.mp4 output/etri_054_event.json --margin 5 --output output/training/etri054
 
-dna_generate_training_data data/2022/etri_061.mp4 output/etri_061_event.json --margin 5 --output output/training/etri061
-dna_generate_training_data data/2022/etri_062.mp4 output/etri_062_event.json --margin 5 --output output/training/etri062
-dna_generate_training_data data/2022/etri_063.mp4 output/etri_063_event.json --margin 5 --output output/training/etri063
-dna_generate_training_data data/2022/etri_064.mp4 output/etri_064_event.json --margin 5 --output output/training/etri064
+python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_041.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_051.mp4 --show_progres
+python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_061.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_071.mp4 --show_progress
 
-dna_generate_training_data data/2022/etri_071.mp4 output/etri_071_event.json --margin 5 --output output/training/etri071
-dna_generate_training_data data/2022/etri_072.mp4 output/etri_072_event.json --margin 5 --output output/training/etri072
-dna_generate_training_data data/2022/etri_073.mp4 output/etri_073_event.json --margin 5 --output output/training/etri073
-dna_generate_training_data data/2022/etri_074.mp4 output/etri_074_event.json --margin 5 --output output/training/etri074
+python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_042.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_052.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_062.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_072.mp4 --show_progress

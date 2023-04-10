@@ -1,6 +1,7 @@
 from omegaconf import OmegaConf
 
-from .type import TrackState, ObjectTrack, ObjectTracker, TrackProcessor
+from .types import TrackState, ObjectTrack, ObjectTracker, TrackProcessor, \
+                    MetricExtractor
 from .track_pipeline import TrackingPipeline
 
 

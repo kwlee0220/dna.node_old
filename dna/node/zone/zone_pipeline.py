@@ -11,7 +11,7 @@ from omegaconf import OmegaConf
 
 from dna.tracker import ObjectTracker, TrackState, TrackProcessor
 from ..types import TimeElapsed
-from .types import TrackDeleted
+from .types import TrackDeleted, ZoneEvent
 from ..event_processor import EventQueue, EventListener, EventProcessor
 
 import logging
@@ -22,9 +22,10 @@ class ZonePipeline(EventListener):
     
     LOGGER = logging.getLogger('dna.node.zone')
     
-    def __init__(self, conf:OmegaConf) -> None:
+    def __init__(self, node_id:str, conf:OmegaConf) -> None:
         super().__init__()
         
+        self.node_id = node_id
         self.event_source = EventQueue()
         self.event_queues:Dict[str,EventQueue] = dict()
         self.services:Dict[str,Any] = dict()
@@ -61,10 +62,9 @@ class ZonePipeline(EventListener):
         self.event_queues['zone_sequences'].add_listener(last_zone_seq)
         self.event_queues['last_zone_sequences'] = last_zone_seq
         
-        motions = OmegaConf.select(conf, "motions")
-        if motions:
+        if motions := OmegaConf.select(conf, "motions"):
             from .motion_detector import MotionDetector
-            motion = MotionDetector(dict(motions), logger=ZonePipeline.LOGGER.getChild('motion'))
+            motion = MotionDetector(self.node_id, dict(motions), logger=ZonePipeline.LOGGER.getChild('motion'))
             last_zone_seq.add_listener(motion)
             self.services['motions'] = motion
             self.event_queues['motions'] = motion

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional, Tuple
 import dataclasses
 import time
+import datetime
 import uuid
 from subprocess import CompletedProcess, Popen, STDOUT, DEVNULL
 
@@ -12,24 +13,27 @@ from omegaconf import OmegaConf
 
 import dna
 from dna import Size2d, Image, Frame
+from dna.utils import utc_now_seconds
 from dna.support.func import Option
 from .camera import Camera, ImageCapture
 
 class OpenCvCamera(Camera):
-    def __init__(self, uri:str, target_size:Optional[Size2d]=None):
+    def __init__(self, uri:str, target_size:Optional[Size2d]=None, open_ts:float=0.0):
         Camera.__init__(self)
 
         self.__uri = uri
         self.__target_size = target_size
         self.__size = target_size
+        self.open_ts = open_ts
 
     @classmethod
     def from_conf(cls, conf:OmegaConf):
         uri = conf.uri
         size_conf = conf.get('size', None)
         size = Size2d.from_conf(size_conf) if size_conf is not None else None
-
-        return cls(uri, size)
+        
+        open_ts = conf.get('open_ts', 0.0)
+        return cls(uri, size, open_ts=open_ts)
 
     @staticmethod
     def is_local_camera(uri: str):
@@ -51,7 +55,8 @@ class OpenCvCamera(Camera):
             vid.set(cv2.CAP_PROP_FRAME_WIDTH, self.__target_size.width)
             vid.set(cv2.CAP_PROP_FRAME_HEIGHT, self.__target_size.height)
 
-        return VideoFileCapture(self, vid) if from_video else OpenCvImageCapture(self, vid, proc)
+        # return VideoFileCapture(self, vid) if from_video else OpenCvImageCapture(self, vid, proc)
+        return TestingVideoFileCapture(self, vid, self.open_ts) if from_video else OpenCvImageCapture(self, vid, proc)
 
     @property
     def uri(self) -> str:
@@ -65,7 +70,7 @@ class OpenCvCamera(Camera):
             vid, _ = self.__open_video_capture(self.uri)
             width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            self.__size = Size2d(width, height)
+            self.__size = Size2d([width, height])
             
         return self.__size
 
@@ -106,8 +111,8 @@ class OpenCvCamera(Camera):
 
 class OpenCvVideFile(OpenCvCamera):
     def __init__(self, uri:str, size:Optional[Size2d]=None, sync:bool=True,
-                begin_frame:int=1, end_frame:Optional[int]=None):
-        OpenCvCamera.__init__(self, uri, size)
+                begin_frame:int=1, end_frame:Optional[int]=None, open_ts:float=0):
+        OpenCvCamera.__init__(self, uri, size, open_ts=open_ts)
 
         self.sync = sync
         self.begin_frame = begin_frame
@@ -122,8 +127,10 @@ class OpenCvVideFile(OpenCvCamera):
         sync = conf.get('sync', True)
         begin_frame = Option.ofNullable(conf.get('begin_frame')).getOrElse(1)
         end_frame = Option.ofNullable(conf.get('end_frame')).getOrNone()
+        
+        open_ts = conf.get('open_ts', 0.0)
 
-        return cls(uri, size, sync, begin_frame, end_frame)
+        return cls(uri, size, sync, begin_frame, end_frame, open_ts=open_ts)
 
     def __repr__(self) -> str:
         size_str = f', size={self.__size}' if self.__size is not None else ''
@@ -146,7 +153,7 @@ class OpenCvImageCapture(ImageCapture):
 
         width = int(self.__vid.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.__vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        self.__size = Size2d(width, height)
+        self.__size = Size2d([width, height])
         self.__fps = self.__vid.get(cv2.CAP_PROP_FPS)
         self.__frame_index = 0
 
@@ -166,7 +173,7 @@ class OpenCvImageCapture(ImageCapture):
             return None
 
         self.__frame_index += 1
-        return Frame(image=Image(mat), index=self.frame_index, ts=time.time())
+        return Frame(image=Image(mat), index=self.frame_index, ts=utc_now_seconds())
 
     def is_open(self) -> bool:
         return self.__vid is not None
@@ -206,12 +213,12 @@ class OpenCvImageCapture(ImageCapture):
 
     def __repr__(self) -> str:
         return f'OpenCvCamera({self.repr_str})'
-
+    
 
 class VideoFileCapture(OpenCvImageCapture):
     __ALPHA = 0.5
     __OVERHEAD = 0.02
-    __slots__ = '__interval', '__sync', '__last_img', '__overhead'
+    __slots__ = '__interval', '__sync', '__last_frame', '__overhead'
 
     def __init__(self, camera: OpenCvVideFile, vid: cv2.VideoCapture) -> None:
         """Create a VideoFileCapture object.
@@ -278,3 +285,20 @@ class VideoFileCapture(OpenCvImageCapture):
     @property
     def repr_str(self) -> str:
         return f'{super().repr_str}, sync={self.sync}'
+
+
+class TestingVideoFileCapture(VideoFileCapture):
+    def __init__(self, camera: OpenCvVideFile, vid: cv2.VideoCapture, open_ts:float) -> None:
+        super().__init__(camera, vid)
+        
+        self.last_ts:float = open_ts
+        self.inc_secs:float =  1 / self.fps
+
+    def __call__(self) -> Optional[Frame]:
+        frame: Frame = super().__call__()
+        if frame is None:
+            return frame
+        
+        self.last_ts += self.inc_secs
+        frame = dataclasses.replace(frame, ts=self.last_ts)
+        return frame

@@ -1,5 +1,5 @@
 
-from typing import List, Union, Tuple, Any
+from typing import List, Union, Tuple, Any, Optional
 from pathlib import Path
 import sys
 from enum import Enum
@@ -18,9 +18,9 @@ if not DNA_TRACK_DIR in sys.path:
 import dna
 from dna import Box, Size2d, Point
 from dna.detect import ObjectDetector, Detection
-from dna.tracker import ObjectTrack, TrackState, ObjectTracker
+from .types import ObjectTracker, MetricExtractor
 from .dna_track_params import load_track_params, DNATrackParams
-from .feature_extractor import FeatureExtractor
+from .feature_extractor import DeepSORTMetricExtractor
 from .dna_track import DNATrack
 from .tracker import Tracker
 from dna.node.types import TrackEvent
@@ -29,13 +29,7 @@ import logging
 LOGGER = logging.getLogger('dna.tracker')
 
 
-class DNATracker(ObjectTracker):
-    def __init__(self, detector:ObjectDetector, tracker_conf:OmegaConf) -> None:
-        super().__init__()
-
-        self.detector = detector
-
-        model_file = tracker_conf.get('model_file', 'models/deepsort/model640.pt')
+def load_feature_extractor(model_file:str='models/deepsort/model640.pt', normalize:bool=False):
         model_file = Path(model_file).resolve()
         if not model_file.exists():
             if model_file.name == 'model640.pt':
@@ -43,11 +37,25 @@ class DNATracker(ObjectTracker):
             else:
                 raise ValueError(f'Cannot find DeepSORT reid model: {model_file}')
         wt_path = Path(model_file)
-        
-        self.params = load_track_params(tracker_conf)
   
         #loading this encoder is slow, should be done only once.
-        self.feature_extractor = FeatureExtractor(wt_path, LOGGER)
+        return DeepSORTMetricExtractor(wt_path, normalize)
+
+
+class DNATracker(ObjectTracker):
+    def __init__(self, detector:ObjectDetector, tracker_conf:OmegaConf, /,
+                 feature_extractor:Optional[MetricExtractor]=None) -> None:
+        super().__init__()
+
+        self.detector = detector
+
+        #loading this encoder is slow, should be done only once.
+        if not feature_extractor:
+            model_file = tracker_conf.get('model_file', 'models/deepsort/model640.pt')
+            feature_extractor = load_feature_extractor(model_file)
+        self.feature_extractor = feature_extractor
+        
+        self.params = load_track_params(tracker_conf)
         self.tracker = Tracker(self.params, LOGGER)
         self.last_track_events = []
         
@@ -58,7 +66,7 @@ class DNATracker(ObjectTracker):
             if not shrinked.is_valid():
                 raise ValueError(f'too small roi: {roi}')
             self.shrinked_rois.append(shrinked)
-            self.roi_shifts.append(Size2d.from_np(roi.tl))
+            self.roi_shifts.append(Size2d(roi.tl))
 
     @property
     def tracks(self) -> List[DNATrack]:
@@ -79,7 +87,7 @@ class DNATracker(ObjectTracker):
         # Detection box 크기에 따라 invalid한 detection들을 제거한다.
         filterds = []
         h, w, _ = frame.image.shape
-        max_size = Size2d.from_np([w, h]) * 0.7
+        max_size = Size2d([w, h]) * 0.7
         for dets in detections_list:
             filterds.append([det for det in dets if _is_valid_detection_size(det, self.params, max_size)])
         detections_list = filterds
@@ -121,7 +129,7 @@ class DNATracker(ObjectTracker):
         
         # Filtering을 마친 detection에 대해서는 영상 내의 해당 영역에서 feature를 추출하여 부여한다.
         metric_detections = [det for det in detections if self.params.is_metric_detection(det)]
-        for det, feature in zip(metric_detections, self.feature_extractor.extract(frame.image, metric_detections)):
+        for det, feature in zip(metric_detections, self.feature_extractor.extract_dets(frame.image, metric_detections)):
             det.feature = feature
 
         if dna.DEBUG_SHOW_IMAGE:
@@ -173,11 +181,11 @@ class DNATracker(ObjectTracker):
         for idx, det in enumerate(detections):
             if not self.params.is_strong_detection(det):
                 convas = det.draw(convas, color.RED, label=str(idx), label_color=color.WHITE,
-                                    label_tl=Point.from_np(det.bbox.br.astype(int)), line_thickness=line_thickness)
+                                    label_tl=Point(det.bbox.br.astype(int)), line_thickness=line_thickness)
         for idx, det in enumerate(detections):
             if self.params.is_strong_detection(det):
                 convas = det.draw(convas, color.BLUE, label=str(idx), label_color=color.WHITE,
-                                    label_tl=Point.from_np(det.bbox.br.astype(int)), line_thickness=line_thickness)
+                                    label_tl=Point(det.bbox.br.astype(int)), line_thickness=line_thickness)
         cv2.imshow(title, convas)
         cv2.waitKey(1)
 

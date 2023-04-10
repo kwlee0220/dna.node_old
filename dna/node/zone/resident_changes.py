@@ -3,7 +3,7 @@ from typing import Union, Set, Dict
 from dataclasses import dataclass, field
 
 from ..event_processor import EventProcessor
-from .types import TrackDeleted, ZoneEvent, LocationChanged, ResidentChanged
+from .types import ZoneEvent, ResidentChanged, TrackDeleted
 
 import logging
 LOGGER = logging.getLogger('dna.node.zone.Residents')
@@ -65,15 +65,16 @@ class ResidentChanges(EventProcessor):
         if publish_event:
             self._publish_event(self._create_resident_changed(ev.zone_id, residents))
                 
-    def handle_track_deleted(self, ev:TrackDeleted) -> None:
+    def handle_track_deleted(self, deleted:TrackDeleted) -> None:
         # 제거된 track id를 갖는 residents를 검색하여 그 residents에서 삭제한다.
-        track_id = ev.track_id
+        track_id = deleted.track_id
         for zone_id, residents in self.residents.items():
             if residents.remove_resident(track_id):
-                residents.frame_index =  ev.frame_index
-                residents.ts = ev.ts
+                residents.frame_index =  deleted.frame_index
+                residents.ts = deleted.ts
                 self._publish_event(self._create_resident_changed(zone_id, residents))
                 return
+        self._publish_event(deleted)
         
     def _get_residents(self, zone_id:str) -> Residents:
         residents = self.residents.get(zone_id, None)

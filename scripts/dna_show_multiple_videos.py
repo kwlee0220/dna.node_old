@@ -34,8 +34,8 @@ class MultipleCameraConvas:
 
         roi:Box = Box.from_size(size)
         self.rois = [roi,
-                     roi.translate(Size2d(size.width, 0)),
-                     roi.translate(Size2d(0, size.height)),
+                     roi.translate(Size2d([size.width, 0])),
+                     roi.translate(Size2d([0, size.height])),
                      roi.translate(size)]
         size
     @property

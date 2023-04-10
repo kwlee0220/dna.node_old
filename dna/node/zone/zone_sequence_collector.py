@@ -5,7 +5,7 @@ import logging
 from datetime import timedelta
 
 from ..event_processor import EventProcessor
-from dna.node.zone import ZoneEvent, TrackDeleted, ZoneVisit, ZoneSequence
+from dna.node.zone import TrackDeleted, ZoneEvent, ZoneVisit, ZoneSequence
 
 LOGGER = logging.getLogger('dna.node.zone.Turn')
 
@@ -74,3 +74,4 @@ class FinalZoneSequenceFilter(EventProcessor):
             zseq = self.sequences.get(ev.track_id)
             if zseq:
                 self._publish_event(zseq)
+            self._publish_event(ev)

@@ -32,7 +32,7 @@ class VideoWriter:
         
     def open(self) -> None:
         self.path.parent.mkdir(exist_ok=True)
-        self.video_writer = cv2.VideoWriter(str(self.path), self.fourcc, self.fps, self.size.to_rint().to_tuple())
+        self.video_writer = cv2.VideoWriter(str(self.path), self.fourcc, self.fps, tuple(self.size.to_rint().wh))
         
     def close(self) -> None:
         self.video_writer.release()

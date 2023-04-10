@@ -33,8 +33,8 @@ class Session:
         self.last_frame = ev.frame_index
 
     def build_local_path(self, length: int, cont: bool) -> LocalPathEvent:
-        camera_path = LineString([pt.to_tuple() for pt in self.points[:length]]).wkb_hex
-        world_path = LineString([pt.to_tuple() for pt in self.world_coords[:length]]).wkb_hex
+        camera_path = LineString([tuple(pt.xy) for pt in self.points[:length]]).wkb_hex
+        world_path = LineString([tuple(pt.xy) for pt in self.world_coords[:length]]).wkb_hex
         self.points = self.points[length:]
         self.world_coords = self.world_coords[length:]
 

@@ -60,7 +60,7 @@ class TrackletCropWriter(FrameProcessor):
                  global_tracklet_mappings: Dict[TrackId,Tuple[str,str,str]],
                  output_dir:str,
                  margin:int=5,
-                 min_size:Size2d=Size2d(80, 80)) -> None:
+                 min_size:Size2d=Size2d([80, 80])) -> None:
         self.tracks_per_frame_index = tracks_per_frame_index
         self.global_tracklet_mappings = global_tracklet_mappings
         self.margin = margin

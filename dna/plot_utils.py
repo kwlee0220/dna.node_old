@@ -29,7 +29,7 @@ def draw_label(convas:Image, label:str, tl:Point, color: BGR=WHITE, fill_color:B
 
     txt_size = cv2.getTextSize(label, 0, fontScale=font_scale, thickness=thickness)[0]
     br = (tl.x + txt_size[0], tl.y - txt_size[1] - 3)
-    convas = cv2.rectangle(convas, tl.to_tuple(), br, color=fill_color, thickness=-1, lineType=cv2.LINE_AA)  # filled
+    convas = cv2.rectangle(convas, tuple(tl.xy), br, color=fill_color, thickness=-1, lineType=cv2.LINE_AA)  # filled
     return cv2.putText(convas, label, (tl.x, tl.y - 2), 0, font_scale, color, thickness=txt_thickness,
                         lineType=cv2.LINE_AA)
     

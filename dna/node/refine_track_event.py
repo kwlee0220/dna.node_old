@@ -61,7 +61,7 @@ class RefineTrackEvent(EventProcessor):
 
     def handle_track_event(self, ev:TrackEvent) -> None:
         session:Session = self.sessions.get(ev.track_id, None)
-        if ev.state == TrackState.Deleted:   # tracking이 종료된 경우
+        if ev.is_deleted():   # tracking이 종료된 경우
             if session:
                 self.__on_delete_event(session, ev)
         else:
@@ -124,7 +124,7 @@ class RefineTrackEvent(EventProcessor):
         else:
             raise AssertionError(f"unexpected track event (invalid track state): state={session.state}, event={ev.track}")
 
-    def __on_temporarily_lost(self, session:Session, ev: TrackEvent) -> None:
+    def __on_temporarily_lost(self, session:Session, ev:TrackEvent) -> None:
         if ev.state == TrackState.Confirmed:
             session.trim_right_to(ev.frame_index)
             self._publish_all_pended_events(session)

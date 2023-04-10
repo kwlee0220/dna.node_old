@@ -33,7 +33,7 @@ class ZoneSequenceDisplay(FrameProcessor,EventListener):
             if ev.state == TrackState.Deleted:
                 self.track_locations[ev.track_id] = ev.location
         elif isinstance(ev, Motion):
-            self.motion_counts[ev.id] += 1
+            self.motion_counts[ev.motion] += 1
             self.motion_tracks.add(ev.track_id)
 
     def on_started(self, proc:ImageProcessor) -> None:

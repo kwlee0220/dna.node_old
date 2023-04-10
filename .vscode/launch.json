@@ -22,15 +22,15 @@
             "program": "${workspaceFolder}/scripts/dna_node.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--camera", "data/2022/etri_074.mp4",
-                "--conf", "conf/etri_testbed/etri_07.yaml",
+                "--camera", "data/2022/etri_041.mp4",
+                "--conf", "conf/etri_testbed/etri_04.yaml",
                 // "--conf", "conf/ai_city/ai_city_t3_c01.yaml",
-                "--output", "D:/Temp/dna.node_output/etri_074_event.json",   // -o <file>
-                "--output_video", "D:/Temp/dna.node_output/etri_074_track.mp4",   // -v <file>
+                "--output", "D:/Temp/dna.node_output/etri_041_event.json",   // -o <file>
+                "--output_video", "D:/Temp/dna.node_output/etri_041_track.mp4",   // -v <file>
                 // "--begin_frame", "1000",
                 // "--end_frame", "1000",
-                // "--show", //"1280x720",
-                "--show_progress",  // -p
+                "--show", //"1280x720",
+                // "--show_progress",  // -p
             ],
             "justMyCode": true
         },
@@ -45,7 +45,7 @@
                 // "--conf", "conf/ai_city/ai_city_09.yaml",
                 // "--output", "output/etri_07_2021.csv",   // -o <file>
                 // "--output_video", "output/etri_041.mp4",   // -v <file>
-                "--show", //"1280x720",
+                // "--show", //"1280x720",
                 // "--show_progress",  // -p
                 // "--pause_on_eos",    // -k
             ],
@@ -82,7 +82,7 @@
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",
-                // "--show", //"1280x720",
+                "--show", //"1280x720",
             ],
             "justMyCode": true
         },
@@ -91,13 +91,13 @@
             "program": "${workspaceFolder}/scripts/dna_gen_trainset.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "data/2022/etri_064.mp4",
-                "output/2022/etri_064_event.json",
+                "data/2022/etri_061.mp4",
+                "output/2022/etri_061_event.json",
                 "--conf", "conf/etri_testbed/etri_06.yaml",
                 "--margin", "5",
-                "--motions", "output/2022/motions_064.csv",
+                "--motions", "output/2022/motions_061.csv",
                 "--matches", "output/2022/tracklet_matches_1.csv",
-                "--start_gidx", "110",
+                "--start_gidx", "0",
                 "--output", "d:/Temp/training"
             ],
             "justMyCode": true
@@ -118,6 +118,18 @@
             ],
             "justMyCode": true
         },
+        { "name": "ReduceTrainSet",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_reduce_trainset.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "d:/Temp/training2",
+                "d:/Temp/reduced",
+                "--min_k", "16",
+                "--max_k", "28",
+            ],
+            "justMyCode": true
+        },
         { "name": "ShowMCLocations",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_show_mc_locations.py",
@@ -128,14 +140,16 @@
                 "output/2022/etri_064_event.json",
                 "output/2022/etri_074_event.json",
                 // "--offsets", "0, 7, 3, 0",     // 041, 051, 061, 071
+                // "--offsets", "0, 7, 2, 1",     // 042, 052, 062, 072
+                // "--offsets", "10, 6, 0, 0",    // 043, 053, 063, 073
                 "--offsets", "12, 8, 1, 0",     // 044, 054, 064, 074
                 // "--max_camera_distance", "57",
             ],
             "justMyCode": true
         },
-        { "name": "MatchMCTracklets",
+        { "name": "AssocMCTracklets",
             "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_match_mc_tracklets.py",
+            "program": "${workspaceFolder}/scripts/dna_assoc_tracklets.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "output/2022/etri_044_event.json",
@@ -143,6 +157,7 @@
                 "output/2022/etri_064_event.json",
                 "--max_camera_distance", "55",
                 // "--offsets", "0, 7, 3, 0",     // 041, 051, 061, 071
+                // "--offsets", "0, 7, 2, 1",     // 042, 052, 062, 072
                 // "--offsets", "10, 6, 0, 0",     // 043, 053, 063, 073
                 "--offsets", "12, 8, 1, 0",     // 044, 054, 064, 074
                 "--output", "output/tracklet_matches.csv"
@@ -154,13 +169,15 @@
             "program": "${workspaceFolder}/scripts/dna_show_multiple_videos.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "output/2022/etri_044_track.mp4",
-                "output/2022/etri_054_track.mp4",
-                "output/2022/etri_064_track.mp4",
-                "output/2022/etri_074_track.mp4",
+                "output/2022/etri_042_track.mp4",
+                "output/2022/etri_052_track.mp4",
+                "output/2022/etri_062_track.mp4",
+                "output/2022/etri_072_track.mp4",
+                "--begin_frames", "0, 0, 0, 0",     // 041, 051, 061, 071
                 // "--begin_frames", "0, 7, 3, 0",     // 041, 051, 061, 071
+                // "--begin_frames", "0, 7, 2, 1",     // 042, 052, 062, 072
                 // "--begin_frames", "10, 6, 0, 0",     // 043, 053, 063, 073
-                "--begin_frames", "12, 8, 1, 0",     // 044, 054, 064, 074
+                // "--begin_frames", "12, 8, 1, 0",     // 044, 054, 064, 074
             ],
             "justMyCode": true
         },
@@ -183,30 +200,32 @@
             ],
             "justMyCode": true
         },
-        { "name": "Motions",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_motions.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "output/2022/etri_074_event.json",
-                "--conf", "conf/etri_testbed/etri_07.yaml",
-                "--output", "output/motions_074.csv",
-            ],
-            "justMyCode": true
-        },
         { "name": "Tracklet",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_tracklet.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "format", "-f",
-                "upload",
-                    "output/2023/etri_04_event.json",
-                    "output/2023/etri_05_event.json",
-                    "output/2023/etri_06_event.json",
-                    "output/2023/etri_07_event.json",
-                    "--batch", "20",
+                // "upload",
+                //     "output/2023/etri_04_event.json",
+                //     "output/2023/etri_05_event.json",
+                //     "output/2023/etri_06_event.json",
+                //     "output/2023/etri_07_event.json",
+                //     "--batch", "20",
                 // "update", "etri:04", "1",
+                "listen",
+                    "--topic", "track-events", "track-motions", "track-features",
+                    // "--topic", "track-features",
+            ],
+            "justMyCode": true
+        },
+        { "name": "AssocTracklet",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_assoc_tracklets.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                // "--listen", "etri:04", "etri:05", "etri:06", "etri:07",
+                "--listen", "etri:07",
             ],
             "justMyCode": true
         },

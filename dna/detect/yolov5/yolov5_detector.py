@@ -106,7 +106,7 @@ class Yolov5Detector(ObjectDetector):
         return [self._to_detection(pred) for pred in xyxy.cpu().numpy()]
 
     def _to_detection(self, pred) -> List[Detection]:
-        box = Box.from_tlbr(pred[:4])
+        box = Box(pred[:4])
         name = self.names[int(pred[5])]
         confi = pred[4]
         return Detection(box, name, confi)

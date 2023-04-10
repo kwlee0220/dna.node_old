@@ -34,10 +34,6 @@ class ZoneEventRefiner(EventProcessor):
         self.logger = logger
 
     def close(self) -> None:
-        # locations = [(track_id, zone_locs) for track_id, zone_locs in self.locations.items()]
-        # for track_id, zone_locs in locations:
-        #     delete_ev = TrackDeleted(track_id=track_id, frame_index=zone_locs.frame_index, ts=zone_locs.ts)
-        #     self.handle_event(delete_ev)
         self.location_event_queue.close()
         super().close()
                 
@@ -104,17 +100,18 @@ class ZoneEventRefiner(EventProcessor):
     def handle_track_deleted(self, ev:TrackDeleted) -> None:
         track_id = ev.track_id
         
-        # Zone에 위치한 상태에서 추적 물체가 delete된 경우에는 가짜로 LEFT event를 추가한다.
-        zone_ids = zlocs.zones if (zlocs := self.locations.get(track_id)) else set()
-        if zone_ids:
-            for zid in zone_ids.copy():
-                self.leave_zone(ev, zone_id=zid)
-                if self.logger.isEnabledFor(logging.DEBUG):
-                    self.logger.debug(f'generate a LEFT(track={track_id}, zone={zid}, frame={ev.frame_index})')
-                self.publish_left(ev, zone_id=zid)
+        # # Zone에 위치한 상태에서 추적 물체가 delete된 경우에는 가짜로 LEFT event를 추가한다.
+        # zone_ids = zlocs.zones if (zlocs := self.locations.get(track_id)) else set()
+        # if zone_ids:
+        #     for zid in zone_ids.copy():
+        #         self.leave_zone(ev, zone_id=zid)
+        #         if self.logger.isEnabledFor(logging.DEBUG):
+        #             self.logger.debug(f'generate a LEFT(track={track_id}, zone={zid}, frame={ev.frame_index})')
+        #         self.publish_left(ev, zone_id=zid)
         
         # 삭제된 track의 location 정보를 삭제한다
         self.locations.pop(track_id, None)
+        
         # TrackDeleted 이벤트를 re-publish한다
         self._publish_event(ev)
 
@@ -144,12 +141,12 @@ class ZoneEventRefiner(EventProcessor):
     def publish_entered(self, zone_ev:ZoneEvent, zone_id:Optional[str]=None) -> None:
         ev = ZoneEvent(track_id=zone_ev.track_id, relation=ZoneRelation.Entered,
                        zone_id=zone_id if zone_id else zone_ev.zone_id,
-                       frame_index=zone_ev.frame_index, ts=zone_ev.ts)
+                       frame_index=zone_ev.frame_index, ts=zone_ev.ts, source=zone_ev.source)
         self._publish_event(ev)
         
     def publish_left(self, zone_ev:ZoneEvent, zone_id:Optional[str]=None) -> None:
         ev = ZoneEvent(track_id=zone_ev.track_id, relation=ZoneRelation.Left,
                        zone_id=zone_id if zone_id else zone_ev.zone_id,
-                       frame_index=zone_ev.frame_index, ts=zone_ev.ts)
+                       frame_index=zone_ev.frame_index, ts=zone_ev.ts, source=zone_ev.source)
         self._publish_event(ev)
     

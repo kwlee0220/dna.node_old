@@ -47,7 +47,7 @@ class Rcnn50FpnDetector(ObjectDetector):
                 for cls, box, score in zip(pred_classes, pred_boxes, pred_scores)]
 
     def _to_detection(self, cls, bbox, score):
-        return Detection(bbox=Box.from_tlbr(bbox),
+        return Detection(bbox=Box(bbox),
                         label=self.class_names[cls],
                         score=score)
         

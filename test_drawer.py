@@ -15,11 +15,11 @@ img = None
 
 camera_conf = OmegaConf.create()
 # camera_conf.uri = "data/2022/crops/etri_07_crop.mp4"
-camera_conf.uri = "data/2023/etri_06_join.mp4"
+camera_conf.uri = "data/2023/etri_07_join.mp4"
 # camera_conf.uri = "data/ai_city/ai_city_t3_c01.avi"
 # camera_conf.uri = "data/crossroads/crossroad_04.mp4"
 # camera_conf.uri = "output/track_07.mp4"
-camera_conf.begin_frame = 83
+camera_conf.begin_frame = 70
 camera:Camera = create_camera_from_conf(camera_conf)
 
 localizer = None
@@ -27,24 +27,24 @@ from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPoin
 # localizer = WorldCoordinateLocalizer('regions/etri_testbed/etri_testbed.json', 0, contact_point=ContactPointType.Simulation)
 
 track_zones = [
-    [[205, 607], [792, 442], [941, 332], [1099, 332], [1297, 496], [1826, 607], [1829, 1001], [6, 853], [4, 606]]
+    [[268, 485], [669, 450], [1194, 299], [1408, 313], [1362, 488], [1807, 595], [1814, 930], [4, 927], [0, 698]]
 ]
 blind_zones = [
 ]
 exit_zones = [
-    [1017, 275, 1111, 334],
-    [1600, 686, 1920, 1080],
-    [3, 600, 120, 900],
+    [[0, 704], [271, 485], [203, 445], [2, 587]],
+    [1148, 200, 1415, 310],
+    [600, 930, 1918, 1080],
 ]
 zones = [
-    [[1409, 516], [955, 721], [974, 1037], [1836, 1033], [1827, 606], [1409, 516]],
-    [[519, 521], [700, 714], [696, 1047], [20, 1051], [18, 562], [519, 521]],
-    [[651, 529], [1352, 526], [1122, 353], [896, 354], [651, 529]],
+    # [[8, 613], [215, 509], [661, 507], [143, 840], [8, 613]],
+    # [[686, 481], [1242, 584], [1407, 320], [1154, 315], [686, 481]],
+    # [[209, 975], [356, 806], [1035, 631], [1598, 645], [1644, 980], [209, 975]],
 ]
 
 with closing(camera.open()) as cap:
     img = cap().image
-img = cv2.imread("output/2023/etri_06_trajs.jpg", cv2.IMREAD_COLOR)
+# img = cv2.imread("output/2023/etri_06_trajs.jpg", cv2.IMREAD_COLOR)
 # img = cv2.imread("output/ETRI_221011.png", cv2.IMREAD_COLOR)
 
 for coords in track_zones:
@@ -61,8 +61,7 @@ def image_to_world(localizer:WorldCoordinateLocalizer, pt_p):
     return localizer.to_world_coord(pt_m).astype(int)
 
 polygon = []
-# polygon = [[182, 399], [182, 478], [523, 503], [799, 460], [1219, 288], [1221, 265],
-#       [1420, 265], [1362, 488], [1807, 595], [1814, 930], [4, 927], [0, 399]]
+polygon = [[268, 485], [523, 503], [799, 460], [1194, 299], [1408, 313], [1362, 488], [1807, 595], [1814, 930], [4, 927], [0, 698]]
 coords = PolygonDrawer(img, polygon).run()
 if localizer:
     coords = [list(image_to_world(localizer, coord)) for coord in coords]

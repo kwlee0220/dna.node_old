@@ -37,7 +37,7 @@ class Tracker:
     def track(self, frame:Frame, detections: List[Detection]) -> Tuple[MatchingSession, List[DNATrack], List[TrackEvent]]:
         # Estimate the next state for each tracks using Kalman filter
         for track in self.tracks:
-            track.predict(self.kf)
+            track.predict(self.kf, frame.index, frame.ts)
 
         # Run matching
         session = self.match(detections)
@@ -150,7 +150,7 @@ class Tracker:
         return session
 
     def _initiate_track(self, detection: Detection, frame:Frame) -> None:
-        mean, covariance = self.kf.initiate(detection.bbox.to_xyah())
+        mean, covariance = self.kf.initiate(detection.bbox.xyah)
         track = DNATrack(mean, covariance, self._next_id, frame.index, frame.ts,
                             self.params, detection)
         self.tracks.append(track)
@@ -240,11 +240,16 @@ class Tracker:
     
     def merge_fragment(self, session:MatchingSession, frame:Frame, track_events:List[TrackEvent]) -> Set[DNATrack]:
         merged_tracks = set()
+        
+        # Stable zone에서 시작된 track들을 검색한다.
         if not (stable_home_tracks := self.build_stable_home_tracks(session)):
+            # Stable zone에서 시작된 track이 없는 경우 merge할 대상이 없기 때문에 바로 반환함.
             return merged_tracks
         
         for zid, _ in enumerate(self.params.stable_zones):
+            # 각 stable zone에 temporarily lost된 track들을 검색한다.
             tl_tracks = self.find_tlost_stable_tracks(zid, session)
+            # 해당 stable zone에서 시작된 track들을 검색한다.
             sh_tracks = stable_home_tracks[zid]
             if tl_tracks and sh_tracks:
                 metric_cost = self.build_metric_cost(tl_tracks, sh_tracks)
@@ -253,6 +258,8 @@ class Tracker:
                 matches = matcher.match(utils.all_indices(tl_tracks), utils.all_indices(sh_tracks))
                 for t_idx, d_idx in matches:
                     stable_home_track = stable_home_tracks[zid][d_idx]
+                    # match된 stable zone track을 제거하고, 대신 해당 track 정보를
+                    # match된 temporarily lost된 track에 붙인다
                     tl_tracks[t_idx].take_over(stable_home_track, self.kf, frame, self.params, track_events)
                     merged_tracks.add(tl_tracks[t_idx])
                     if self.logger.isEnabledFor(logging.DEBUG):
@@ -265,6 +272,8 @@ class Tracker:
                             if track.archived_state.stable_zone == zid]
 
     def build_stable_home_tracks(self, session:MatchingSession) -> Dict[int,List[DNATrack]]:
+        # Stable zone에서 시작된 track들을 검색한다.
+        # 검색된 track들은 해당 stable zone에서 lost 중인 track 때문에 생성된 것일 수 있음.
         stable_home_tracks = defaultdict(list)
         for t_idx, track in enumerate(self.tracks):
             # track의 처음 생성될 때 특정 stable zone 내에 위치하였고,
@@ -302,10 +311,10 @@ class Tracker:
                 label = f'{d_idx}({self.tracks[t_idx].id})'
                 det = detections[d_idx]
                 if self.params.is_strong_detection(det):
-                    convas = plot_utils.draw_label(convas, label, Point.from_np(det.bbox.br.astype(int)), color.WHITE, color.BLUE, 1)
+                    convas = plot_utils.draw_label(convas, label, Point(det.bbox.br.astype(int)), color.WHITE, color.BLUE, 1)
                     convas = det.bbox.draw(convas, color.BLUE, line_thickness=1)
                 else:
-                    convas = plot_utils.draw_label(convas, label, Point.from_np(det.bbox.br.astype(int)), color.WHITE, color.RED, 1)
+                    convas = plot_utils.draw_label(convas, label, Point(det.bbox.br.astype(int)), color.WHITE, color.RED, 1)
                     convas = det.bbox.draw(convas, color.RED, line_thickness=1)
         cv2.imshow(title, convas)
         cv2.waitKey(1)

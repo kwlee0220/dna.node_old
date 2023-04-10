@@ -21,6 +21,12 @@ setup(
 			'dna_draw_trajs = scripts.dna_draw_trajs:main',
 			'dna_sync_videos = scripts.dna_sync_videos:main',
 			'dna_show_multiple_videos = scripts.dna_show_multiple_videos:main',
+   
+			'dna_gen_trainset = scripts.dna_gen_trainset:main',
+			'dna_gen_trainset2 = scripts.dna_gen_trainset2:main',
+			'dna_reduce_trainset = scripts.dna_reduce_trainset:main',
+			'dna_motions = scripts.dna_motions:main',
+			'dna_assoc_tracklets = scripts.dna_assoc_tracklets:main',
 		],
 	},
     install_requires = [
@@ -52,17 +58,21 @@ setup(
         # yolov5
         'ipython',
         'psutil',
+        
+        # machine-learning
+        'scikit-learn',
+        'matplotlib',
 
         # siammot
-        'gluoncv',
-        'mxnet',
-        'imgaug',
+        # 'gluoncv',
+        # 'mxnet',
+        # 'imgaug',
     ],
     packages = find_packages(),
     package_dir={'conf': 'conf'},
     package_data = {
         'conf': ['logger.yaml']
     },
-    python_requires = '>=3.8',
+    python_requires = '>=3.10',
     zip_safe = False
 )

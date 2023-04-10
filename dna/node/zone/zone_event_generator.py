@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Any
 
 import numbers
 import logging
@@ -11,7 +11,7 @@ from omegaconf.omegaconf import OmegaConf
 from dna import Point, Box, Image, BGR, plot_utils
 from dna.zone import Zone
 from ..event_processor import EventProcessor
-from .types import LineTrack, TrackDeleted, ZoneRelation, ZoneEvent
+from .types import TrackDeleted, LineTrack, ZoneRelation, ZoneEvent
 
 
 class ZoneEventGenerator(EventProcessor):
@@ -20,7 +20,7 @@ class ZoneEventGenerator(EventProcessor):
         self.zones = {str(zid):Zone.from_coords(zone_expr, as_line_string=True) for zid, zone_expr in named_zones.items()}
         self.logger = logger
 
-    def handle_event(self, ev:LineTrack) -> None:
+    def handle_event(self, ev:Any) -> None:
         if isinstance(ev, LineTrack):
             self.handle_line_track(ev)
         else:
@@ -28,10 +28,18 @@ class ZoneEventGenerator(EventProcessor):
         
     def handle_line_track(self, line_track:LineTrack) -> None:
         zone_events:List[ZoneEvent] = []
-        for zid, zone in self.zones.items(): 
-            if zone.intersects(line_track.line):
-                rel = self.get_relation(zone, line_track.line)
-                zone_events.append(self.to_zone_event(rel, zid, line_track))
+        # track의 첫번째 event인 경우는 point를 사용하고, 그렇지 않은 경우는 line을 사용하여 분석함.
+        if line_track.is_point_track(): # point인 경우
+            pt = line_track.end_point
+            for zid, zone in self.zones.items():
+                if zone.covers_point(pt):
+                    zone_events.append(self.to_zone_event(ZoneRelation.Entered, zid, line_track))
+                    break
+        else:   # line인 경우
+            for zid, zone in self.zones.items():
+                if zone.intersects(line_track.line):
+                    rel = self.get_relation(zone, line_track.line)
+                    zone_events.append(self.to_zone_event(rel, zid, line_track))
 
         # 특정 zone과 교집합이 없는 경우는 UNASSIGNED 이벤트를 발송함
         if len(zone_events) == 0:
@@ -91,6 +99,6 @@ class ZoneEventGenerator(EventProcessor):
         else:
             return ZoneRelation.Through
         
-    def to_zone_event(self, rel:ZoneRelation, zone_id:str, track:LineTrack) -> ZoneEvent:
-        return ZoneEvent(track_id=track.track_id, relation=rel, zone_id=zone_id,
-                         frame_index=track.frame_index, ts=track.ts)
+    def to_zone_event(self, rel:ZoneRelation, zone_id:str, line:LineTrack) -> ZoneEvent:
+        return ZoneEvent(track_id=line.track_id, relation=rel, zone_id=zone_id,
+                         frame_index=line.frame_index, ts=line.ts, source=line.source)

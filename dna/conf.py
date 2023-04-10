@@ -110,7 +110,7 @@ def load_node_conf(args: Namespace,
         conf = read_node_config(db_conf, node_id=args_conf.node)
         if conf is None:
             raise ValueError(f"unknown node: id='{args_conf.node}'")
-    elif args_conf.get('conf', None) is not None:
+    elif args_conf.get('conf'):
         conf = load_config(args_conf.conf)
     else:
         conf = OmegaConf.create()

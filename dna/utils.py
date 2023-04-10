@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys
-from typing import Tuple, Union, Dict, Any, Optional, List, TypeVar, Callable, Iterable
+from typing import Tuple, Union, Dict, Any, Optional, List, TypeVar, Callable, Iterable, Sequence
 from datetime import datetime, timezone
 from time import time
 from pathlib import Path
@@ -13,7 +13,8 @@ T = TypeVar("T")
 
 
 def datetime2utc(dt: datetime) -> int:
-    return int(dt.replace(tzinfo=timezone.utc).timestamp())
+    secs = dt.replace(tzinfo=timezone.utc).timestamp()
+    return int(secs * 1000)
 
 def utc2datetime(ts: int) -> datetime:
     return datetime.fromtimestamp(ts / 1000)
@@ -21,8 +22,19 @@ def utc2datetime(ts: int) -> datetime:
 def datetime2str(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S.%f")
 
-def utc_now() -> int:
-    return round(time() * 1000)
+def utc_now_datetime() -> datetime:
+    return datetime.now(timezone.utc)
+
+def utc_now_seconds() -> float:
+    return datetime.now(timezone.utc).timestamp()
+
+def utc_now_millis() -> int:
+    return round(utc_now_seconds() * 1000)
+   
+def range_to_tuple(range:range, inc:Any=1) -> Tuple[Any, Any]:
+    return (range[0], range[-1])
+def seq_to_range(begin_end:Sequence, inc:Any=1) -> range:
+    return range(begin_end[0], begin_end[-1]+1)
 
 def _parse_keyvalue(kv) -> Tuple[str,str]:
     pair = kv.split('=')

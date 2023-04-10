@@ -22,10 +22,10 @@ def to_tlbr(xyah:np.ndarray) -> Box:
     return ret
 
 def to_box(tlbr:np.ndarray) -> Box:
-    box = Box.from_tlbr(tlbr)
+    box = Box(tlbr)
     if not box.is_valid():
-        tl = box.top_left()
-        br = tl + Size2d(0.00001, 0.00001)
+        tl = Point(box.tl)
+        br = tl + Size2d([0.00001, 0.00001])
         box = Box.from_points(tl, br)
     return box
 
@@ -97,15 +97,17 @@ class DNATrack(ObjectTrack):
             self.__stable_zone = self.params.find_stable_zone(self.location)
         return self.__stable_zone
         
-    def predict(self, kf:KalmanFilter) -> None:
+    def predict(self, kf:KalmanFilter, frame_index:int, ts:float) -> None:
         self.mean, self.covariance = kf.predict(self.mean, self.covariance)
         self.location = to_box(to_tlbr(self.mean[:4]))
         self.__exit_zone = _UNKNOWN_ZONE_ID
         self.__stable_zone = _UNKNOWN_ZONE_ID
         self.time_since_update += 1
+        self.frame_index = frame_index
+        self.timestamp = ts
 
     def update(self, kf:KalmanFilter, frame:Frame, det:Detection) -> None:
-        self.mean, self.covariance = kf.update(self.mean, self.covariance, det.bbox.to_xyah())
+        self.mean, self.covariance = kf.update(self.mean, self.covariance, det.bbox.xyah)
         self.location = to_box(to_tlbr(self.mean[:4]))
         self.__exit_zone = _UNKNOWN_ZONE_ID
         self.__stable_zone = _UNKNOWN_ZONE_ID
@@ -117,8 +119,6 @@ class DNATrack(ObjectTrack):
                 self.features = self.features[-self.params.max_feature_count:]
         self.hits += 1
         self.time_since_update = 0
-        self.frame_index = frame.index
-        self.timestamp = frame.ts
         self.archived_state = None
 
         if self.state == TrackState.Tentative:
@@ -199,13 +199,13 @@ class DNATrack(ObjectTrack):
 
         # Take-over할 track의 첫 detection 전까지는 추정된 위치를 사용한다.
         for i in range(archived_state.frame_index+1, track.first_frame_index):
-            self.predict(kf)
+            self.predict(kf, frame_index=i, ts=-1)
             self.detections.append(None)
 
         # Take-over할 track에게 할당된 detection으로 본 track의 위치를 재조정한다.
         replay_frame = Frame(frame.image, track.first_frame_index, track.first_timestamp)
         for det in track.detections:
-            self.predict(kf)
+            self.predict(kf, replay_frame.index, replay_frame.ts)
             if det:
                 self.update(kf, replay_frame, det)
             else:

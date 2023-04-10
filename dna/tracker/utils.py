@@ -49,7 +49,7 @@ class SimpleTrack(ObjectTrack):
         frame_idx = int(parts[0])
         track_id = int(parts[1])
         tlbr = np.array(parts[2:6]).astype('int32')
-        bbox = Box.from_tlbr(tlbr)
+        bbox = Box(tlbr)
         state = TrackState(int(parts[6]))
         ts = int(parts[7]) / 1000
         return SimpleTrack(id=track_id, state=state, location=bbox, frame_index=frame_idx, timestamp=ts)

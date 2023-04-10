@@ -55,8 +55,8 @@ ZONE_SEQUENCES = {
         'CB': ['A', 'H'],
         'AC': ['E', 'D', 'B'],
         'BC': ['G', 'B'],
-        'BA': ['G'],
-        'AB': ['H'],
+        'BA': ['G', 'C', 'E'],
+        'AB': ['D', 'H'],
     },
     'etri:05': {
         'CA': ['A', 'C', 'F'],
@@ -74,10 +74,10 @@ ZONE_SEQUENCES = {
         'AB': ['E', 'D', 'H'],
     },
     'etri:07': {
-        'AD': ['C', 'F'],
-        'AE': ['C'],
-        'DA': ['E', 'D'],
-        'EA': ['D'],
+        'AD': ['A', 'G', 'C', 'F'],
+        'AE': ['A', 'G', 'C', 'F'],
+        'DA': ['E', 'D', 'B', 'H'],
+        'EA': ['D', 'B', 'H'],
     },
 }
 
@@ -120,7 +120,7 @@ class TrackletCropWriter(FrameProcessor):
                  global_tracklet_mappings: Dict[TrackId,Tuple[str,str,str]],
                  output_dir:str,
                  margin:int=5,
-                 min_size:Size2d=Size2d(20, 20)) -> None:
+                 min_size:Size2d=Size2d([20, 20])) -> None:
         self.tracks_per_frame_index = tracks_per_frame_index
         self.zone_events = zone_events
         self.motions = motions
@@ -144,9 +144,9 @@ class TrackletCropWriter(FrameProcessor):
             return frame
         
         for track in tracks:
-            if track.state == TrackState.Deleted:
+            if track.is_deleted():
                 self.sessions.pop(track.track_id, None)
-            elif track.state == TrackState.Confirmed or track.state == TrackState.Tentative:
+            elif track.is_confirmed() or track.is_tentative():
                 crop_file = self.crop_file_path(track)
                 if crop_file:
                     crop_file.parent.mkdir(parents=True, exist_ok=True)
@@ -154,7 +154,7 @@ class TrackletCropWriter(FrameProcessor):
                     h, w, _ = frame.image.shape
                     border = Box.from_size((w,h))
 
-                    crop_box = track.location.expand(self.margin).to_rint()
+                    crop_box = track.detection_box.expand(self.margin).to_rint()
                     crop_box = crop_box.intersection(border)
                     if crop_box.size() > self.min_size:
                         track_crop = crop_box.crop(frame.image)
@@ -218,19 +218,30 @@ def load_motions(motion_file:str) -> Dict[TrackId,Tuple[str,str]]:
         return {track_id:(entry, exit) for track_id, entry, exit in csv_lines}
 
 def load_tracklet_matches(file:str, start_index:int=0) -> Dict[(str, TrackId),str]:
+    import csv
+
     global_tracklet_mappings:Dict[(str, TrackId),str] = dict()
     with open(file, 'r') as fp:
-        for idx, line in enumerate(fp.readlines(), start=start_index):
-            gid, t1, t2, t3, t4 = tuple([f'g{idx:05d}'] + line.rstrip().split(','))
-            if t1 != 'X':
-                global_tracklet_mappings[('etri:04', t1)] = gid
-            if t2 != 'X':
-                global_tracklet_mappings[('etri:05', t2)] = gid
-            if t3 != 'X':
-                global_tracklet_mappings[('etri:06', t3)] = gid
-            if t4 != 'X':
-                global_tracklet_mappings[('etri:07', t4)] = gid
-        return global_tracklet_mappings
+        csv_reader = csv.DictReader(fp)
+        for idx, fields in enumerate(csv_reader, start=start_index):
+            for node, track_id in fields.items():
+                if track_id != 'X':
+                    global_tracklet_mappings[(node, track_id)] = f'g{idx:05}'
+    return global_tracklet_mappings
+# def load_tracklet_matches(file:str, start_index:int=0) -> Dict[(str, TrackId),str]:
+#     global_tracklet_mappings:Dict[(str, TrackId),str] = dict()
+#     with open(file, 'r') as fp:
+#         for idx, line in enumerate(fp.readlines(), start=start_index):
+#             gid, t1, t2, t3, t4 = tuple([f'g{idx:05d}'] + line.rstrip().split(','))
+#             if t1 != 'X':
+#                 global_tracklet_mappings[('etri:04', t1)] = gid
+#             if t2 != 'X':
+#                 global_tracklet_mappings[('etri:05', t2)] = gid
+#             if t3 != 'X':
+#                 global_tracklet_mappings[('etri:06', t3)] = gid
+#             if t4 != 'X':
+#                 global_tracklet_mappings[('etri:07', t4)] = gid
+#         return global_tracklet_mappings
     
 
 class CollectZoneInfo(EventProcessor):
@@ -265,8 +276,12 @@ def main():
     global_tracklet_mappings = load_tracklet_matches(tracklet_match_file, args.start_gidx) if tracklet_match_file else None
 
     publishing_conf = OmegaConf.select(conf, 'publishing')
-    track_pipeline = TrackEventPipeline(publishing_conf)
-    zone_pipeline:ZonePipeline = track_pipeline.plugins.get('zone_pipeline')
+    track_pipeline = TrackEventPipeline(node_id=conf.id, publishing_conf=publishing_conf)
+    
+    # ZonePipeline plugin을 생성하여 TrackEventPipeline에 등록시킴
+    zone_pipeline_conf = OmegaConf.select(publishing_conf, 'plugins.zone_pipeline')
+    zone_pipeline = ZonePipeline(zone_pipeline_conf)
+    track_pipeline.add_plugin('zone_pipeline', zone_pipeline)
 
     node_dir = Path(args.output)
     collector = CollectZoneInfo()

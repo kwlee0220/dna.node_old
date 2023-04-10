@@ -1,13 +1,15 @@
 from __future__ import annotations
-from typing import Tuple, List, Dict, Set, Optional, Union
+from typing import Tuple, List, Dict, Set, Optional, Union, Any, Sequence, ByteString
 from enum import Enum
 from dataclasses import dataclass, field, replace
 
 import shapely.geometry as geometry
+import json
+import numpy as np
 
-from dna import Point
+from dna import Point, utils
 from dna.tracker import TrackState
-from ..types import TrackEvent
+from ..types import TrackEvent, KafkaEvent
 
 
 @dataclass(frozen=True)
@@ -21,7 +23,7 @@ class TrackDeleted:
 def to_line_string(pt0:Point, pt1:Point) -> geometry.LineString:
     return geometry.LineString([list(pt0.xy), list(pt1.xy)])
 def to_line_end_points(ls:geometry.LineString) -> Tuple[Point,Point]:
-    return tuple(Point.from_np(xy) for xy in ls.coords[:2])
+    return tuple(Point(xy) for xy in ls.coords[:2])
 
 
 @dataclass(frozen=True)
@@ -30,12 +32,24 @@ class LineTrack:
     line: geometry.LineString
     frame_index: int
     ts: float
-
+    source: TrackEvent
+    
+    def is_point_track(self) -> bool:
+        return self.line.coords[0] == self.line.coords[1]
+    
+    @property
+    def begin_point(self) -> Tuple:
+        return self.line.coords[0]
+    
+    @property
+    def end_point(self) -> Tuple:
+        return self.line.coords[1]
+        
     @staticmethod
     def from_events(t0:TrackEvent, t1:TrackEvent):
         p0 = t0.location.center()
         p1 = t1.location.center()
-        return LineTrack(track_id=t1.track_id, line=to_line_string(p0, p1), frame_index=t1.frame_index, ts=t1.ts)
+        return LineTrack(track_id=t1.track_id, line=to_line_string(p0, p1), frame_index=t1.frame_index, ts=t1.ts, source=t1)
     
     def __repr__(self) -> str:
         if self.line:
@@ -51,6 +65,26 @@ class ZoneRelation(Enum):
     Left = 2
     Inside = 3
     Through = 4
+    Deleted = 5
+    
+    @staticmethod
+    def parseRelationStr(rel_str:str) -> Tuple[ZoneRelation, str]:
+        def parseZoneId(expr:str) -> str:
+            return expr[2:-1]
+            
+        match rel_str[0]:
+            case 'U':
+                return ZoneRelation.Unassigned, None
+            case 'E':
+                return ZoneRelation.Entered, parseZoneId(rel_str)
+            case 'L':
+                return ZoneRelation.Left, parseZoneId(rel_str)
+            case 'I':
+                return ZoneRelation.Inside, parseZoneId(rel_str)
+            case 'T':
+                return ZoneRelation.Through, parseZoneId(rel_str)
+            case 'D':
+                return ZoneRelation.Deleted, parseZoneId(rel_str)
 
 
 @dataclass(frozen=True)
@@ -60,6 +94,7 @@ class ZoneEvent:
     zone_id: str
     frame_index: int
     ts: float
+    source: TrackEvent
 
     def is_unassigned(self) -> bool:
         return self.relation == ZoneRelation.Unassigned
@@ -71,16 +106,13 @@ class ZoneEvent:
         return self.relation == ZoneRelation.Inside
     def is_through(self) -> bool:
         return self.relation == ZoneRelation.Through
+    def is_deleted(self) -> bool:
+        return self.relation == ZoneRelation.Deleted
 
     @staticmethod
-    def UNASSIGNED(track:LineTrack) -> ZoneEvent:
-        return ZoneEvent(track_id=track.track_id, relation=ZoneRelation.Unassigned, zone_id=None,
-                         frame_index=track.frame_index, ts=track.ts)
-    
-    # def copy(self, rel:ZoneRelation, zone_id:Optional[str]=None) -> ZoneEvent:
-    #     return ZoneEvent(track_id=self.track_id, relation=rel,
-    #                      zone_id=zone_id if zone_id else self.zone_id,
-    #                      frame_index=self.frame_index, ts=self.ts)
+    def UNASSIGNED(line:LineTrack) -> ZoneEvent:
+        return ZoneEvent(track_id=line.track_id, relation=ZoneRelation.Unassigned, zone_id=None,
+                         frame_index=line.frame_index, ts=line.ts, source=line.source)
     
     def relation_str(self) -> str:
         if self.relation == ZoneRelation.Unassigned:
@@ -93,6 +125,8 @@ class ZoneEvent:
             return f'T({self.zone_id})'
         elif self.relation == ZoneRelation.Inside:
             return f'I({self.zone_id})'
+        elif self.relation == ZoneRelation.Deleted:
+            return 'D'
         else:
             raise ValueError(f'invalid zone_relation: {self.relation}')
     
@@ -245,17 +279,33 @@ class ZoneSequence:
         seq_str = ''.join([visit.zone_id for visit in self.visits])
         str = f'[{seq_str}]' if len(self.visits) == 0 or self[-1].is_closed() else f'[{seq_str})'
         return f'{self.track_id}:{str}, frame={self.frame_index}'
-    
+
 
 @dataclass(frozen=True)
-class Motion:
+class Motion(KafkaEvent):
+    node_id: str
     track_id: str
-    id: str
-    first_frame_index: int
-    first_ts: int
-    last_frame_index: int
-    last_ts: int
+    motion: str
+    
+    def key(self) -> str:
+        return self.node_id
 
+    @staticmethod
+    def from_json(json_str:str) -> Motion:
+        json_obj = json.loads(json_str)
+        return Motion(node_id=json_obj['node'], track_id=json_obj['track_id'], motion=json_obj['motion'])
+
+    def to_json(self) -> str:
+        serialized = {'node':self.node_id, 'track_id':self.track_id, 'motion':self.motion}
+        return json.dumps(serialized, separators=(',', ':'))
+
+    def serialize(self) -> Any:
+        return self.to_json().encode('utf-8')
+    
+    @staticmethod
+    def deserialize(serialized:ByteString) -> Motion:
+        json_str = serialized.decode('utf-8')
+        return Motion.from_json(json_str)
+        
     def __repr__(self) -> str:
-        return (f'Motion[track={self.track_id}, motion={self.id}, '
-                'frame=[{self.first_frame_index}-{self.last_frame_index}]]')
+        return (f'Motion[track={self.track_id}, motion={self.motion}')

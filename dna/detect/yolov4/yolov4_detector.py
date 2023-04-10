@@ -114,8 +114,8 @@ class Yolov4TorchDetector(ObjectDetector):
         return [self.box_to_detection(box, w, h) for box in batched_boxes[0]]
 
     def box_to_detection(self, box, w, h):
-        coords = np.array([box[0] * w, box[1] * h, box[2] * w, box[3] * h])
-        bbox = Box.from_tlbr(coords)
+        coords = [box[0] * w, box[1] * h, box[2] * w, box[3] * h]
+        bbox = Box(coords)
         conf = box[5]
         label = self.class_names[box[6]]
         return Detection(bbox, label=label, score=conf)

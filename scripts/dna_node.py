@@ -12,6 +12,7 @@ import dna
 from dna.conf import load_node_conf, get_config
 from scripts.utils import load_camera_conf
 from dna.camera import ImageProcessor,  create_camera_from_conf
+from dna.node import TrackEventPipeline
 from dna.node.node_processor import build_node_processor
 
 import argparse
@@ -43,20 +44,13 @@ def main():
     conf.camera = load_camera_conf(get_config(conf, "camera", OmegaConf.create()), args_conf)
     camera = create_camera_from_conf(conf.camera)
 
-    conf.output_video = args.output_video
-
-    publishing_conf:OmegaConf = OmegaConf.select(conf, 'publishing')
-    if publishing_conf is None:
-        conf.publishing = publishing_conf = OmegaConf.create()
-
-    plugins_conf = OmegaConf.select(publishing_conf, 'plugins')
-    if plugins_conf is None:
-        publishing_conf.plugins = plugins_conf = OmegaConf.create()
     if args.output:
-         publishing_conf.plugins.output = args.output
+        OmegaConf.update(conf, "publishing.plugins.output", args.output, merge=True)
 
+    conf.output_video = args.output_video
     while True:
-        img_proc = build_node_processor(camera.open(), conf)
+        img_proc = ImageProcessor(camera.open(), conf)
+        build_node_processor(conf, image_processor=img_proc)
         result: ImageProcessor.Result = img_proc.run()
         if not args.loop or result.failure_cause is not None:
             break

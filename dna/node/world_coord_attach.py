@@ -33,7 +33,7 @@ class WorldCoordinateAttacher(EventProcessor):
             pt_m, dist = self.localizer.from_camera_box(ev.location.tlbr)
             world_coord = self.localizer.to_world_coord(pt_m) if pt_m is not None else None
             if world_coord is not None:
-                world_coord = Point.from_np(world_coord)
+                world_coord = Point(world_coord)
             updated = ev.updated(world_coord=world_coord, distance=dist)
             self._publish_event(updated)
         else:

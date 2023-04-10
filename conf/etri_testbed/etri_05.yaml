@@ -8,6 +8,8 @@ camera:
   sync: False
   # begin_frame: 1416
   # end_frame: 500
+  # open_ts: 590
+  open_ts: 0
 
 tracker:
   draw: ["tracks", "track_zones"]
@@ -21,37 +23,53 @@ tracker:
     - [1700, 388, 1900, 570]  # 7동 방향
     - [[103, 521], [347, 822], [372, 1078], [284, 1079], [0, 1080], [2, 521]] # 정문 방향
 
+sql_connection: &postgresql_connection
+  host: localhost
+  port: 5432
+  dbname: dna
+  user: dna
+  password: urc2004
+
+local_kafka_connection: &local_kafka_connection
+  bootstrap_servers: [localhost:9092]
+dna_kafka_connection: &dna_kafka_connection
+  bootstrap_servers: [kafka01:9092, kafka02:9092, kafka03:9092]
+
 publishing:
-  tick_interval: 1.0
+  # tick_interval: 1.0
   refine_tracks:
-    buffer_size: 20
-    buffer_timeout: 3.0
-  min_path_length: 10
+    buffer_size: 10
+    buffer_timeout: 1.5
+  # min_path_length: 10
   attach_world_coordinates:
     camera_geometry: regions/etri_testbed/etri_testbed.json
     camera_index: 1
-  order_by_frame_index:
-    max_pending_frames: 10
-    timeout: 3.0
+  zone_pipeline:
+    zones:
+      A: [[1126, 249], [660, 194], [644, 333], [937, 349], [1126, 249]]
+      B: [[1245, 273], [1345, 545], [1761, 561], [1806, 412], [1245, 273]]
+      C: [[609, 358], [1388, 584], [1165, 1064], [177, 936], [40, 530], [609, 358]]
+    motions:
+      'AB': 'AB'
+      'AC': 'AC'
+      'BA': 'BA'
+      'BC': 'BC'
+      'CA': 'CA'
+      'CB': 'CB'
+
   plugins:
-    zone_pipeline:
-      zones:
-        A: [[1126, 249], [660, 194], [644, 333], [937, 349], [1126, 249]]
-        B: [[1245, 273], [1345, 545], [1761, 561], [1806, 412], [1245, 273]]
-        C: [[609, 358], [1388, 584], [1165, 1064], [177, 936], [40, 530], [609, 358]]
+    publish_tracks:
+      <<: *local_kafka_connection
+      topic: 'track-events'
+    publish_motions:
+      <<: *local_kafka_connection
+      topic: 'track-motions'
+    publish_features:
+      distinct_distance: 0.2
+      min_crop_size: 80x80
+      <<: *local_kafka_connection
+      topic: 'track-features'
 
   # plugins:
   #   local_path:
   #     max_path_length: 100
-  #   kafka:
-  #     bootstrap_servers: [localhost:9092]
-  #   # bootstrap_servers: [kafka01:9092,kafka02:9092,kafka03:9092]
-  #     topic: 'node-tracks'
-
-motions:
-    'AB': 'AB'
-    'AC': 'AC'
-    'BA': 'BA'
-    'BC': 'BC'
-    'CA': 'CA'
-    'CB': 'CB'

@@ -66,7 +66,7 @@ def to_point_sequence(trajs: Dict[str,List[Box]]) -> Dict[str,List[Point]]:
 
 def to_contact_points(trajs: Dict[str,List[Box]], localizer:WorldCoordinateLocalizer):
     def tbox_to_tpoint(tbox:List[Box]):
-        return [Point.from_np(localizer.select_contact_point(box.tlbr)) for box in tbox]
+        return [Point(localizer.select_contact_point(box.tlbr)) for box in tbox]
     return {luid:tbox_to_tpoint(tbox) for luid, tbox in trajs.items()}
             
 def _x(pt):

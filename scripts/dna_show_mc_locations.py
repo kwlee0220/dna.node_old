@@ -44,7 +44,7 @@ def load_json(track_file:str, localizer:WorldCoordinateLocalizer) -> Tuple[str, 
         ev = TrackEvent.from_json(line)
 
         pt_m, dist = localizer.from_camera_box(ev.location.tlbr)
-        pt = Point.from_np(localizer.to_image_coord(pt_m))
+        pt = Point(localizer.to_image_coord(pt_m))
         loc = Location(luid=ev.track_id, point=pt, distance=dist)
         return (ev.node_id, ev.track_id, ev.frame_index, ev.state, loc)
 
@@ -89,7 +89,7 @@ class MCLocationDrawer:
             for loc in idxed_locations.get(index, []):
                 if loc.distance < MAX_DISTS[node_id]:
                     self._draw_circles(convas, loc, fill_color=color)
-                    # convas = cv2.circle(convas, loc.point.to_rint().to_tuple(), radius=7, color=color, thickness=-1, lineType=cv2.LINE_AA)
+                    # convas = cv2.circle(convas, tuple(loc.point.to_rint().xy), radius=7, color=color, thickness=-1, lineType=cv2.LINE_AA)
         cv2.imshow("locations", convas)
         return convas
 
@@ -124,7 +124,7 @@ class MCLocationDrawer:
         cv2.destroyWindow(title)
 
     def _draw_circles(self, convas:Image, location:Location, fill_color:BGR) -> Image:
-        center = location.point.to_rint().to_tuple()
+        center = tuple(location.point.to_rint()xy)
         # convas = cv2.circle(convas, center, radius=3, color=color.RED, thickness=-1, lineType=cv2.LINE_AA)
         convas = plot_utils.draw_label(convas, f'{location.distance:.1f}', location.point.to_rint(),
                                        color=color.BLACK, fill_color=fill_color, thickness=1)

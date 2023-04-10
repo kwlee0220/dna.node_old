@@ -27,7 +27,7 @@ class Detection:
             if not label:
                 label = f"{self.label}({self.score:.3f})"
             if not label_tl:
-                label_tl = Point.from_np(loc.tl.astype(int))
+                label_tl = Point(loc.tl.astype(int))
             convas = plot_utils.draw_label(convas=convas, label=label, tl=label_tl,
                                             color=label_color, fill_color=color, thickness=2)
         return loc.draw(convas, color=color, line_thickness=line_thickness)

@@ -53,7 +53,7 @@ class ResizingImageCapture(ImageCapture):
     def __call__(self) -> Optional[Image]:
         frame:Frame = self.__cap()
         if frame:
-            mat = cv2.resize(frame.image, dsize=self.__size.to_tuple(), interpolation=self.interpolation)
+            mat = cv2.resize(frame.image, dsize=tuple(self.__size.wh), interpolation=self.interpolation)
             frame = Frame(image=mat, index=frame.index, ts=frame.ts)
         return frame
 

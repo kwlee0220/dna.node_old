@@ -75,12 +75,12 @@ class ImageProcessor(AbstractExecution):
         if self._is_drawing:
             self.suffix_processors.append(DrawFrameTitle())
 
-        if output_video is not None:
+        if output_video:
             self.suffix_processors.append(ImageWriteProcessor(Path(output_video)))
 
         if show:
             window_name = f'camera={conf.camera.uri}'
-            self.show_processor = ShowFrame(window_name, show.to_tuple() if show else None)
+            self.show_processor = ShowFrame(window_name, tuple(show.wh) if show else None)
             self.suffix_processors.append(self.show_processor)
 
         if not isinstance(context, NoOpExecutionContext):
@@ -216,7 +216,7 @@ class ShowFrame(FrameProcessor):
         self.processors.append(proc)
 
     def on_started(self, proc:ImageProcessor) -> None:
-        win_size = self.window_size if self.window_size else proc.capture.size.to_tuple()
+        win_size = self.window_size if self.window_size else tuple(proc.capture.size.wh)
         
         self.logger.info(f'create window: {self.window_name}, size=({win_size[0]}x{win_size[1]})')
         cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
@@ -254,18 +254,27 @@ class ShowFrame(FrameProcessor):
 
 
 class ShowProgress(FrameProcessor):
+    __slots__ = ( 'total_frame_count', 'last_frame_index', 'tqdm' )
+    
     def __init__(self, total_frame_count: int) -> None:
         super().__init__()
         self.total_frame_count = total_frame_count
+        self.last_frame_index = -1
+        self.tqdm = None
 
     def on_started(self, proc:ImageProcessor) -> None:
-        self.last_frame_index = 0
-        self.tqdm = tqdm(total=self.total_frame_count)
+        pass
 
     def on_stopped(self) -> None:
-        with suppress(Exception): self.tqdm.close()
+        with suppress(Exception):
+            self.tqdm.close()
+            self.tqdm = None
 
     def process_frame(self, frame:Frame) -> Optional[Frame]:
+        if not self.tqdm:
+            self.last_frame_index = 0
+            self.tqdm = tqdm(total=self.total_frame_count)
+        
         self.tqdm.update(frame.index - self.last_frame_index)
         self.tqdm.refresh()
         self.last_frame_index = frame.index

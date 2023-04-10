@@ -11,27 +11,27 @@ import dna
 from dna import Size2d, Frame
 
 
-@dataclass(frozen=True, eq=True)    # slots=True
-class Parameters:
-    uri: Union[str,int] = field(default=None)
-    size: Optional[Size2d] = field(default=None)
-    sync: bool = field(default=False)
-    begin_frame: int = field(default=1)
-    end_frame: Optional[int] = field(default=None)
-    threaded: bool = field(default=False)
+# @dataclass(frozen=True, eq=True)    # slots=True
+# class Parameters:
+#     uri: Union[str,int] = field(default=None)
+#     size: Optional[Size2d] = field(default=None)
+#     sync: bool = field(default=False)
+#     begin_frame: int = field(default=1)
+#     end_frame: Optional[int] = field(default=None)
+#     threaded: bool = field(default=False)
 
-    @staticmethod
-    def from_conf(cls, conf:OmegaConf):
-        uri = conf.uri
-        size = conf.get('size', None)
-        size = Size2d.from_conf(size) if size is not None else size
-        sync = conf.get("sync", False)
-        begin_frame = conf.get("begin_frame", 1)
-        end_frame = conf.get("end_frame", None)
-        threaded = conf.get("threaded", False)
+#     @staticmethod
+#     def from_conf(cls, conf:OmegaConf):
+#         uri = conf.uri
+#         size = conf.get('size', None)
+#         size = Size2d.from_conf(size) if size is not None else size
+#         sync = conf.get("sync", False)
+#         begin_frame = conf.get("begin_frame", 1)
+#         end_frame = conf.get("end_frame", None)
+#         threaded = conf.get("threaded", False)
         
-        return Parameters(uri=uri, size=size, sync=sync, begin_frame=begin_frame, end_frame=end_frame,
-                          threaded=threaded)
+#         return Parameters(uri=uri, size=size, sync=sync, begin_frame=begin_frame, end_frame=end_frame,
+#                           threaded=threaded)
 
 
 class Camera(metaclass=ABCMeta):

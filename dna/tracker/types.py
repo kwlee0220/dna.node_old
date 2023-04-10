@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import List, Tuple, Set, Dict
 from abc import ABCMeta, abstractmethod
 from enum import Enum
-from dataclasses import dataclass, field
 
 import shapely.geometry as geometry
 import cv2
@@ -71,7 +70,7 @@ class ObjectTrack:
         convas = cv2.circle(convas, loc.center().xy.astype(int), 3, color, thickness=-1, lineType=cv2.LINE_AA)
         if label_color:
             label = f"{self.state_str}"
-            convas = plot_utils.draw_label(convas, label, Point.from_np(loc.br.astype(int)),
+            convas = plot_utils.draw_label(convas, label, Point(loc.br.astype(int)),
                                             color=label_color, fill_color=color, thickness=2)
         return convas
 
@@ -103,3 +102,14 @@ class TrackProcessor(metaclass=ABCMeta):
 
     @abstractmethod
     def process_tracks(self, tracker:ObjectTracker, frame:Frame, tracks:List[ObjectTrack]) -> None: pass
+    
+
+import numpy as np
+class MetricExtractor(metaclass=ABCMeta):
+    @abstractmethod
+    def extract_crops(self, crops:List[Image]) -> np.ndarray:
+        pass
+    
+    @abstractmethod
+    def distance(self, metric1:np.ndarray, metric2:np.ndarray) -> float:
+        pass

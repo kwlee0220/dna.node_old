@@ -77,7 +77,7 @@ class UltralyticsDetector(ObjectDetector):
         return [self._to_detection(pred.boxes[0], wh_ratio) for pred in result.boxes.cpu().numpy()]
 
     def _to_detection(self, pred:Boxes, wh_ratio:Tuple[float,float]) -> List[Detection]:
-        box = Box.from_tlbr(pred[:4] * np.array([wh_ratio[0], wh_ratio[1], wh_ratio[0], wh_ratio[1]]))
+        box = Box(pred[:4] * np.array([wh_ratio[0], wh_ratio[1], wh_ratio[0], wh_ratio[1]]))
         name = self.names[int(pred[5])]
         confi = pred[4]
         return Detection(box, name, confi)

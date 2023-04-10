@@ -3,15 +3,14 @@ from kafka import KafkaProducer
 from omegaconf import OmegaConf
 import logging
 
-from .types import KafkaEvent, TrackEvent
-from .event_processor import EventProcessor
+from .types import KafkaEvent
+from .event_processor import EventListener
 
 LOGGER = logging.getLogger("dna.node.event")
 
-class KafkaEventPublisher(EventProcessor):
-    def __init__(self, conf:OmegaConf) -> None:
-        EventProcessor.__init__(self)
 
+class KafkaEventPublisher(EventListener):
+    def __init__(self, conf:OmegaConf) -> None:
         try:
             self.producer = KafkaProducer(bootstrap_servers=conf.bootstrap_servers)
             self.topic = conf.topic
@@ -24,11 +23,12 @@ class KafkaEventPublisher(EventProcessor):
         super().close()
         self.producer.close(1)
 
-    def handle_event(self, ev: KafkaEvent) -> None:
-        key = ev.key()
-        value = ev.serialize()
-        self.producer.send(self.topic, value=value, key=key)
-        # print(value)
+    def handle_event(self, ev:KafkaEvent) -> None:
+        if isinstance(ev, KafkaEvent):
+            key = ev.key()
+            value = ev.serialize()
+            self.producer.send(self.topic, value=value, key=key.encode('utf-8'))
+            # print(value)
 
     def flush(self) -> None:
         self.producer.flush()

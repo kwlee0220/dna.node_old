@@ -114,8 +114,7 @@ class LogReadingDetector(ObjectDetector):
             return None
 
     def _parse_line(self, parts: List[str]) -> Detection:
-        tlbr = np.array(parts[2:6]).astype(float)
-        bbox = Box.from_tlbr(tlbr)
+        bbox = Box([float(v) for v in parts[2:6]])
         label: Optional[str] = parts[10] if len(parts) >= 11 else None
         score: float = float(parts[6])
         

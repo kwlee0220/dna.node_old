@@ -42,7 +42,7 @@ class Zone:
         return self.geom.covers(geom)
 
     def covers_point(self, pt:Union[Point,Tuple,npt.ArrayLike]) -> bool:
-        xy = pt.to_tuple() if isinstance(pt, Point) else tuple(pt)
+        xy = tuple(pt.xy) if isinstance(pt, Point) else tuple(pt)
         return self.geom.covers(geometry.Point(xy))
     
     def intersects(self, geom:BaseGeometry):
@@ -56,7 +56,7 @@ class Zone:
 
     def draw(self, convas:Image, color:BGR, line_thickness=2) -> Image:
         if isinstance(self.geom, geometry.LineString):
-            pts = [Point.from_np(coord) for coord in self.geom.coords]
+            pts = [Point(coord) for coord in self.geom.coords]
             return plot_utils.draw_line_string(convas, pts, color=color, line_thickness=line_thickness)
         else:
             return plot_utils.draw_polygon(convas, list(self.geom.exterior.coords), color=color, line_thickness=line_thickness)

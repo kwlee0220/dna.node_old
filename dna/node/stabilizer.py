@@ -116,7 +116,7 @@ class Stabilizer(EventProcessor):
     def handle_event(self, ev:Union[TrackEvent, TimeElapsed]) -> None:
         if isinstance(ev, TimeElapsed):
             self.pending_events.append(ev)
-            x, y = ev.world_coord.to_tuple()
+            x, y = tuple(ev.world_coord.xy)
             self.pending_xs.append(x)
             self.pending_ys.append(y)
             self.upper += 1

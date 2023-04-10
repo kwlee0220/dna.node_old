@@ -30,7 +30,7 @@ class PikaExecutionContext(ExecutionContext):
         started = {
             'id': self.request['id'],
             'state': 'STARTED',
-            'timestamp': dna.utils.utc_now(),
+            'timestamp': dna.utils.utc_now_millis(),
             'control_queue': self.control_qname
         }
         self.reply(started)
@@ -40,7 +40,7 @@ class PikaExecutionContext(ExecutionContext):
         progress = {
             'id': self.request['id'],
             'state': ExecutionState.RUNNING.name,
-            'timestamp': dna.utils.utc_now(),
+            'timestamp': dna.utils.utc_now_millis(),
             'progress': progress
         }
         self.reply(progress)
@@ -49,7 +49,7 @@ class PikaExecutionContext(ExecutionContext):
         completed = {
             'id': self.request['id'],
             'state': ExecutionState.COMPLETED.name,
-            'timestamp': dna.utils.utc_now(),
+            'timestamp': dna.utils.utc_now_millis(),
             'result': result
         }
         self.reply(completed)
@@ -59,7 +59,7 @@ class PikaExecutionContext(ExecutionContext):
         failed = {
             'id': self.request['id'],
             'state': ExecutionState.STOPPED.name,
-            'timestamp': dna.utils.utc_now(),
+            'timestamp': dna.utils.utc_now_millis(),
             'cause': details
         }
         self.reply(failed)
@@ -69,7 +69,7 @@ class PikaExecutionContext(ExecutionContext):
         failed = {
             'id': self.request['id'],
             'state': ExecutionState.FAILED.name,
-            'timestamp': dna.utils.utc_now(),
+            'timestamp': dna.utils.utc_now_millis(),
             'cause': cause
         }
         self.reply(failed)

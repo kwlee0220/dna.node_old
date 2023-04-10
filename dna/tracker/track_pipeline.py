@@ -8,7 +8,7 @@ import numpy as np
 import cv2
 
 from dna import plot_utils, color, Point, BGR, Image, Frame
-from .type import ObjectTrack, TrackState, ObjectTracker, TrackProcessor
+from .types import ObjectTrack, TrackState, ObjectTracker, TrackProcessor
 from . import utils
 
 
@@ -82,19 +82,18 @@ class TrailCollector(TrackProcessor):
 
 from dna.camera import ImageProcessor, FrameProcessor
 class TrackingPipeline(FrameProcessor):
-    __slots__ = ( 'tracker', 'trail_collector', 'track_processors', 'draw')
+    __slots__ = ( 'tracker', '_trail_collector', '_track_processors', 'draw')
 
-    def __init__(self, tracker:ObjectTracker, processors:List[TrackProcessor]=[], draw:List[str]=[]) -> None:
+    def __init__(self, tracker:ObjectTracker, draw:List[str]=[]) -> None:
         super().__init__()
 
         self.tracker = tracker
-        self.trail_collector = TrailCollector()
-        self.track_processors = processors + [self.trail_collector]
+        self._trail_collector = TrailCollector()
+        self._track_processors = [self._trail_collector]
         self.draw = draw
 
     @staticmethod
-    def load(img_proc:ImageProcessor, tracker_conf:OmegaConf,
-             track_processors:List[TrackProcessor]=[]) -> TrackingPipeline:
+    def load(tracker_conf:OmegaConf) -> TrackingPipeline:
         tracker_uri = tracker_conf.get("uri", "dna.tracker")
         parts = tracker_uri.split(':', 1)
         id, query = tuple(parts) if len(parts) > 1 else (tracker_uri, "")
@@ -102,21 +101,24 @@ class TrackingPipeline(FrameProcessor):
         import importlib
         tracker_module = importlib.import_module(id)
         tracker = tracker_module.load_dna_tracker(tracker_conf)
+        
+        draw = tracker_conf.get("draw", [])
+        tracking_pipeline = TrackingPipeline(tracker=tracker, draw=draw)
 
-        draw = img_proc.is_drawing() and tracker_conf.get("draw", [])
-
-        output = tracker_conf.get("output", None)
-        if output is not None:
-            track_processors = [TrackCsvWriter(output)] + track_processors
+        if output := tracker_conf.get("output", None):
+            tracking_pipeline.add_track_processor(TrackCsvWriter(output))
             
-        return TrackingPipeline(tracker=tracker, processors=track_processors, draw=draw)
+        return tracking_pipeline
+        
+    def add_track_processor(self, proc:TrackProcessor) -> None:
+        self._track_processors.append(proc)
 
     def on_started(self, capture) -> None:
-        for processor in self.track_processors:
+        for processor in self._track_processors:
             processor.track_started(self.tracker)
 
     def on_stopped(self) -> None:
-        for processor in self.track_processors:
+        for processor in self._track_processors:
             processor.track_stopped(self.tracker)
 
     def set_control(self, key:int) -> int:
@@ -143,7 +145,7 @@ class TrackingPipeline(FrameProcessor):
     def process_frame(self, frame:Frame) -> Frame:
         tracks = self.tracker.track(frame)
 
-        for processor in self.track_processors:
+        for processor in self._track_processors:
             processor.process_tracks(self.tracker, frame, tracks)
 
         if self.draw:
@@ -188,5 +190,5 @@ class TrackingPipeline(FrameProcessor):
         convas = track.draw(convas, color, label_color=label_color, line_thickness=line_thickness)
 
         if trail_color:
-            trail = self.trail_collector.get_trail(track.id)
+            trail = self._trail_collector.get_trail(track.id)
             return trail.draw(convas, trail_color, line_thickness=line_thickness)

@@ -30,3 +30,7 @@ psutil
 
 # PostgreSQL
 psycopg2
+
+# matchine-learning
+scikit-learn
+matplotlib

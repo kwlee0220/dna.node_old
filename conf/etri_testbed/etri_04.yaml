@@ -7,7 +7,9 @@ camera:
   # uri: data/2022/etri_041.mp4
   sync: False
   # begin_frame: 70
-  # end_frame: 160
+  # end_frame: 300
+  # open_ts: 590
+  open_ts: 0
 
 tracker:
   draw: ["tracks", "track_zones"]
@@ -20,29 +22,49 @@ tracker:
     - [1177, 323, 1255, 401]  # 7동쪽 방향
     - [[432, 824], [218, 644], [3, 694], [4, 1076], [120, 1072]]
 
+sql_connection: &postgresql_connection
+  host: localhost
+  port: 5432
+  dbname: dna
+  user: dna
+  password: urc2004
+
+local_kafka_connection: &local_kafka_connection
+  bootstrap_servers: [localhost:9092]
+dna_kafka_connection: &dna_kafka_connection
+  bootstrap_servers: [kafka01:9092, kafka02:9092, kafka03:9092]
+
 publishing:
-  tick_interval: 1.0
+  # tick_interval: 1.0
   refine_tracks:
-    buffer_size: 20
-    buffer_timeout: 3.0
-  min_path_length: 10
+    buffer_size: 10
+    buffer_timeout: 1.5
+  # min_path_length: 10
   attach_world_coordinates:
     camera_geometry: regions/etri_testbed/etri_testbed.json
     camera_index: 0
-  order_by_frame_index:
-    max_pending_frames: 10
-    timeout: 3.0
-  plugins:
-    zone_pipeline:
-      zones:
-        A: [[973, 378], [1018, 372], [1031, 323], [973, 378]]
-        B: [[1159, 401], [1139, 394], [1119, 336], [1159, 401]]
-        C: [[1199, 409], [909, 374], [20, 645], [22, 1012], [1089, 1024], [1199, 409]]
+  zone_pipeline:
+    zones:
+      A: [[973, 378], [1018, 372], [1031, 323], [973, 378]]
+      B: [[1159, 401], [1139, 394], [1119, 336], [1159, 401]]
+      C: [[1199, 409], [909, 374], [20, 645], [22, 1012], [1089, 1024], [1199, 409]]
+    motions:
+      'AB': 'AB'
+      'AC': 'AC'
+      'BA': 'BA'
+      'BC': 'BC'
+      'CA': 'CA'
+      'CB': 'CB'
 
-motions:
-    'AB': 'AB'
-    'AC': 'AC'
-    'BA': 'BA'
-    'BC': 'BC'
-    'CA': 'CA'
-    'CB': 'CB'
+  plugins:
+    publish_tracks:
+      <<: *local_kafka_connection
+      topic: 'track-events'
+    publish_motions:
+      <<: *local_kafka_connection
+      topic: 'track-motions'
+    publish_features:
+      distinct_distance: 0.2
+      min_crop_size: 80x40
+      <<: *local_kafka_connection
+      topic: 'track-features'
