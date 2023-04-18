@@ -1,13 +1,17 @@
 
+import logging
+import argparse
 from omegaconf import OmegaConf
 
-import dna
-from dna.conf import load_node_conf, get_config
-from dna.node.node_processor import PikaNodeExecutionFactory
+from dna import config, initialize_logger
+from dna.node.pika.pika_execution import PikaExecutionFactory, PikaConnector
+from dna.node.pika.pika_execution_server import PikaExecutionServer
 
-import argparse
+LOGGER = logging.getLogger('dna.node.pika')
+
+
 def parse_args():
-    parser = argparse.ArgumentParser(description="Detect Objects in a video file")
+    parser = argparse.ArgumentParser(description="Run a node processor.")
     parser.add_argument("--host", "-i", metavar="broker host", help="RabbitMQ broker host", default="localhost")
     parser.add_argument("--port", "-p", metavar="broker port", help="RabbitMQ broker port", default=5672)
     parser.add_argument("--user", "-u", metavar="broker user", help="RabbitMQ broker user id", default="dna")
@@ -29,14 +33,15 @@ def parse_args():
 def main():
     args, _ = parse_args()
 
-    dna.initialize_logger(args.logger)
-    conf, db_conf, args_conf = load_node_conf(args)
+    initialize_logger(args.logger)
 
-    conn_params = dna.PikaConnectionParameters(host=args.host, port=args.port,
-                                               user_id=args.user, password=args.password)
-    server = dna.PikaExecutionServer(conn_params=conn_params,
-                                     execution_factory=PikaNodeExecutionFactory(db_conf=db_conf, show=args.show),
-                                     request_qname=args.request_qname)
+    connector = PikaConnector(host=args.host, port=args.port,
+                              user_id=args.user, password=args.password)
+    fact = PikaExecutionFactory(config_root='conf/etri_testbed', show=args.show)
+    server = PikaExecutionServer(connector=connector,
+                                 execution_factory=fact,
+                                 request_qname=args.request_qname,
+                                 logger=LOGGER)
     server.run()
 
 if __name__ == '__main__':

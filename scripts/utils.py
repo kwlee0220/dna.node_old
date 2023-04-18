@@ -1,13 +1,27 @@
+from __future__ import annotations
 
+from typing import Any, Dict
+
+from argparse import Namespace
 from omegaconf import OmegaConf
 
-from dna.conf import get_config
+from dna import config
 
 
-def load_camera_conf(conf: OmegaConf, args_conf: OmegaConf) -> OmegaConf:
-    conf.uri = get_config(args_conf, "camera", conf.get("uri"))
-    conf.begin_frame = get_config(args_conf, "begin_frame", conf.get("begin_frame"))
-    conf.end_frame = get_config(args_conf, "end_frame", conf.get("end_frame"))
-    conf.sync = get_config(args_conf, "sync", conf.get("sync"))
-
+def load_camera_conf(args:Dict[str,Any]|Namespace) -> OmegaConf:
+    if isinstance(args, Namespace):
+        args = vars(args)
+    
+    conf = OmegaConf.create()
+    if (v := args.get("camera", None)):
+        conf.uri = v
+    if (v := args.get("begin_frame", None)):
+        conf.begin_frame = v
+    if (v := args.get("end_frame", None)):
+        conf.end_frame = v
+    if (v := args.get("sync", None)) is not None:
+        conf.sync = v
+    if (v := args.get("nosync", None)) is not None:
+        conf.sync = not v
+        
     return conf

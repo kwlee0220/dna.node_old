@@ -11,8 +11,7 @@ from . import ObjectDetector, Detection
 class DetectingProcessor(FrameProcessor):
     __slots__ = 'detector', 'draw_detections', 'box_color', 'label_color', 'show_score', 'output', 'out_fp'
     
-    def __init__(self,
-                detector:ObjectDetector,
+    def __init__(self, detector:ObjectDetector, *,
                 output: Optional[str]=None,
                 draw_detections: bool=False):
         self.detector = detector
@@ -24,7 +23,7 @@ class DetectingProcessor(FrameProcessor):
         self.out_fp = None
 
     @staticmethod
-    def load(detector_uri:str, output: Optional[Path]=None, draw_detections: bool=False) -> DetectingProcessor:
+    def load(detector_uri:str, *, output: Optional[Path]=None, draw_detections: bool=False) -> DetectingProcessor:
         if not detector_uri:
             raise ValueError(f"detector id is None")
 

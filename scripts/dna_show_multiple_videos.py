@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 from dna import initialize_logger, Size2d, color, Frame, Image, Box
-from dna.camera import create_camera, ImageCapture
+from dna.camera import Camera, ImageCapture, create_opencv_camera
 
 
 import argparse
@@ -59,11 +59,13 @@ class MultipleCameraConvas:
         
     def draw(self, idx:int) -> bool:
         frame = self.last_frames[idx]
+        roi = self.rois[idx]
         if frame is not None:
-            self.rois[idx].copy(self.draw_frame_index(idx, frame.image.copy()), self.convas)
+            image = self.draw_frame_index(idx, frame.image.copy())
+            roi.update_roi(self.convas, image)
             return True
         else:
-            self.rois[idx].copy(self.blank_image, self.convas)
+            roi.update_roi(self.convas, self.blank_image)
             return False
 
     def draw_frame_index(self, idx:int, image: Image) -> Image:
@@ -99,10 +101,13 @@ def main():
     else:
         begin_frames = [0] * len(args.video_uris)
 
-    camera_list = [create_camera(uri, begin_frame=begin_frames[idx]) for idx, uri in enumerate(args.video_uris)]
-    size:Size2d = (camera_list[0].size() * 0.7).to_rint()
-    # size:Size2d = camera_list[0].size().to_rint()
-    camera_list = [camera.resize(size) for camera in camera_list]
+    size:Size2d = None
+    camera_list:List[Camera] = []
+    for idx, uri in enumerate(args.video_uris):
+        camera = create_opencv_camera(uri, begin_frame=begin_frames[idx])
+        if idx == 0:
+            size = (camera.size * 0.6).to_rint()
+        camera_list.append(camera.resize(size))
 
     with multi_camera_context(camera_list) as caps:
         display:MultipleCameraConvas = MultipleCameraConvas(caps)

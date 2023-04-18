@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Union, Tuple, Any
+from typing import List, Union, Tuple, Any, Optional
 
 import numbers
 import logging
@@ -15,7 +15,7 @@ from .types import TrackDeleted, LineTrack, ZoneRelation, ZoneEvent
 
 
 class ZoneEventGenerator(EventProcessor):
-    def __init__(self, named_zones:OmegaConf, logger:logging.Logger) -> None:
+    def __init__(self, named_zones:OmegaConf, *, logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
         self.zones = {str(zid):Zone.from_coords(zone_expr, as_line_string=True) for zid, zone_expr in named_zones.items()}
         self.logger = logger
@@ -46,7 +46,7 @@ class ZoneEventGenerator(EventProcessor):
             self._publish_event(ZoneEvent.UNASSIGNED(line_track))
         elif len(zone_events) == 1:
             # 가장 흔한 케이스로 1개의 zone과 연관된 경우는 바로 해당 event를 발송
-            if self.logger.isEnabledFor(logging.DEBUG):
+            if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                 if rel == ZoneRelation.Entered or rel == ZoneRelation.Left:
                     self.logger.debug(f'{zone_events[0]}')
             self._publish_event(zone_events[0])
@@ -58,7 +58,7 @@ class ZoneEventGenerator(EventProcessor):
             left_idxes = [idx for idx, zone_ev in enumerate(zone_events) if zone_ev.relation == ZoneRelation.Left]
             for idx in left_idxes:
                 left_event = zone_events.pop(idx)
-                if self.logger.isEnabledFor(logging.DEBUG):
+                if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'{left_event}')
                 self._publish_event(left_event)
 
@@ -80,7 +80,7 @@ class ZoneEventGenerator(EventProcessor):
 
             # 마지막으로 enter event가 존재하는가 확인하여 이들을 발송함.
             for enter_ev in enter_events:
-                if self.logger.isEnabledFor(logging.DEBUG):
+                if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'{enter_ev}')
                 self._publish_event(enter_ev)
         

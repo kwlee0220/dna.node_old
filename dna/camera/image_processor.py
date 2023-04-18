@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Any
 from abc import ABCMeta, abstractmethod
 from contextlib import suppress
 
@@ -9,17 +9,14 @@ import time
 from datetime import timedelta
 
 import numpy as np
-
 from omegaconf import OmegaConf
 from tqdm import tqdm
 import cv2
 
-from dna import color, Frame
-from dna.types import Size2d
+from dna import color, Frame, utils, Size2d
 from .camera import ImageCapture
-from dna.execution import AbstractExecution, ExecutionContext, NoOpExecutionContext, CancellationError
+from dna.execution import AbstractExecution, ExecutionContext, CancellationError
 
-import logging
 
 class FrameProcessor(metaclass=ABCMeta):
     @abstractmethod
@@ -40,8 +37,8 @@ class FrameProcessor(metaclass=ABCMeta):
 
 class ImageProcessor(AbstractExecution):
     __ALPHA = 0.2
-    __slots__ = ('capture', 'conf', 'frame_processors', 'suffix_processors', 'show_processor',
-                 '_is_drawing', 'fps_measured', 'logger', 'cond', 'ready')
+    __slots__ = ('capture', 'frame_processors', 'suffix_processors', 'show_processor',
+                 'is_drawing', 'fps_measured', 'logger', 'cond', 'ready')
 
     from dataclasses import dataclass
     @dataclass(frozen=True)    # slots=True
@@ -57,40 +54,42 @@ class ImageProcessor(AbstractExecution):
                     f"fps={self.fps_measured:.1f}")
 
 
-    def __init__(self, cap: ImageCapture, conf: OmegaConf, context: ExecutionContext=NoOpExecutionContext()):
+    def __init__(self, cap:ImageCapture, *,
+                 show:Optional[str|Size2d|bool]=False,
+                 output_video:Optional[str]=None,
+                 show_progress:bool=False,
+                 context:Optional[ExecutionContext]=None):
         super().__init__(context=context)
         
         self.capture = cap
-        self.conf = conf
         self.frame_processors: List[FrameProcessor] = []
         self.suffix_processors: List[FrameProcessor] = []
 
         self.show_processor:ShowFrame = None
-        output_video:str = conf.get("output_video", None)
         
-        show_str:str = conf.get("show", None)
-        show:Optional[Size2d] = Size2d.parse_string(show_str) if show_str is not None else None
+        def parse_show(show) -> Size2d:
+            if isinstance(show, bool):
+                return cap.size if show else None
+            else:
+                return Size2d.from_expr(show)
+        show = parse_show(show)
 
-        self._is_drawing:bool = show or output_video
-        if self._is_drawing:
+        self.is_drawing:bool = show is not None or output_video is not None
+        if self.is_drawing:
             self.suffix_processors.append(DrawFrameTitle())
-
         if output_video:
             self.suffix_processors.append(ImageWriteProcessor(Path(output_video)))
 
         if show:
-            window_name = f'camera={conf.camera.uri}'
+            window_name = f'camera={cap.camera.uri}'
             self.show_processor = ShowFrame(window_name, tuple(show.wh) if show else None)
             self.suffix_processors.append(self.show_processor)
 
-        if not isinstance(context, NoOpExecutionContext):
-            import dna
-            interval = int(dna.conf.get_config(context.request, "progress_report.interval_seconds", 60))
-            self.suffix_processors.append(ExecutionProgressReporter(context, interval_secs=interval))
-
-        show_progress:bool = conf.get("show_progress", False)
         if show_progress:
-            self.suffix_processors.append(ShowProgress(self.capture.total_frame_count))
+            # 카메라 객체에 'begin_frame' 속성과 'end_frame' 속성이 존재하는 경우에만 ShowProgress processor를 추가한다.
+            camera = self.capture.camera
+            if hasattr(camera, 'begin_frame') and hasattr(camera, 'end_frame') and hasattr(self.capture, 'total_frame_count'):
+                self.suffix_processors.append(ShowProgress())
 
         self.fps_measured = 0.
         self.logger = logging.getLogger('dna.image_processor')
@@ -99,9 +98,6 @@ class ImageProcessor(AbstractExecution):
         
     def close(self) -> None:
         self.stop("close requested", nowait=True)
-
-    def is_drawing(self) -> None:
-        return self._is_drawing
 
     def add_frame_processor(self, frame_proc: FrameProcessor) -> None:
         self.frame_processors.append(frame_proc)
@@ -145,12 +141,14 @@ class ImageProcessor(AbstractExecution):
                 # 전체 image-processor의 수행이 중단된다.
                 for fproc in processors:
                     frame = fproc.process_frame(frame)
-                    if frame is None: break
+                    if frame is None:
+                        self.stop(nowait=True)
+                        break
                 if frame is None: break
 
                 elapsed = time.time() - started
                 fps = 1 / (elapsed / capture_count)
-                weight = ImageProcessor.__ALPHA if capture_count > 50 else 0.7
+                weight = ImageProcessor.__ALPHA if capture_count > 100 else 0.9
                 self.fps_measured = weight*fps + (1-weight)*self.fps_measured
         except CancellationError as e:
             failure_cause = e
@@ -166,31 +164,11 @@ class ImageProcessor(AbstractExecution):
                     self.logger.error(e, exc_info=True)
 
         return ImageProcessor.Result(time.time()-started, capture_count, self.fps_measured, failure_cause)
+                
+    def stop_work(self) -> None: pass
 
     def finalize(self) -> None:
         self.capture.close()
-
-
-class ExecutionProgressReporter(FrameProcessor):
-    def __init__(self, context: ExecutionContext, interval_secs: int) -> None:
-        super().__init__()
-        self.ctx = context
-        self.report_interval = interval_secs
-
-    def on_started(self, proc:ImageProcessor) -> None:
-        self.next_report_time = time.time() + self.report_interval
-
-    def on_stopped(self) -> None: pass
-
-    def process_frame(self, frame:Frame) -> Optional[Frame]:
-        now = time.time()
-        if now >= self.next_report_time:
-            progress = {
-                'frame_index': frame.index
-            }
-            self.ctx.report_progress(progress)
-            self.next_report_time += self.report_interval
-        return frame
 
 class DrawFrameTitle(FrameProcessor):
     def on_started(self, proc:ImageProcessor) -> None:
@@ -201,6 +179,7 @@ class DrawFrameTitle(FrameProcessor):
         convas = cv2.putText(frame.image, f'frames={frame.index}, fps={self.proc.fps_measured:.2f}',
                             (10, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, color.RED, 2)
         return Frame(image=convas, index=frame.index, ts=frame.ts)
+
 
 class ShowFrame(FrameProcessor):
     _PAUSE_MILLIS = int(timedelta(hours=1).total_seconds() * 1000)
@@ -254,16 +233,20 @@ class ShowFrame(FrameProcessor):
 
 
 class ShowProgress(FrameProcessor):
-    __slots__ = ( 'total_frame_count', 'last_frame_index', 'tqdm' )
+    __slots__ = ( 'begin_frame_index', 'last_frame_index', 'tqdm' )
     
-    def __init__(self, total_frame_count: int) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.total_frame_count = total_frame_count
+        
+        self.begin_frame_index = -1
         self.last_frame_index = -1
         self.tqdm = None
 
     def on_started(self, proc:ImageProcessor) -> None:
-        pass
+        camera = proc.capture.camera
+        self.begin_frame_index = camera.begin_frame
+        end_frame_index = camera.end_frame if camera.end_frame is not None else proc.capture.total_frame_count+1
+        self.tqdm = tqdm(total=end_frame_index-1)
 
     def on_stopped(self) -> None:
         with suppress(Exception):
@@ -271,9 +254,8 @@ class ShowProgress(FrameProcessor):
             self.tqdm = None
 
     def process_frame(self, frame:Frame) -> Optional[Frame]:
-        if not self.tqdm:
+        if self.last_frame_index < 0:
             self.last_frame_index = 0
-            self.tqdm = tqdm(total=self.total_frame_count)
         
         self.tqdm.update(frame.index - self.last_frame_index)
         self.tqdm.refresh()

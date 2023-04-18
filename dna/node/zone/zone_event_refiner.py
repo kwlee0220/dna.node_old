@@ -26,7 +26,7 @@ class TrackLocations:
 class ZoneEventRefiner(EventProcessor):
     __slots__ = ('locations', 'location_event_queue', 'logger')
 
-    def __init__(self, logger:logging.Logger) -> None:
+    def __init__(self, *, logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
 
         self.locations:Dict[str,TrackLocations]=dict()
@@ -43,7 +43,7 @@ class ZoneEventRefiner(EventProcessor):
         elif isinstance(ev, TrackDeleted):
             self.handle_track_deleted(ev)
         else:
-            if self.logger.isEnabledFor(logging.DEBUG):
+            if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                 self.logger.debug(f'unknown event: {ev}')
         
     def handle_zone_event(self, zone_ev:ZoneEvent) -> None:
@@ -54,7 +54,7 @@ class ZoneEventRefiner(EventProcessor):
             if located_zones:
                 # 이전에 소속되었던 모든 zone에 대해 Left event를 발생시킨다.
                 for zid in located_zones:
-                    if self.logger.isEnabledFor(logging.DEBUG):
+                    if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                         self.logger.debug(f'generate a LEFT(track={zone_ev.track_id}, zone={zone_ev.zone_id}, frame={zone_ev.frame_index})')
                     self.publish_left(zone_ev, zone_id=zid) 
                 self.update_zone_locations(track_id=zone_ev.track_id,
@@ -63,7 +63,7 @@ class ZoneEventRefiner(EventProcessor):
         elif zone_ev.relation == ZoneRelation.Left:
             # 추적 물체가 해당 zone에 포함되지 않은 상태면, 먼저 해당 물체를 zone 안에 넣는 event를 추가한다.
             if zone_ev.zone_id not in located_zones:
-                if self.logger.isEnabledFor(logging.DEBUG):
+                if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'generate a ENTERED(track={zone_ev.track_id}, zone={zone_ev.zone_id}, frame={zone_ev.frame_index})')
                 self.publish_entered(zone_ev)
                 self.enter_zone(zone_ev)
@@ -74,13 +74,13 @@ class ZoneEventRefiner(EventProcessor):
                 self._publish_event(zone_ev)
                 self.enter_zone(zone_ev)
             else:
-                if self.logger.isEnabledFor(logging.WARN):
+                if self.logger and self.logger.isEnabledFor(logging.WARN):
                     self.logger.warn(f'ignore a ENTERED(track={zone_ev.track_id}, zone={zone_ev.zone_id}, frame={zone_ev.frame_index})')
         elif zone_ev.relation == ZoneRelation.Inside:
             if zone_ev.zone_id not in located_zones:
                 # 첫번째 등장할 때 이미 한 zone에 있는 상태에서, 다음 frame에서도 동일 zone 안에 있으면
                 # 해당 물체의 첫번째 zone event가 Inside가 된다. 이때는 enter event를 먼저 발생시킨다.
-                if self.logger.isEnabledFor(logging.DEBUG):
+                if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'generate a ENTERED(track={zone_ev.track_id}, zone={zone_ev.zone_id}, frame={zone_ev.frame_index})')
                 self.publish_entered(zone_ev)
                 self.enter_zone(zone_ev)
@@ -88,7 +88,7 @@ class ZoneEventRefiner(EventProcessor):
         elif zone_ev.relation == ZoneRelation.Through:
             if zone_ev.zone_id in located_zones:
                 self.leave_zone(zone_ev)
-                if self.logger.isEnabledFor(logging.DEBUG):
+                if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'replace the THROUGH(track={zone_ev.track_id}, zone={zone_ev.zone_id}) with '
                                       f'a LEFT(track={zone_ev.track_id}, zone={zone_ev.zone_id}, frame={zone_ev.frame_index})')
                 self.publish_left(zone_ev)
@@ -105,7 +105,7 @@ class ZoneEventRefiner(EventProcessor):
         # if zone_ids:
         #     for zid in zone_ids.copy():
         #         self.leave_zone(ev, zone_id=zid)
-        #         if self.logger.isEnabledFor(logging.DEBUG):
+        #         if self.logger and self.logger.isEnabledFor(logging.DEBUG):
         #             self.logger.debug(f'generate a LEFT(track={track_id}, zone={zid}, frame={ev.frame_index})')
         #         self.publish_left(ev, zone_id=zid)
         

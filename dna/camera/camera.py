@@ -1,43 +1,18 @@
 from __future__ import annotations
 
-from typing import Optional, Union
-from dataclasses import dataclass, field
+from typing import Optional
 from abc import ABCMeta, abstractmethod
 
-from omegaconf import OmegaConf
-import numpy as np
-
-import dna
 from dna import Size2d, Frame
-
-
-# @dataclass(frozen=True, eq=True)    # slots=True
-# class Parameters:
-#     uri: Union[str,int] = field(default=None)
-#     size: Optional[Size2d] = field(default=None)
-#     sync: bool = field(default=False)
-#     begin_frame: int = field(default=1)
-#     end_frame: Optional[int] = field(default=None)
-#     threaded: bool = field(default=False)
-
-#     @staticmethod
-#     def from_conf(cls, conf:OmegaConf):
-#         uri = conf.uri
-#         size = conf.get('size', None)
-#         size = Size2d.from_conf(size) if size is not None else size
-#         sync = conf.get("sync", False)
-#         begin_frame = conf.get("begin_frame", 1)
-#         end_frame = conf.get("end_frame", None)
-#         threaded = conf.get("threaded", False)
-        
-#         return Parameters(uri=uri, size=size, sync=sync, begin_frame=begin_frame, end_frame=end_frame,
-#                           threaded=threaded)
 
 
 class Camera(metaclass=ABCMeta):
     @abstractmethod
     def open(self) -> ImageCapture:
-        """Opens a camera
+        """Open this camera.
+
+        Returns:
+            ImageCapture: an ImageCapture object that captures images from this camera.
         """
         pass
 
@@ -47,16 +22,17 @@ class Camera(metaclass=ABCMeta):
         """Returns the URI of this Camera.
 
         Returns:
-            Parameters: camera URI
+            str: URI of this camera.
         """
         pass
 
+    @property
     @abstractmethod
     def size(self) -> Size2d:
-        """Returns the image size captured from this Camera.
+        """The image size captured from this Camera.
 
         Returns:
-            Parameters: the image size captured from this Camera
+            Size2d: the image size captured from this Camera
         """
         pass
 
@@ -92,9 +68,20 @@ class ImageCapture(metaclass=ABCMeta):
     @abstractmethod
     def __call__(self) -> Optional[Frame]:
         """Captures an OpenCV image frame.
+        If it fails to capture an image, this method returns None.
 
         Returns:
             Frame: captured image frame.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def camera(self) -> Camera:
+        """Returns source camera object that this capture is from.
+
+        Returns:
+            Camera: a camera object.
         """
         pass
 
@@ -121,7 +108,7 @@ class ImageCapture(metaclass=ABCMeta):
     @property
     @abstractmethod
     def frame_index(self) -> int:
-        """Returns the total count of images this ImageCapture captures so far.
+        """Returns the total count of images this ImageCapture has captured so far.
 
         Returns:
             int: The number of frames

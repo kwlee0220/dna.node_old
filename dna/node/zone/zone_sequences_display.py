@@ -8,10 +8,11 @@ import heapq
 from dna import Frame, Box, color
 from dna.camera import FrameProcessor, ImageProcessor
 from dna.tracker import TrackState
-from dna.node import EventQueue, EventListener, TrackEvent
-from dna.node.zone import ResidentChanged
-from dna.node.zone.resident_changes import ResidentChanges
-from dna.node.zone.motion_detector import Motion
+from ..types import TrackEvent
+from ..event_processor import EventQueue, EventListener
+from .types import ResidentChanged
+from .resident_changes import ResidentChanges
+from .motion_detector import Motion
 
 
 class ZoneSequenceDisplay(FrameProcessor,EventListener):

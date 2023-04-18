@@ -1,7 +1,10 @@
 import json
+
+from dna import config
 from dna.execution import ExecutionState
 
-from dna.pika_execution import PikaExecutionClient, PikaConnectionParameters
+from dna.node.pika.pika_execution import PikaConnector
+from dna.node.pika.pika_execution_client import PikaExecutionClient
 
 
 import argparse
@@ -25,12 +28,17 @@ def main():
     with open(args.req_message, 'r') as file:
         json_str = file.read()
         
-    conn_params = PikaConnectionParameters(host=args.host, port=args.port,
-                                            user_id=args.user, password=args.password)
-    client = PikaExecutionClient(conn_params=conn_params, request_qname=args.request_qname,
-                                progress_handler=lambda x: print(x))
-    result = client.call(json_str)
-    print("done:", result)
+    connector = PikaConnector(host=args.host, port=args.port, user_id=args.user, password=args.password)
+    client = PikaExecutionClient(connector=connector, request_qname=args.request_qname)
+    try:
+        client.start(json_str)
+        for resp in client.report_progress():
+            resp = config.to_conf(resp)
+            print(resp)
+            # if resp.state == 'RUNNING' and resp.progress.frame_index >= 40:
+            #     client.stop(resp.id, 'timeout')
+    finally:
+        client.close()
 
 if __name__ == '__main__':
 	main()

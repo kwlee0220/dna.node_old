@@ -6,7 +6,8 @@ import logging
 from collections import defaultdict
 from pathlib import Path
 
-from dna.node import TrackEvent, TimeElapsed, EventProcessor, EventListener, EventQueue
+from .types import TrackEvent, TimeElapsed
+from .event_processor import EventProcessor, EventListener, EventQueue
 
 
 class PrintEvent(EventListener):
@@ -25,12 +26,13 @@ class EventRelay(EventListener):
         self.target._publish_event(ev)
 
 class GroupByFrameIndex(EventProcessor):
-    def __init__(self, max_pending_frames:int, timeout:float) -> None:
+    def __init__(self, max_pending_frames:int, timeout:float, *, logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
 
         self.groups:Dict[int,List[TrackEvent]] = defaultdict(list)
         self.max_pending_frames = max_pending_frames
         self.timeout = int(round(timeout * 1000))
+        self.logger = logger
     
     def close(self) -> None:
         while self.groups:

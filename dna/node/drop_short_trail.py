@@ -4,7 +4,7 @@ from typing import List, Dict, Set, Union
 from collections import defaultdict
 
 from dna.tracker import TrackState
-from dna.node import TrackEvent, TimeElapsed, TrackId
+from .types import TrackEvent, TimeElapsed, TrackId
 from .event_processor import EventProcessor
 
 import logging

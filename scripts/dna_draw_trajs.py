@@ -8,8 +8,7 @@ import cv2
 from omegaconf import OmegaConf
 
 from dna import Box, Image, BGR, color, Frame, Point
-from dna.camera import Camera
-from dna.camera.utils import create_camera_from_conf
+from dna.camera import create_opencv_camera_from_conf
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
 from dna.node import stabilizer
 from dna.node.utils import read_tracks_json, read_tracks_csv
@@ -41,7 +40,7 @@ def load_video_image(video_file:str, frame_no:int) -> Image:
     camera_conf = OmegaConf.create()
     camera_conf.uri = video_file
     camera_conf.begin_frame = frame_no
-    camera:Camera = create_camera_from_conf(camera_conf)
+    camera = create_opencv_camera_from_conf(camera_conf)
     with closing(camera.open()) as cap:
         frame:Frame = cap()
         return frame.image if frame is not None else None

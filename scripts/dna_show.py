@@ -4,9 +4,8 @@ from omegaconf import OmegaConf
 import sys
 
 import dna
-from dna.conf import load_node_conf, get_config
-from dna.camera import Camera, ImageProcessor
-from dna.camera.utils import create_camera_from_conf
+from dna import config, initialize_logger
+from dna.camera import ImageProcessor, create_opencv_camera_from_conf
 from scripts.utils import load_camera_conf
 
 
@@ -16,7 +15,8 @@ def parse_args():
     parser.add_argument("--conf", metavar="file path", help="configuration file path")
     
     parser.add_argument("--camera", metavar="uri", default=argparse.SUPPRESS, help="target camera uri")
-    parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number", default=1)
+    parser.add_argument("--begin_frame", type=int, metavar="number", default=argparse.SUPPRESS,
+                        help="the first frame number")
     parser.add_argument("--end_frame", type=int, metavar="number", default=argparse.SUPPRESS,
                         help="the last frame number")
     parser.add_argument("--nosync", action='store_true')
@@ -30,16 +30,20 @@ def parse_args():
 def main():
     args, _ = parse_args()
 
-    dna.initialize_logger(args.logger)
-    conf, _, args_conf = load_node_conf(args, ['show'])
+    initialize_logger(args.logger)
+    
+    # argument에 기술된 conf를 사용하여 configuration 파일을 읽는다.
+    conf = config.load(args.conf) if args.conf else OmegaConf.create()
     
     # 카메라 설정 정보 추가
-    conf.camera = load_camera_conf(get_config(conf, "camera", OmegaConf.create()), args_conf)
-    conf.camera.sync = not args.nosync
-    camera = create_camera_from_conf(conf.camera)
+    config.update(conf, 'camera', load_camera_conf(args))
+    camera = create_opencv_camera_from_conf(conf.camera)
+
+    # args에 포함된 ImageProcess 설정 정보를 추가한다.
+    config.update_values(conf, args, 'show')
 
     while True:
-        img_proc = ImageProcessor(camera.open(), conf)
+        img_proc = ImageProcessor(camera.open(), show=conf.show)
         result: ImageProcessor.Result = img_proc.run()
         if not args.loop or result.failure_cause is not None:
             break

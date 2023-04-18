@@ -11,9 +11,9 @@
             "args": [
                 // "--host", "localhost",
                 // "--user", "dna",
-                "--password", "urc2004",
-                "--request_qname", "track_requests",
-                "--show",   // -s
+                // "--password", "urc2004",
+                // "--request_qname", "track_requests",
+                // "--show",   // -s
             ],
             "justMyCode": true
         },
@@ -27,8 +27,8 @@
                 // "--conf", "conf/ai_city/ai_city_t3_c01.yaml",
                 "--output", "D:/Temp/dna.node_output/etri_041_event.json",   // -o <file>
                 "--output_video", "D:/Temp/dna.node_output/etri_041_track.mp4",   // -v <file>
-                // "--begin_frame", "1000",
-                // "--end_frame", "1000",
+                // "--begin_frame", "4000",
+                // "--end_frame", "4100",
                 "--show", //"1280x720",
                 // "--show_progress",  // -p
             ],
@@ -45,7 +45,7 @@
                 // "--conf", "conf/ai_city/ai_city_09.yaml",
                 // "--output", "output/etri_07_2021.csv",   // -o <file>
                 // "--output_video", "output/etri_041.mp4",   // -v <file>
-                // "--show", //"1280x720",
+                "--show", //"1280x720",
                 // "--show_progress",  // -p
                 // "--pause_on_eos",    // -k
             ],
@@ -61,7 +61,7 @@
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 // "--detector", "dna.detect.yolov4:score=0.1",
                 // "--detector", "dna.detect.rcnn50_fpn",
-                "--detector", "dna.detect.rcnn50_fpn_v2",
+                // "--detector", "dna.detect.rcnn50_fpn_v2",
                 // "--detector", "dna.detect.yolov5:model=l6&score=0.1",
                 // "--detector", "file:${env:HOME}/Dropbox/data/etri/etri_051_det.txt",
                 // "--output", "output/2022/etri_04_det.csv",   // -o <file>
@@ -78,11 +78,13 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "--conf", "conf/etri_testbed/etri_04.yaml",
+                // "--camera", "data/2022/crops/etri_041_crop.mp4",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/5/media.smp",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",
-                "--show", //"1280x720",
+                // "--nosync",
+                // "--show", //"1280x720",
             ],
             "justMyCode": true
         },
@@ -205,7 +207,7 @@
             "program": "${workspaceFolder}/scripts/dna_tracklet.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                // "format", "-f",
+                "format", "-f",
                 // "upload",
                 //     "output/2023/etri_04_event.json",
                 //     "output/2023/etri_05_event.json",
@@ -213,8 +215,8 @@
                 //     "output/2023/etri_07_event.json",
                 //     "--batch", "20",
                 // "update", "etri:04", "1",
-                "listen",
-                    "--topic", "track-events", "track-motions", "track-features",
+                // "listen",
+                //     "--topic", "track-events", "track-motions", "track-features",
                     // "--topic", "track-features",
             ],
             "justMyCode": true
@@ -263,8 +265,8 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [ 
                 // "data/on-demand-requests/req01_etri_07.json",
-                "data/event_publisher/test_etri_041.json",
-                // "data/event_publisher/test_etri_051.json",
+                // "data/event_publisher/test_etri_041.json",
+                "data/event_publisher/test_etri_051.json",
                 // "data/event_publisher/test_etri_051_2.json",
             ],
             "justMyCode": true

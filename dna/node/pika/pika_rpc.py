@@ -11,12 +11,14 @@ class Serde(metaclass=ABCMeta):
     @abstractmethod
     def deserialize(self, body:bytes) -> object: pass
 
+
 class NoOpSerde(Serde):
     def serialize(self, data:object) -> bytes:
         return data
 
     def deserialize(self, body:bytes) -> object:
         return body
+
 
 class JsonSerde(Serde):
     def deserialize(self, body:bytes) -> object:
@@ -29,6 +31,7 @@ class JsonSerde(Serde):
         elif not isinstance(resp, bytes):
             resp = json.dumps(resp, default=lambda o: o.__dict__).encode('utf-8')
         return resp
+
 
 NO_OP_SERDE = NoOpSerde()
 JSON_SERDE = JsonSerde()

@@ -12,8 +12,7 @@ import numpy as np
 
 from dna import Point, Box
 from dna.support import sql_utils
-from dna.detect import Detection
-from dna.tracker import TrackState, ObjectTrack
+from dna.tracker import TrackState
 
 
 NodeId = NewType('NodeId', str)
@@ -55,7 +54,7 @@ def json_to_box(tlbr_list:Optional[Iterable[float]]) -> Box:
     return Box(tlbr_list) if tlbr_list else None
 
 
-@dataclass(frozen=True, eq=True, order=False, repr=False)    # slots=True
+@dataclass(frozen=True, eq=True, order=False, repr=False, slots=True)
 class TrackEvent(KafkaEvent):
     node_id: NodeId     # node id
     track_id: TrackId   # tracking object id
@@ -197,7 +196,7 @@ EOT:TrackEvent = TrackEvent(node_id=None, track_id=None, state=None, location=No
                             world_coord=None, distance=None, frame_index=-1, ts=-1)
 
 
-from ..utils import utc2datetime, datetime2utc
+from ..utils import utc2datetime
 from .types import KafkaEvent
 from .proto.reid_metrics_pb2 import TrackFeatureProto
 class TrackFeature(KafkaEvent):

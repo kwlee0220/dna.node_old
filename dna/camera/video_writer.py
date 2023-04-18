@@ -8,10 +8,11 @@ import cv2
 
 from dna import Image, Size2d
 
+
 class VideoWriter:
     __slots__ = ('fourcc', 'path', 'fps', 'size', 'video_writer')
     
-    def __init__(self, video_file: str, fps:int, size:Size2d) -> None:
+    def __init__(self, video_file:str, fps:int, size:Size2d) -> None:
         super().__init__()
         
         path = Path(video_file)
@@ -31,15 +32,18 @@ class VideoWriter:
         self.video_writer = None
         
     def open(self) -> None:
+        assert not self.is_open(), "already opened."
+        
         self.path.parent.mkdir(exist_ok=True)
         self.video_writer = cv2.VideoWriter(str(self.path), self.fourcc, self.fps, tuple(self.size.to_rint().wh))
         
     def close(self) -> None:
-        self.video_writer.release()
-        self.video_writer = None
+        if self.is_open():
+            self.video_writer.release()
+            self.video_writer = None
         
     def is_open(self) -> bool:
-        return self.video_writer
+        return self.video_writer is not None
         
     def __enter__(self):
         self.open()
@@ -52,7 +56,5 @@ class VideoWriter:
         with suppress(Exception): self.close()
 
     def write(self, image:Image) -> None:
-        if self.video_writer:
-            self.video_writer.write(image)
-        else:
-            raise ValueError(f'{self.__class__.__name__}: closed')
+        assert self.is_open(), "not opened."
+        self.video_writer.write(image)

@@ -11,7 +11,7 @@ from .types import TrackDeleted, LineTrack
 class ToLineTransform(EventProcessor):
     __slots__ = ( 'last_events', 'logger' )
     
-    def __init__(self, logger:logging.Logger) -> None:
+    def __init__(self, *, logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
         self.last_events:Dict[str,TrackEvent] = dict()
         self.logger = logger

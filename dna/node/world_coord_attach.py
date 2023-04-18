@@ -5,8 +5,8 @@ from collections import namedtuple
 from omegaconf import OmegaConf
 
 from dna import Point
-from dna.node import TrackEvent, TimeElapsed
-from dna.node.event_processor import EventProcessor
+from .types import TrackEvent, TimeElapsed
+from .event_processor import EventProcessor
 
 import logging
 LOGGER = logging.getLogger("dna.node.world_coord")

@@ -182,6 +182,7 @@ class Size2d:
     @staticmethod
     def from_expr(expr:Any) -> Size2d:
         """인자 값을 'Size2d' 객체로 형 변화시킨다.
+        - 인자가 None인 경우는 None을 반환한다.
         - 인자가 Size2d인 경우는 별도의 변환없이 인자를 복사하여 반환한다.
         - 인자가 문자열인 경우에는 '<width> x <height>' 형식으로 파싱하여 Size2d를 생성함.
         - 그렇지 않은 경우는 numpy.array() 함수를 통해 numpy array로 변환하고 이를 다시 Size2d로 생성함.
@@ -192,7 +193,9 @@ class Size2d:
         Returns:
             Size2d: 형 변환된 Size2d 객체.
         """
-        if isinstance(expr, Size2d):
+        if expr is None:
+            return None
+        elif isinstance(expr, Size2d):
             return Size2d(expr.wh)
         elif isinstance(expr, str):
             return Size2d.parse_string(expr)
@@ -377,7 +380,7 @@ class Box:
         return Box(np.hstack([tl.xy, br.xy]))
 
     @staticmethod
-    def from_tlwh(tlwh:npt.ArrayLike) -> Box:
+    def  from_tlwh(tlwh:npt.ArrayLike) -> Box:
         """Box의 좌상단 꼭지점의 좌표와 box의 넓이와 높이 정보를 이용하여 Box 객체를 생성한다.
 
         Args:
@@ -392,7 +395,17 @@ class Box:
         return Box(tlbr)
 
     @staticmethod
-    def from_size(size:Union[Size2d,npt.ArrayLike]) -> Box:
+    def from_size(size:Size2d|npt.ArrayLike) -> Box:
+        """
+        Create a box object of the given size.
+        The top-left corner of the create box will be (0, 0).
+
+        Args:
+            size (Size2d|npt.ArrayLike): the size of the created box.
+
+        Returns:
+            Box: a Box object.
+        """
         w, h = tuple(size.wh) if isinstance(size, Size2d) else tuple(np.array(size))
         return Box([0, 0, w, h])
 
@@ -493,12 +506,15 @@ class Box:
                 [self.tlbr[0], self.tlbr[3]]]
 
     def top_left(self) -> Point:
+        '''Returns the ``Point`` object of top-left corner of this box object.'''
         return Point(self.tl)
 
     def bottom_right(self) -> Point:
+        '''Returns the ``Point`` object of bottom-right corner of this box object.'''
         return Point(self.br)
 
     def center(self) -> Point:
+        '''Returns the ``Point`` object of the center of this box object.'''
         return Point(self.tl + (self.wh / 2.))
 
     def size(self) -> Size2d:
@@ -506,7 +522,7 @@ class Box:
 
     def area(self) -> float:
         """Returns the area of this box.
-        If the box is invalid, a negative value will be returned.
+        If the box is invalid, zero will be returned.
 
         Returns:
             float: area
@@ -514,6 +530,14 @@ class Box:
         return self.size().area() if self.is_valid() else 0
 
     def distance_to(self, box:Box) -> float:
+        """Returns the distance to the given box.
+
+        Args:
+            box (Box): target box which the distance is calculated.
+
+        Returns:
+            float: distance.
+        """
         tlbr1 = self.tlbr
         tlbr2 = box.tlbr
 
@@ -525,6 +549,14 @@ class Box:
         return dist
 
     def contains_point(self, pt:Point) -> bool:
+        """Returns whether this box contains the given point or not.
+
+        Args:
+            pt (Point): a Point object for containment test.
+
+        Returns:
+            bool: True if this box contains the point object, otherwise False.
+        """
         x, y = tuple(pt.xy)
         return x >= self.tlbr[0] and y >= self.tlbr[1] and x < self.tlbr[2] and y < self.tlbr[3]
 
@@ -532,7 +564,15 @@ class Box:
         return self.tlbr[0] <= box.tlbr[0] and self.tlbr[1] <= box.tlbr[1] \
                 and self.tlbr[2] >= box.tlbr[2] and self.tlbr[3] >= box.tlbr[3]
 
-    def intersection(self, bbox:Box) -> Optional[Box]:
+    def intersection(self, bbox:Box) -> Box:
+        """Returns the intersection box of this box and the box given by the argument.
+
+        Args:
+            bbox (Box): a box object to take intersection with.
+
+        Returns:
+            Box: intersection box
+        """
         x1 = max(self.tlbr[0], bbox.tlbr[0])
         y1 = max(self.tlbr[1], bbox.tlbr[1])
         x2 = min(self.tlbr[2], bbox.tlbr[2])
@@ -546,40 +586,68 @@ class Box:
         return inter_area / (area1 + area2 - inter_area)
 
     def overlap_ratios(self, other:Box) -> Tuple[float,float,float]:
-        inter_area = self.intersection(other).area()
-        r1 = inter_area / self.area() if self.is_valid() else 0
-        r2 = inter_area / other.area() if other.is_valid() else 0
-        iou = inter_area / (self.area() + other.area() - inter_area)  if self.is_valid() and other.is_valid() else 0
-        return (r1, r2, iou)
+        if self.is_valid() and other.is_valid():
+            inter_area = self.intersection(other).area()
+            r1 = inter_area / self.area()
+            r2 = inter_area / other.area()
+            return (r1, r2, self.iou(other))
+        elif not self.is_valid():
+            raise ValueError(f'invalid "Box" object: {self}')
+        else:
+            raise ValueError(f'invalid "Box" object: {other}')
 
-    def draw(self, convas:Image, color:BGR, line_thickness=2):
+    def draw(self, convas:Image, color:BGR, line_thickness=2) -> Image:
+        """Draw this box on the given convas.
+
+        Args:
+            convas (Image): the convas image on which this box is drawn.
+            color (BGR): the color to draw the box with.
+            line_thickness (int, optional): line thickness. Defaults to 2.
+
+        Returns:
+            Image: the image the box is drawn on.
+        """
         box_int = self.to_rint()
         return cv2.rectangle(convas, box_int.tl, box_int.br, color,
                             thickness=line_thickness, lineType=cv2.LINE_AA)
 
-    def crop(self, img:Image) -> Image:
+    def crop(self, image:Image) -> Image:
+        """Crops the image of the box is located out of the given image.
+
+        Args:
+            img (Image): the source image from which the crop is taken.
+
+        Returns:
+            Image: cropped image.
+        """
         x1, y1, x2, y2 = tuple(self.tlbr)
-        return img[y1:y2, x1:x2]
+        return image[y1:y2, x1:x2]
     
-    def expand(self, margin) -> Box:
+    def expand(self, margin:numbers.Number|npt.ArrayLike) -> Box:
+        """Expand this box with the amount of the given margin.
+
+        Args:
+            margin (numbers.Number | npt.ArrayLike): the margin
+
+        Returns:
+            Box: the expanded box object.
+        """
         if isinstance(margin, numbers.Number):
             tlbr = self.tlbr + [-margin, -margin, margin, margin]
             return Box(tlbr)
-        elif isinstance(margin, tuple):
-            w, h = margin
-            self.tlbr + [-w, -h, w, h]
-            return Box(tlbr)
-        elif isinstance(margin, Size2d):
-            w, h = tuple(margin.wh)
-            self.tlbr + [-w, -h, w, h]
-            return Box(tlbr)
         else:
-            raise ValueError(f'invalid margin: {margin}')
+            w, h = tuple(np.array(margin))
+            return Box(self.tlbr + [-w, -h, w, h])
+        
+    def update_roi(self, to_image:Image, from_image:Image) -> None:
+        """Read data from ``from_image`` and write it onto ``to_image`` of this box is located.
 
-    def copy(self, src_img:Image, tar_img:Image) -> None:
-        x, y = tuple(self.tl)
-        w, h = tuple(self.wh)
-        tar_img[y:y+h, x:x+w] = src_img
+        Args:
+            to_image (Image): the target convas where the image is written to
+            from_image (Image): the source image which data is from.
+        """
+        x1, y1, x2, y2 = tuple(self.tlbr)
+        to_image[y1:y2, x1:x2] = from_image
     
     def __repr__(self):
         return '{}:{}'.format(Point(self.tl), self.size())
@@ -589,9 +657,9 @@ EMPTY_BOX:Box = Box(np.array([0,0,-1,-1]))
 
 @dataclass(frozen=True, eq=True)    # slots=True
 class Frame:
+    """Frame captured by ImageCapture.
+    a Frame object consists of image (OpenCv format), frame index, and timestamp.
+    """
     image: Image = field(repr=False, compare=False, hash=False)
     index: int
     ts: float
-    
-    def copy(self) -> Frame:
-        return Frame(self.image.copy(), self.index, self.ts)

@@ -1,15 +1,15 @@
-import numpy as np
-from dna import Size2d, Point
+import uuid
 
+import threading
+import time
 
-pt = Point([1.2, 4.7])
-print(pt)
-print(np.array(pt))
-print(np.array(pt, int))
+from dna import Frame
+from dna.node.node_processor_grpc import NodeProcessorServicer
+from dna.node.proto import node_processor_pb2
 
-sz = Size2d([10.2, 20.7])
-print(sz)
+service = NodeProcessorServicer()
 
-print(sz + 1)
-sz2 = sz.to_rint()
-print(sz2.wh.dtype)
+request = node_processor_pb2.RunNodeProcessRequest(node_id='etri_04',
+                                                   sync=True)
+for report in service.Run(request, None):
+    print(report)

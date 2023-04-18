@@ -12,7 +12,7 @@ from omegaconf import OmegaConf
 
 import dna
 from dna import Box
-from dna.camera import create_camera_from_conf
+from dna.camera import create_opencv_camera_from_conf
 from dna.camera.image_processor import ImageProcessor
 from dna.execution import LoggingExecutionContext
 from dna.utils import RectangleDrawer
@@ -33,7 +33,7 @@ conf.window_name = 'test'
 proc = None
 def do_work(conf):
     global proc
-    camera = create_camera_from_conf(conf.camera)
+    camera = create_opencv_camera_from_conf(conf.camera)
     proc = ImageProcessor(camera.open(), conf, LoggingExecutionContext(logger))
     proc.report_interval = 3
     proc.run()

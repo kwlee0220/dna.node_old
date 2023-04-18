@@ -5,7 +5,7 @@ from omegaconf import OmegaConf
 from kafka import KafkaConsumer
 
 from dna import initialize_logger
-from dna.conf import load_node_conf
+from dna.config import load_node_conf2
 from dna.node.tracklet_store import TrackletStore
 from dna.support.sql_utils import SQLConnector
 from dna.assoc import FeatureBasedTrackletAssociator
@@ -33,7 +33,7 @@ def main():
     args, _ = parse_args()
 
     initialize_logger(args.logger)
-    conf, db_conf, args_conf = load_node_conf(args)
+    conf, db_conf, args_conf = load_node_conf2(args)
     
     store = TrackletStore(SQLConnector.from_conf(db_conf))
     consumer = KafkaConsumer(bootstrap_servers=args_conf.boostrap_servers,

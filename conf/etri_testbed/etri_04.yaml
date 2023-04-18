@@ -6,10 +6,9 @@ camera:
   uri: data/etri_04_hot.mp4
   # uri: data/2022/etri_041.mp4
   sync: False
-  # begin_frame: 70
-  # end_frame: 300
-  # open_ts: 590
-  open_ts: 0
+  # begin_frame: 930
+  # end_frame: 941
+  # open_ts: 0
 
 tracker:
   draw: ["tracks", "track_zones"]

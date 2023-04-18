@@ -8,7 +8,7 @@ import time
 from datetime import timedelta
 from omegaconf import OmegaConf
 
-from dna import Frame, Size2d
+from dna import Frame, Size2d, config
 from dna.camera import ImageProcessor
 from dna.tracker import TrackProcessor, ObjectTrack, TrackState
 from dna.tracker.dna_tracker import DNATracker
@@ -19,7 +19,7 @@ from .zone.zone_pipeline import ZonePipeline
 
 _DEFAULT_BUFFER_SIZE = 30
 _DEFAULT_BUFFER_TIMEOUT = 5.0
-_DEFAULT_MIN_PATH_LENGTH=10
+# _DEFAULT_MIN_PATH_LENGTH=10
 
 LOGGER = logging.getLogger('dna.node.event')
 
@@ -82,9 +82,9 @@ class LogTrackEventPipeline(EventQueue):
 
 class TrackEventPipeline(EventQueue):
     __slots__ = ('node_id', 'plugins', '_tick_gen', '_input_queue', '_output_queue',
-                 '_last_queue', '_group_event_queue')
+                 '_current_queue', '_group_event_queue')
 
-    def __init__(self, node_id:str, publishing_conf: OmegaConf,
+    def __init__(self, node_id:str, publishing_conf:OmegaConf,
                  image_processor:Optional[ImageProcessor]=None) -> None:
         super().__init__()
 
@@ -93,59 +93,59 @@ class TrackEventPipeline(EventQueue):
         self._tick_gen = None
         
         self._input_queue = EventQueue()
-        self._last_queue = self._input_queue
         self._event_publisher = EventRelay(self)
-        self._last_queue.add_listener(self._event_publisher)
+        self._current_queue = self._input_queue
+        self._current_queue.add_listener(self._event_publisher)
         self._group_event_queue:GroupByFrameIndex = None
         
         self._refine_tracks = None
         self._drop_short_trail = None
         
         # drop unnecessary tracks (eg. trailing 'TemporarilyLost' tracks)
-        refind_track_conf = OmegaConf.select(publishing_conf, 'refine_tracks', default=None)
+        refind_track_conf = config.get(publishing_conf, 'refine_tracks')
         if refind_track_conf:
             from .refine_track_event import RefineTrackEvent
-            buffer_size = OmegaConf.select(refind_track_conf, 'buffer_size', default=_DEFAULT_BUFFER_SIZE)
-            buffer_timeout = OmegaConf.select(refind_track_conf, 'buffer_timeout', default=_DEFAULT_BUFFER_TIMEOUT)
+            buffer_size = config.get(refind_track_conf, 'buffer_size', default=_DEFAULT_BUFFER_SIZE)
+            buffer_timeout = config.get(refind_track_conf, 'buffer_timeout', default=_DEFAULT_BUFFER_TIMEOUT)
             self._refine_tracks = RefineTrackEvent(buffer_size=buffer_size, buffer_timeout=buffer_timeout)
             self._append_processor(self._refine_tracks)
 
         # drop too-short tracks of an object
-        self.min_path_length = OmegaConf.select(publishing_conf, 'min_path_length', default=_DEFAULT_MIN_PATH_LENGTH)
-        if self.min_path_length > 0:
+        min_path_length = config.get(publishing_conf, 'min_path_length', default=-1)
+        if min_path_length > 0:
             from .drop_short_trail import DropShortTrail
-            self._drop_short_trail = DropShortTrail(self.min_path_length)
+            self._drop_short_trail = DropShortTrail(min_path_length)
             self._append_processor(self._drop_short_trail)
 
         # attach world-coordinates to each track
-        if OmegaConf.select(publishing_conf, 'attach_world_coordinates', default=None):
+        if config.exists(publishing_conf, 'attach_world_coordinates'):
             from .world_coord_attach import WorldCoordinateAttacher
             self._append_processor(WorldCoordinateAttacher(publishing_conf.attach_world_coordinates))
 
-        if OmegaConf.select(publishing_conf, 'stabilization', default=None):
+        if config.exists(publishing_conf, 'stabilization'):
             from .stabilizer import Stabilizer
             self._append_processor(Stabilizer(publishing_conf.stabilization))
         self._append_processor(_DROP_TIME_ELAPSED)
         
         # generate zone-based events
-        zone_pipeline_conf = OmegaConf.select(publishing_conf, 'zone_pipeline')
+        zone_pipeline_conf = config.get(publishing_conf, 'zone_pipeline')
         if zone_pipeline_conf:
             zone_pipeline = ZonePipeline(self.node_id, zone_pipeline_conf)
-            self._last_queue.add_listener(zone_pipeline)
+            self._current_queue.add_listener(zone_pipeline)
             self.plugins['zone_pipeline'] = zone_pipeline
             
-            self._last_queue.remove_listener(self._event_publisher)
             transform = ZoneToTrackEventTransform()
+            self._current_queue.remove_listener(self._event_publisher)
             transform.add_listener(self._event_publisher)
-            self._last_queue = transform
+            self._current_queue = transform
             zone_pipeline.event_queues['zone_events'].add_listener(transform)
     
         # 알려진 TrackEventPipeline의 plugin 을 생성하여 등록시킨다.
-        plugins_conf = OmegaConf.select(publishing_conf, "plugins", default=None)
+        plugins_conf = config.get(publishing_conf, "plugins")
         if plugins_conf:
             load_plugins(plugins_conf, self, image_processor)
 
-        tick_interval = OmegaConf.select(publishing_conf, 'tick_interval', default=-1)
+        tick_interval = config.get(publishing_conf, 'tick_interval', default=-1)
         if tick_interval > 0:
             self._tick_gen = TimeElapsedGenerator(timedelta(seconds=tick_interval), self._input_queue)
             self._tick_gen.start()
@@ -160,7 +160,7 @@ class TrackEventPipeline(EventQueue):
                 plugin.close()
             
     def handle_event(self, track:TrackEvent) -> None:
-        """TrackEvent pipeline으로 입력으로 주어진 track event를 입력시킨다.
+        """TrackEvent pipeline에 주어진 track event를 입력시킨다.
 
         Args:
             track (TrackEvent): 입력 TrackEvent
@@ -171,9 +171,11 @@ class TrackEventPipeline(EventQueue):
     def group_event_queue(self) -> EventQueue:
         if not self._group_event_queue:
             from .event_processors import GroupByFrameIndex
+            # _refine_tracks와 _drop_short_trail에서 사용하는 buffer 크기를 고려하여 buffer size를 결정한다.
             len1 = self._refine_tracks.buffer_size if self._refine_tracks else 0
             len2 = self._drop_short_trail.min_trail_length if self._drop_short_trail else 0
             buffer_size = max(len1, len2)
+            
             self._group_event_queue = GroupByFrameIndex(max_pending_frames=buffer_size, timeout=5.0)
             self.add_listener(self._group_event_queue)
         return self._group_event_queue
@@ -189,10 +191,10 @@ class TrackEventPipeline(EventQueue):
             self.handle_event(ev)
 
     def _append_processor(self, proc:EventProcessor) -> None:
-        self._last_queue.remove_listener(self._event_publisher)
+        self._current_queue.remove_listener(self._event_publisher)
         proc.add_listener(self._event_publisher)
-        self._last_queue.add_listener(proc)
-        self._last_queue = proc
+        self._current_queue.add_listener(proc)
+        self._current_queue = proc
         
         
 from dataclasses import replace
@@ -213,41 +215,41 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
                  image_processor:Optional[ImageProcessor]=None) -> None:
     zone_pipeline:ZonePipeline = pipeline.plugins['zone_pipeline']
     
-    output_file = OmegaConf.select(plugins_conf, 'output')
+    output_file = config.get(plugins_conf, 'output')
     if output_file is not None:
         from .utils import JsonTrackEventGroupWriter
         writer = JsonTrackEventGroupWriter(output_file)
         pipeline.group_event_queue.add_listener(writer)
         pipeline.plugins['output'] = writer
 
-    local_path_conf = OmegaConf.select(plugins_conf, 'local_path')
+    local_path_conf = config.get(plugins_conf, 'local_path')
     if local_path_conf:
         from .local_path_generator import LocalPathGenerator
         plugin = LocalPathGenerator(local_path_conf)
-        pipeline.plugins['local_path'] = plugin
         pipeline.add_listener(plugin)
+        pipeline.plugins['local_path'] = plugin
         
-    publish_tracks_conf = OmegaConf.select(plugins_conf, 'publish_tracks')
+    publish_tracks_conf = config.get(plugins_conf, 'publish_tracks')
     if publish_tracks_conf:
         from .kafka_event_publisher import KafkaEventPublisher
         plugin = KafkaEventPublisher(publish_tracks_conf)
-        pipeline.plugins['publish_tracks'] = plugin
         pipeline.add_listener(plugin)
+        pipeline.plugins['publish_tracks'] = plugin
         
-    publish_motions_conf = OmegaConf.select(plugins_conf, 'publish_motions')
+    publish_motions_conf = config.get(plugins_conf, 'publish_motions')
     if publish_motions_conf:
         from .kafka_event_publisher import KafkaEventPublisher
         motions = zone_pipeline.event_queues.get('motions')
         if motions:
             plugin = KafkaEventPublisher(publish_motions_conf)
-            pipeline.plugins['publish_motions'] = plugin
             motions.add_listener(plugin)
+            pipeline.plugins['publish_motions'] = plugin
             
     # 'PublishReIDFeatures' plugin은 ImageProcessor가 지정된 경우에만 등록시킴
     publish_features_conf = OmegaConf.select(plugins_conf, "publish_features", default=None)
     if publish_features_conf and image_processor:
         from dna.support.sql_utils import SQLConnector
-        from dna.node import TrackletStore
+        from .tracklet_store import TrackletStore
         from dna.tracker.dna_tracker import load_feature_extractor
         from .reid_features import PublishReIDFeatures
         frame_buf_size = pipeline.group_event_queue.max_pending_frames + 2
@@ -259,9 +261,3 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
                                         min_crop_size=min_crop_size)
         pipeline.group_event_queue.add_listener(publish)
         image_processor.add_frame_processor(publish)
-        
-        # tracklet_store = TrackletStore(SQLConnector.from_conf(publish_features_conf))
-        from .kafka_event_publisher import KafkaEventPublisher
-        plugin = KafkaEventPublisher(publish_features_conf)
-        pipeline.plugins['publish_features'] = plugin
-        publish.add_listener(plugin)

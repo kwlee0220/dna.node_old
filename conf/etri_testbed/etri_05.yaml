@@ -6,10 +6,10 @@ camera:
   # uri: data/2022/etri_051.mp4
   # size: [1920, 1080]
   sync: False
-  # begin_frame: 1416
-  # end_frame: 500
+  # begin_frame: 5000
+  # end_frame: 100
   # open_ts: 590
-  open_ts: 0
+  # open_ts: 0
 
 tracker:
   draw: ["tracks", "track_zones"]

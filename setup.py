@@ -16,17 +16,17 @@ setup(
 			'dna_node = scripts.dna_node:main',
 			'dna_node_processor = scripts.dna_node_processor:main',
 			'dna_node_processor_client = scripts.dna_node_processor_client:main',
-			'dna_publish_events = scripts.dna_publish_events:main',
-			'dna_publish_event_server = scripts.dna_publish_event_server:main',
-			'dna_draw_trajs = scripts.dna_draw_trajs:main',
-			'dna_sync_videos = scripts.dna_sync_videos:main',
-			'dna_show_multiple_videos = scripts.dna_show_multiple_videos:main',
+			# 'dna_publish_events = scripts.dna_publish_events:main',
+			# 'dna_publish_event_server = scripts.dna_publish_event_server:main',
+			# 'dna_draw_trajs = scripts.dna_draw_trajs:main',
+			# 'dna_sync_videos = scripts.dna_sync_videos:main',
+			# 'dna_show_multiple_videos = scripts.dna_show_multiple_videos:main',
    
-			'dna_gen_trainset = scripts.dna_gen_trainset:main',
-			'dna_gen_trainset2 = scripts.dna_gen_trainset2:main',
-			'dna_reduce_trainset = scripts.dna_reduce_trainset:main',
-			'dna_motions = scripts.dna_motions:main',
-			'dna_assoc_tracklets = scripts.dna_assoc_tracklets:main',
+			# 'dna_gen_trainset = scripts.dna_gen_trainset:main',
+			# 'dna_gen_trainset2 = scripts.dna_gen_trainset2:main',
+			# 'dna_reduce_trainset = scripts.dna_reduce_trainset:main',
+			# 'dna_motions = scripts.dna_motions:main',
+			# 'dna_assoc_tracklets = scripts.dna_assoc_tracklets:main',
 		],
 	},
     install_requires = [
@@ -58,6 +58,9 @@ setup(
         # yolov5
         'ipython',
         'psutil',
+        
+        # protobuf
+        'protobuf',
         
         # machine-learning
         'scikit-learn',

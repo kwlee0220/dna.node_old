@@ -26,6 +26,7 @@ def to_sql_box(box:Box) -> str:
     return ','.join([pt1, pt2])
 
 
+_DB_CONF_KEYS = {'db_host', 'db_port', 'db_dbname', 'db_user', 'db_password'}
 @dataclass(frozen=True)
 class SQLConnector:
     host: str = field(default='localhost')
@@ -36,7 +37,7 @@ class SQLConnector:
     
     @staticmethod
     def from_conf(conf:OmegaConf):
-        infos = {key[3:]:value for key, value in dict(conf).items() if key.startswith('db_')}
+        infos = {key[3:]:value for key, value in dict(conf).items() if key in _DB_CONF_KEYS}
         return SQLConnector(**infos)
     
     def connect(self):

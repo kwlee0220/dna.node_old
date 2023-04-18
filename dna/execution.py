@@ -1,6 +1,6 @@
 
 from datetime import time, timedelta
-from typing import Optional
+from typing import Any, Optional
 from abc import ABCMeta, abstractmethod
 
 from enum import Enum
@@ -8,39 +8,83 @@ from logging import Logger
 
 class ExecutionState(Enum):
     NOT_STARTED = 0
+    '''Execution is not started.'''
     STARTING = 1
+    '''Execution is preparing for start.'''
     RUNNING = 2
+    '''Execution is running.'''
     STOPPING = 3
+    '''Execution is stopping.'''
     STOPPED = 4
+    '''Execution has been stopped by something.'''
     FAILED = 5
+    '''Execution has been finished because of a failure'''
     COMPLETED = 6
+    '''Execution has been done sucessfully.'''
 
 class Execution(metaclass=ABCMeta):
     @abstractmethod
-    def run(self) -> object: pass
+    def run(self) -> Any:
+        """본 실행을 수행시킨다.
+
+        Returns:
+            Any: 실행 완료로 생성된 결과.
+        """
+        pass
+
 
 class ExecutionContext(metaclass=ABCMeta):
     @abstractmethod
-    def started(self) -> None: pass
+    def started(self) -> None:
+        """실행이 시작됨을 알린다.
+        """
+        pass
     
     @abstractmethod
-    def report_progress(self, progress:object) -> None: pass
+    def report_progress(self, progress:Any) -> None:
+        """실행 진행 상황을 알린다.
+
+        Args:
+            progress (Any): 진행 상황 정보.
+        """
+        pass
 
     @abstractmethod
-    def completed(self, result:object) -> None: pass
+    def completed(self, result:Any) -> None:
+        """실행이 완료됨을 알린다.
+        '실행 완료'는 실행이 그 목적을 모두 달성하고 종료되는 것을 믜미한다.
+
+        Args:
+            result (Any): 실행 완료로 생성된 결과 객체.
+        """
+        pass
 
     @abstractmethod
-    def stopped(self, details:str) -> None: pass
+    def stopped(self, details:str) -> None:
+        """사용자에 의해 실행이 중단됨을 알린다.
+
+        Args:
+            details (str): 실행 중단 원인.
+        """
+        pass
 
     @abstractmethod
-    def failed(self, cause:str) -> None: pass
+    def failed(self, cause:str) -> None:
+        """실행 도중 오류가 발생하여 종료됨을 알린다.
+
+        Args:
+            cause (str): 오류 원인.
+        """
+        pass
+
 
 class NoOpExecutionContext(ExecutionContext):
     def started(self) -> None: pass
-    def report_progress(self, progress:object) -> None: pass
-    def completed(self, result:object) -> None: pass
+    def report_progress(self, progress:Any) -> None: pass
+    def completed(self, result:Any) -> None: pass
     def stopped(self, details:str) -> None: pass
     def failed(self, cause:str) -> None: pass
+
 
 class LoggingExecutionContext(ExecutionContext):
     def __init__(self, logger:Logger=None) -> None:
@@ -69,7 +113,17 @@ class LoggingExecutionContext(ExecutionContext):
 
 class ExecutionFactory(metaclass=ABCMeta):
     @abstractmethod
-    def create(self, context:ExecutionContext) -> Execution: pass
+    def create(self, context:ExecutionContext) -> Execution:
+        """새로운 실행 객체를 생성한다.
+        본 메소드를 통해 실행 객체가 생성만되지, 그 실행이 시작되지는 않는다.
+
+        Args:
+            context (ExecutionContext): 실행 과정에서 사용될 문맥 정보 객체.
+
+        Returns:
+            Execution: 생성된 실행 객체.
+        """
+        pass
 
 
 
@@ -81,47 +135,67 @@ class CancellationError(Exception):
 
 import threading
 class AbstractExecution(Execution):
-    def __init__(self, report_interval=60*60, context:ExecutionContext= NoOpExecutionContext()):
-        self.ctx = context
+    def __init__(self, context:Optional[ExecutionContext]=None):
+        self._ctx = context if context else NoOpExecutionContext()
         
         self.lock = threading.Lock()
         self.cond = threading.Condition(self.lock)
         self.state = ExecutionState.NOT_STARTED
         self.stop_details = None
-
-        self.report_interval = report_interval
         
+    @property
     def context(self) -> ExecutionContext:
-        return self.ctx
+        return self._ctx
         
     @abstractmethod
-    def run_work(self) -> object: pass
+    def run_work(self) -> Any:
+        """본 실행이 수행해야 하는 작업을 수행한다.
+        본 메소드는 ``run()`` 메소드가 호출되는 경우, 자동적으로 수행된다.
+
+        Returns:
+            Any: 실행 결과.
+        """
+        pass
 
     @abstractmethod
-    def finalize(self) -> None: pass
+    def finalize(self) -> None:
+        """본 실행이 종료될 때, 종료화 작업을 수행한다.
+        """
+        pass
     
     def check_stopped(self) -> None:
         with self.lock:
             if self.state == ExecutionState.STOPPING:
                 raise CancellationError(self.stop_details)
 
-    def run(self) -> object:
+    def run(self) -> Any:
         with self.lock:
             if self.state != ExecutionState.NOT_STARTED:
-                raise AssertionError(f'invalid execution state: {self.state.name}, expected={ExecutionState.NOT_STARTED.name}')
+                raise AssertionError(f'invalid execution state: {self.state.name}, ',
+                                     f'expected={ExecutionState.NOT_STARTED.name}')
             self.state = ExecutionState.RUNNING
             self.cond.notify_all()
-        self.ctx.started()
+        self._ctx.started()
         
         try:
             result = self.run_work()
-            with self.lock:
-                if self.state != ExecutionState.RUNNING and self.state != ExecutionState.STOPPING:
-                    raise AssertionError(f'invalid execution state: {self.state.name}, expected={ExecutionState.RUNNING.name}')
-                self.state = ExecutionState.COMPLETED
-                self.cond.notify_all()
-            self.ctx.completed(result)
             
+            state = None
+            with self.lock:
+                match self.state:
+                    case ExecutionState.RUNNING:
+                        state = self.state = ExecutionState.COMPLETED
+                    case ExecutionState.STOPPING:
+                        state = self.state = ExecutionState.STOPPED
+                    case _:
+                        raise AssertionError(f'invalid execution state: {self.state.name}, '
+                                             f'expected={ExecutionState.RUNNING.name}')
+                self.cond.notify_all()
+            match state:
+                case ExecutionState.COMPLETED:
+                    self._ctx.completed(result)
+                case ExecutionState.STOPPED:
+                    self._ctx.stopped('user requested')
             return result
         except CancellationError as e:
             with self.lock:
@@ -129,12 +203,12 @@ class AbstractExecution(Execution):
                     raise AssertionError(f'invalid execution state: {self.state.name}, expected={ExecutionState.RUNNING.name}')
                 self.state = ExecutionState.STOPPED
                 self.cond.notify_all()
-            self.ctx.stopped(str(e))
+            self._ctx.stopped(str(e))
         except Exception as e:
             with self.lock:
                 self.state = ExecutionState.FAILED
                 self.cond.notify_all()
-            self.ctx.failed(str(e))
+            self._ctx.failed(str(e))
             raise e
         finally:
             self.finalize()
@@ -144,9 +218,17 @@ class AbstractExecution(Execution):
             if self.state == ExecutionState.RUNNING:
                 self.stop_details = details
                 self.state = ExecutionState.STOPPING
-                if not nowait:
-                    while self.state == ExecutionState.STOPPING:
-                        self.cond.wait()
+            else:
+                return
+                
+        self.stop_work()        
+        if not nowait:
+            with self.lock:
+                while self.state == ExecutionState.STOPPING:
+                    self.cond.wait()
+                    
+    @abstractmethod
+    def stop_work(self) -> None: pass
 
 
 class InvocationError(Exception):
@@ -154,10 +236,12 @@ class InvocationError(Exception):
         self.message = message
         super().__init__(message)
 
+
 class TimeoutError(Exception):
     def __init__(self, message:str) -> None:
         self.message = message
         super().__init__(message)
+
 
 class AsyncExecution(Execution):
     def __init__(self) -> None:

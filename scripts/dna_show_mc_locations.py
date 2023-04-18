@@ -11,7 +11,6 @@ import json
 
 from dna import Box, Image, BGR, color, Frame, Point, plot_utils
 from dna.camera import Camera
-from dna.camera.utils import create_camera_from_conf
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
 from dna.node import stabilizer, TrackEvent
 from dna.tracker import TrackState

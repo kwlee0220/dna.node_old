@@ -1,11 +1,12 @@
 from __future__ import annotations
-from typing import List
+
+from typing import List, Any
 from abc import ABCMeta, abstractmethod
 
 
 class EventListener(metaclass=ABCMeta):
     @abstractmethod
-    def handle_event(self, ev: object) -> None:
+    def handle_event(self, ev:Any) -> None:
         pass
 
     @abstractmethod

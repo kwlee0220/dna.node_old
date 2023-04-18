@@ -31,6 +31,9 @@ psutil
 # PostgreSQL
 psycopg2
 
+# protobuf
+protobuf
+
 # matchine-learning
 scikit-learn
 matplotlib

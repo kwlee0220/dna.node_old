@@ -6,8 +6,7 @@ import numpy as np
 from omegaconf import OmegaConf
 
 from dna import Box, Point, color, plot_utils
-from dna.camera import Camera, ImageProcessor
-from dna.camera.utils import create_camera_from_conf
+from dna.camera import create_opencv_camera_from_conf
 from dna.utils import RectangleDrawer, PolygonDrawer
 from dna.zone import Zone
 
@@ -20,7 +19,7 @@ camera_conf.uri = "data/2023/etri_07_join.mp4"
 # camera_conf.uri = "data/crossroads/crossroad_04.mp4"
 # camera_conf.uri = "output/track_07.mp4"
 camera_conf.begin_frame = 70
-camera:Camera = create_camera_from_conf(camera_conf)
+camera = create_opencv_camera_from_conf(camera_conf)
 
 localizer = None
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType

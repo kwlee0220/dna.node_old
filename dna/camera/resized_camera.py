@@ -30,7 +30,7 @@ class ResizingCamera(Camera):
 
 
 class ResizingImageCapture(ImageCapture):
-    def __init__(self, camera: ResizingCamera, capture: ImageCapture) -> None:
+    def __init__(self, camera:ResizingCamera, capture:ImageCapture) -> None:
         self.__cap = capture
         self.__size = camera.size
 
@@ -56,6 +56,10 @@ class ResizingImageCapture(ImageCapture):
             mat = cv2.resize(frame.image, dsize=tuple(self.__size.wh), interpolation=self.interpolation)
             frame = Frame(image=mat, index=frame.index, ts=frame.ts)
         return frame
+
+    @property
+    def camera(self) -> Camera:
+        return self.__cap.camera
 
     @property
     def size(self) -> Size2d:

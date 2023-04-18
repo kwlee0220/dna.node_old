@@ -6,14 +6,13 @@ import argparse
 from omegaconf import OmegaConf
 
 import dna
-from dna.conf import load_node_conf, get_config
-from dna.camera import Camera, ImageProcessor
-from dna.camera.utils import create_camera_from_conf
+from dna import config
+from dna.camera import ImageProcessor, create_opencv_camera_from_conf
 from dna.detect.detecting_processor import DetectingProcessor
 from scripts.utils import load_camera_conf
 
-# __DEFAULT_DETECTOR_URI = 'dna.detect.yolov5:model=l&score=0.4'
-__DEFAULT_DETECTOR_URI = 'dna.detect.yolov4'
+__DEFAULT_DETECTOR_URI = 'dna.detect.yolov5:model=l&score=0.4'
+# __DEFAULT_DETECTOR_URI = 'dna.detect.yolov4'
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Detect objects in an video")
@@ -22,11 +21,12 @@ def parse_args():
     parser.add_argument("--camera", metavar="uri", required=False, help="target camera uri")
     parser.add_argument("--sync", action='store_true', help="sync to camera fps")
     parser.add_argument("--begin_frame", type=int, metavar="number", help="the first frame number", default=1)
-    parser.add_argument("--end_frame", type=int, metavar="number", help="the last frame number")
+    parser.add_argument("--end_frame", type=int, metavar="number", default=argparse.SUPPRESS,
+                        help="the last frame number")
 
     parser.add_argument("--detector", help="Object detection algorithm.", default=None)
-    parser.add_argument("--output", "-o", metavar="csv file", help="output detection file.", default=None)
-    parser.add_argument("--output_video", "-v", metavar="mp4 file", help="output video file.", default=None)
+    parser.add_argument("--output", "-o", metavar="csv file", default=None, help="output detection file.")
+    parser.add_argument("--output_video", "-v", metavar="mp4 file", default=argparse.SUPPRESS, help="output video file.")
     parser.add_argument("--show", "-s", nargs='?', const='0x0', default=None)
     parser.add_argument("--show_progress", "-p", help="display progress bar.", action='store_true')
     parser.add_argument("--loop", action='store_true')
@@ -38,27 +38,34 @@ def main():
     args, _ = parse_args()
 
     dna.initialize_logger(args.logger)
-    conf, _, args_conf = load_node_conf(args, ['show', 'show_progress'])
+    
+    # argument에 기술된 conf를 사용하여 configuration 파일을 읽는다.
+    conf = config.load(args.conf) if args.conf else OmegaConf.create()
     
     # 카메라 설정 정보 추가
-    conf.camera = load_camera_conf(get_config(conf, "camera", OmegaConf.create()), args_conf)
-    camera:Camera = create_camera_from_conf(conf.camera)
+    config.update(conf, 'camera', load_camera_conf(args))
+    camera = create_opencv_camera_from_conf(conf.camera)
     
     # detector 설정 정보
-    detector_uri = dna.conf.get_config(args_conf, "detector")
+    detector_uri = args.detector
     if detector_uri is None:
-        detector_uri = dna.conf.get_config(conf, "tracker.dna_deepsort.detector")
+        detector_uri = config.get(conf, "tracker.dna_deepsort.detector")
     if detector_uri is None:
-        print('detector is not specified', file=sys.stderr)
+        detector_uri = __DEFAULT_DETECTOR_URI
+        # print('detector is not specified', file=sys.stderr)
 
-    # ImageProcess 설정 정보 추가
-    conf.output = args.output
-    conf.output_video = args.output_video
+    # args에 포함된 ImageProcess 설정 정보를 추가한다.
+    config.update_values(conf, args, 'show', 'output_video', 'show_progress')
+    
     while True:
-        img_proc = ImageProcessor(camera.open(), conf)
-        detector = DetectingProcessor.load(detector_uri=detector_uri, output=args.output,
-                                            draw_detections=img_proc.is_drawing())
+        options = config.to_dict(config.filter(conf, 'show', 'output_video', 'show_progress'))
+        img_proc = ImageProcessor(camera.open(), **options)
+        
+        detector = DetectingProcessor.load(detector_uri=detector_uri,
+                                           output=args.output,
+                                           draw_detections=img_proc.is_drawing)
         img_proc.add_frame_processor(detector)
+        
         result: ImageProcessor.Result = img_proc.run()
         if not args.loop or result.failure_cause is not None:
             break

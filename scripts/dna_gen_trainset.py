@@ -15,9 +15,8 @@ warnings.filterwarnings("ignore", category=SourceChangeWarning)
 
 import dna
 from dna import Point, Box, Size2d, Frame
-from dna.conf import load_node_conf, get_config
-from scripts.utils import load_camera_conf
-from dna.camera import ImageProcessor, FrameProcessor, create_camera_from_conf
+from dna.config import load_node_conf2, get_config
+from dna.camera import ImageProcessor, FrameProcessor, create_opencv_camera_from_conf
 from dna.tracker import TrackState
 from dna.node import EventProcessor, TrackEvent, TrackId, TrackEventPipeline
 from dna.node.zone import ZoneEvent, ZonePipeline
@@ -262,7 +261,7 @@ def main():
     args, _ = parse_args()
 
     dna.initialize_logger(args.logger)
-    conf, _, args_conf = load_node_conf(args, ['show_progress'])
+    conf, _, args_conf = load_node_conf2(args, ['show_progress'])
         
     tracks = (track for track in read_tracks_json(args.track_file) if not track.is_deleted())
     tracks_per_frame_index = load_tracklets_by_frame(tracks)
@@ -293,7 +292,7 @@ def main():
     
     # 카메라 설정 정보 추가
     conf.camera = {'uri': args.track_video, 'sync': False, }
-    camera = create_camera_from_conf(conf.camera)
+    camera = create_opencv_camera_from_conf(conf.camera)
     
     img_proc = ImageProcessor(camera.open(), conf)
     training_data_writer = TrackletCropWriter(tracks_per_frame_index, collector.zone_events, motions,

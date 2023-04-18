@@ -8,7 +8,7 @@ import itertools
 from collections import defaultdict
 
 from dna import initialize_logger
-from dna.conf import load_node_conf
+from dna import config
 from dna.node import TrackEvent
 from dna.node.tracklet_store import TrackletStore
 from dna.node.utils import read_tracks_json
@@ -46,33 +46,33 @@ def parse_args():
 
     return parser.parse_known_args()
 
-def format(args_conf, store:TrackletStore) -> None:
-    if args_conf.force:
+def format(conf:OmegaConf, store:TrackletStore) -> None:
+    if conf.force:
         store.drop()
     store.format()
 
-def upload(args_conf, tracklet_store:TrackletStore) -> None:
+def upload(conf:OmegaConf, tracklet_store:TrackletStore) -> None:
     total = 0
-    for track_file in args_conf.track_files:
+    for track_file in conf.track_files:
         count = tracklet_store.insert_track_events(read_tracks_json(track_file))
         print(f'upload track file: {track_file}, count={count}')
         total += count
     print(f'uploaded: total count = {total}')
 
-def update_tracklet(args_conf, store:TrackletStore) -> None:
-    store.insert_or_update_tracklet(args_conf.node_id, args_conf.track_id)
+def update_tracklet(conf:OmegaConf, store:TrackletStore) -> None:
+    store.insert_or_update_tracklet(conf.node_id, conf.track_id)
     
     
-def listen(args_conf, store:TrackletStore) -> None:
+def listen(conf:OmegaConf, store:TrackletStore) -> None:
     from kafka import KafkaConsumer
     from dna.node import TrackFeature
     from dna.node.zone import Motion
     
     # consumer = KafkaConsumer(['track-events', 'track-motions'],
-    consumer = KafkaConsumer(bootstrap_servers=args_conf.boostrap_servers,
+    consumer = KafkaConsumer(bootstrap_servers=conf.boostrap_servers,
                              auto_offset_reset='earliest',
                              key_deserializer=lambda x: x.decode('utf-8'))
-    consumer.subscribe(args_conf.topic)
+    consumer.subscribe(conf.topic)
     # consumer.subscribe(['track-features'])
     while True:
         partitions = consumer.poll(timeout_ms=500, max_records=100)
@@ -96,17 +96,19 @@ def main():
     args, _ = parse_args()
 
     initialize_logger(args.logger)
-    conf, db_conf, args_conf = load_node_conf(args)
     
-    store = TrackletStore(sql_utils.SQLConnector.from_conf(db_conf))
-    if args_conf.subparsers == 'format':
-        format(args_conf, store)
-    elif args_conf.subparsers == 'drop':
+    # argument에 기술된 conf를 사용하여 configuration 파일을 읽는다.
+    conf = config.to_conf(args)
+    
+    store = TrackletStore(sql_utils.SQLConnector.from_conf(conf))
+    if args.subparsers == 'format':
+        format(conf, store)
+    elif args.subparsers == 'drop':
         store.drop()
-    elif args_conf.subparsers == 'upload':
-        upload(args_conf, store)
-    elif args_conf.subparsers == 'listen':
-        listen(args_conf, store)
+    elif args.subparsers == 'upload':
+        upload(conf, store)
+    elif args.subparsers == 'listen':
+        listen(conf, store)
     
     # total = 0
     # for track_file in args.track_files:
