@@ -1,6 +1,6 @@
 # vim: expandtab:ts=4:sw=4
 from __future__ import absolute_import
-from typing import List, Tuple, Set, Dict, Generator
+from typing import List, Tuple, Set, Dict
 
 from collections import defaultdict
 import logging
@@ -10,14 +10,14 @@ from numpy.linalg import det
 import cv2
 
 import dna
-from dna import Box, Size2d, Frame, plot_utils, color, Image, Point
+from dna import Box, Frame, plot_utils, color, Image, Point
 from dna.detect import Detection
 from dna.tracker import utils
 from dna.tracker.dna_track_params import DistanceIoUThreshold
 from dna.tracker.matcher import Matcher, MatchingSession, chain, matches_str, match_str, \
                                 IoUDistanceCostMatcher, MetricCostMatcher, HungarianMatcher, ReciprocalCostMatcher, \
-                                INVALID_DIST_DISTANCE, INVALID_IOU_DISTANCE, INVALID_METRIC_DISTANCE
-from dna.tracker.matcher.cost_matrices import build_dist_cost, build_iou_cost, gate_dist_iou_cost, \
+                                INVALID_DIST_DISTANCE, INVALID_IOU_DISTANCE
+from dna.tracker.matcher.cost_matrices import build_dist_cost, build_iou_cost, \
                                                 build_metric_cost, gate_metric_cost
 from .kalman_filter import KalmanFilter
 from .dna_track_params import DNATrackParams
