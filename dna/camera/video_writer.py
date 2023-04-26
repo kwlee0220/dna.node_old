@@ -47,12 +47,9 @@ class VideoWriter:
         
     def __enter__(self):
         self.open()
-        # self.path.parent.mkdir(exist_ok=True)
-        # self.video_writer = cv2.VideoWriter(str(self.path), self.fourcc, self.fps, self.size)
         return self
         
     def __exit__(self, exc_type, exc_value, traceback):
-        # with suppress(Exception): self.video_writer.release()
         with suppress(Exception): self.close()
 
     def write(self, image:Image) -> None:

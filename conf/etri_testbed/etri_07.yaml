@@ -3,13 +3,13 @@ id: etri:07
 camera:
   # uri: data/2021/etri_07.mp4
   # uri: data/2022/crops/etri_07_crop.mp4
-  # uri: data/2022/etri_07_hot.mp4
-  uri: data/2022/etri_071.mp4
+  uri: data/2022/etri_07_hot.mp4
+  # uri: data/2022/etri_071.mp4
   sync: False
   # begin_frame: 350
   # end_frame: 200
   # open_ts: 590
-  open_ts: 0
+  # open_ts: 0
 
 tracker:
   draw: ['tracks', 'track_zones']

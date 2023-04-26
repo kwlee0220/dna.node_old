@@ -96,7 +96,7 @@ class Stabilizer(EventProcessor):
         self.smoothing_factor = conf.get("smoothing_factor", 1)
         self.current, self.upper = 0, 0
 
-        self.pending_events: List[KafkaEvent] = []
+        self.pending_events: List[TrackEvent] = []
         self.pending_xs: List[float] = []
         self.pending_ys: List[float] = []
 
@@ -113,8 +113,11 @@ class Stabilizer(EventProcessor):
 
         super().close()
         
-    def handle_event(self, ev:Union[TrackEvent, TimeElapsed]) -> None:
-        if isinstance(ev, TimeElapsed):
+    def min_frame_index(self) -> int:
+        return self.pending_events[0].frame_index if self.pending_events else None
+        
+    def handle_event(self, ev:TrackEvent|TimeElapsed) -> None:
+        if isinstance(ev, TrackEvent):
             self.pending_events.append(ev)
             x, y = tuple(ev.world_coord.xy)
             self.pending_xs.append(x)

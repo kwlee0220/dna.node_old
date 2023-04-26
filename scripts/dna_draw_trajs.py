@@ -92,7 +92,8 @@ class RunningStabilizer:
         if self.upper - self.current > self.look_ahead:
             xs = stabilizer.stabilization_location(self.pending_xs, self.look_ahead, self.smoothing_factor)
             ys = stabilizer.stabilization_location(self.pending_ys, self.look_ahead, self.smoothing_factor)
-            stabilized = Point(x=xs[self.current], y=ys[self.current])
+            xy = [xs[self.current], ys[self.current]]
+            stabilized = Point(xy)
 
             self.current += 1
             if self.current > self.look_ahead:
@@ -107,7 +108,7 @@ class RunningStabilizer:
     def get_tail(self) -> List[Point]:
         xs = stabilizer.stabilization_location(self.pending_xs, self.look_ahead, self.smoothing_factor)
         ys = stabilizer.stabilization_location(self.pending_ys, self.look_ahead, self.smoothing_factor)
-        return [Point(x,y) for x, y in zip(xs[self.current:], ys[self.current:])]
+        return [Point([x,y]) for x, y in zip(xs[self.current:], ys[self.current:])]
 
     def reset(self) -> None:
         self.current, self.upper = 0, 0
@@ -140,7 +141,7 @@ class TrajectoryDrawer:
         return cv2.putText(convas, f'{id_str}view={view}, contact={contact}{stabilized_flag}',
                             (10, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, self.traj_color, 2)
 
-    def draw(self, title='trajectories', pause:bool=True) -> Image:
+    def draw(self, title='trajectories', pause:bool=True, capture_file='output/capture.png') -> Image:
         bg_image = self.world_image if self.world_image is not None and self.show_world_coords else self.camera_image
         convas = bg_image.copy()
         convas = self._put_text(convas)
@@ -168,6 +169,10 @@ class TrajectoryDrawer:
                     convas = self._put_text(convas)
                     for traj in self.box_trajs.values():
                         convas = self._draw_trajectory(convas, traj)
+                        
+                if key == ord('s'):
+                        out_file = capture_file if capture_file else 'output.png'
+                        cv2.imwrite(out_file, convas)
             cv2.destroyWindow(title)
         return convas
 
@@ -218,7 +223,11 @@ class TrajectoryDrawer:
             pts = [box.center() for box in traj]
             
         if self.show_world_coords:
-            pts = [self.localizer.from_camera_coord(pt_c)[0] for pt_c in pts]
+            def camera_to_image(pt):
+                pt, _ = self.localizer.from_camera_coord(pt)
+                return self.localizer.to_image_coord(pt)
+            
+            pts = [camera_to_image(pt_c) for pt_c in pts]
             
         if self.show_stabilized:
             pts = self.stabilize(pts)

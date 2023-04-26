@@ -22,15 +22,15 @@
             "program": "${workspaceFolder}/scripts/dna_node.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--camera", "data/2022/etri_041.mp4",
+                // "--camera", "data/2022/etri_041.mp4",
                 "--conf", "conf/etri_testbed/etri_04.yaml",
                 // "--conf", "conf/ai_city/ai_city_t3_c01.yaml",
-                "--output", "D:/Temp/dna.node_output/etri_041_event.json",   // -o <file>
-                "--output_video", "D:/Temp/dna.node_output/etri_041_track.mp4",   // -v <file>
+                // "--output", "D:/Temp/dna.node_output/etri_074_event.json",   // -o <file>
+                // "--output_video", "D:/Temp/dna.node_output/etri_074_track.mp4",   // -v <file>
                 // "--begin_frame", "4000",
                 // "--end_frame", "4100",
-                "--show", //"1280x720",
-                // "--show_progress",  // -p
+                // "--show", //"1280x720",
+                "--show_progress",  // -p
             ],
             "justMyCode": true
         },
@@ -88,6 +88,76 @@
             ],
             "justMyCode": true
         },
+        { "name": "DrawTrajs",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_draw_trajs.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "output/2022/etri_074_event.json",
+                "--video", "data/2022/etri_072.mp4",
+                "--frame", "1",
+                "--type", "json",
+                "--camera_index", "3",
+                "--contact_point", "simulation",
+                // "--world_view",
+                "--thickness", "1",
+                // "-i",
+                // "--color", "SKYBLUE",
+                "--color", "RED",
+                // "-o", "output/result.jpg",
+            ],
+            "justMyCode": true
+        },
+        { "name": "ShowMultipleVideos",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_show_multiple_videos.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "output/2022/etri_042_track.mp4",
+                "output/2022/etri_052_track.mp4",
+                "output/2022/etri_062_track.mp4",
+                "output/2022/etri_072_track.mp4",
+                // "--begin_frames", "0, 7, 3, 0",     // 041, 051, 061, 071
+                "--begin_frames", "0, 7, 2, 1",     // 042, 052, 062, 072
+                // "--begin_frames", "10, 6, 0, 0",     // 043, 053, 063, 073
+                // "--begin_frames", "12, 8, 1, 0",     // 044, 054, 064, 074
+            ],
+            "justMyCode": true
+        },
+        { "name": "ShowMCLocations",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_show_mc_locations.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "output/2022/etri_044_event.json",
+                "output/2022/etri_054_event.json",
+                "output/2022/etri_064_event.json",
+                "output/2022/etri_074_event.json",
+                // "--offsets", "0, 7, 3, 0",     // 041, 051, 061, 071
+                // "--offsets", "0, 7, 2, 1",     // 042, 052, 062, 072
+                // "--offsets", "10, 6, 0, 0",    // 043, 053, 063, 073
+                "--offsets", "12, 8, 1, 0",     // 044, 054, 064, 074
+                // "--max_camera_distance", "57",
+            ],
+            "justMyCode": true
+        },
+        { "name": "SyncVideos",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_sync_videos.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "output/2022/etri_041_event.json",
+                "output/2022/etri_061_event.json",
+                "--frame_delta", "20",
+                "--max_camera_distance", "55",
+                "--segment_length", "5",
+                "--sparse_distance", "10",
+            ],
+            "justMyCode": true
+        },
+
+
+
         { "name": "GenerateTrainSet",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_gen_trainset.py",
@@ -132,23 +202,6 @@
             ],
             "justMyCode": true
         },
-        { "name": "ShowMCLocations",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_show_mc_locations.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "output/2022/etri_044_event.json",
-                "output/2022/etri_054_event.json",
-                "output/2022/etri_064_event.json",
-                "output/2022/etri_074_event.json",
-                // "--offsets", "0, 7, 3, 0",     // 041, 051, 061, 071
-                // "--offsets", "0, 7, 2, 1",     // 042, 052, 062, 072
-                // "--offsets", "10, 6, 0, 0",    // 043, 053, 063, 073
-                "--offsets", "12, 8, 1, 0",     // 044, 054, 064, 074
-                // "--max_camera_distance", "57",
-            ],
-            "justMyCode": true
-        },
         { "name": "AssocMCTracklets",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_assoc_tracklets.py",
@@ -163,42 +216,6 @@
                 // "--offsets", "10, 6, 0, 0",     // 043, 053, 063, 073
                 "--offsets", "12, 8, 1, 0",     // 044, 054, 064, 074
                 "--output", "output/tracklet_matches.csv"
-            ],
-            "justMyCode": true
-        },
-        { "name": "ShowMultipleVideos",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_show_multiple_videos.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "output/2022/etri_042_track.mp4",
-                "output/2022/etri_052_track.mp4",
-                "output/2022/etri_062_track.mp4",
-                "output/2022/etri_072_track.mp4",
-                "--begin_frames", "0, 0, 0, 0",     // 041, 051, 061, 071
-                // "--begin_frames", "0, 7, 3, 0",     // 041, 051, 061, 071
-                // "--begin_frames", "0, 7, 2, 1",     // 042, 052, 062, 072
-                // "--begin_frames", "10, 6, 0, 0",     // 043, 053, 063, 073
-                // "--begin_frames", "12, 8, 1, 0",     // 044, 054, 064, 074
-            ],
-            "justMyCode": true
-        },
-        { "name": "DrawTrajs",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_draw_trajs.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "output/2023/etri_07_event.json",
-                "--video", "data/2023/etri_07_join.mp4",
-                "--frame", "1",
-                "--type", "json",
-                "--camera_index", "3",
-                "--contact_point", "centroid",
-                // "--world_view",
-                "--thickness", "1",
-                // "-i",
-                "--color", "SKYBLUE",
-                "-o", "output/result.jpg",
             ],
             "justMyCode": true
         },
@@ -228,19 +245,6 @@
             "args": [
                 // "--listen", "etri:04", "etri:05", "etri:06", "etri:07",
                 "--listen", "etri:07",
-            ],
-            "justMyCode": true
-        },
-
-
-        { "name": "Test",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/test_drawer.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                // "${workspaceFolder}/conf/etri_051.yaml:camera",
-                "${workspaceFolder}/conf/cross_01.yaml:camera",
-                "--no_sync",
             ],
             "justMyCode": true
         },

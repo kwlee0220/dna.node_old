@@ -56,7 +56,7 @@ loggers:
         handlers: [console]
         propagate: no
     dna.node.event:
-        level: WARN
+        level: INFO
         handlers: [console]
         propagate: no
     dna.node.zone:

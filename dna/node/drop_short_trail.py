@@ -1,30 +1,33 @@
 from __future__ import annotations
 
-from typing import List, Dict, Set, Union
+from typing import List, Dict, Set, Union, Optional
+import sys
+import logging
 from collections import defaultdict
 
 from dna.tracker import TrackState
 from .types import TrackEvent, TimeElapsed, TrackId
 from .event_processor import EventProcessor
 
-import logging
-LOGGER = logging.getLogger('dna.node.event')
-
 
 class DropShortTrail(EventProcessor):
-    __slots__ = 'min_trail_length', 'long_trails', 'pending_dict'
+    __slots__ = 'min_trail_length', 'long_trails', 'pending_dict', 'logger'
 
-    def __init__(self, min_trail_length:int) -> None:
+    def __init__(self, min_trail_length:int, *, logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
 
         self.min_trail_length = min_trail_length
         self.long_trails: Set[TrackId] = set()  # 'long trail' 여부
         self.pending_dict: Dict[TrackId, List[TrackEvent]] = defaultdict(list)
+        self.logger = logger
 
     def close(self) -> None:
         super().close()
         self.pending_dict.clear()
         self.long_trails.clear()
+        
+    def min_frame_index(self) -> int:
+        return min(ev_list[0].frame_index for ev_list in self.pending_dict.values()) if self.pending_dict else None
 
     def handle_event(self, ev:Union[TrackEvent,TimeElapsed]) -> None:
         if isinstance(ev, TrackEvent):
@@ -40,8 +43,8 @@ class DropShortTrail(EventProcessor):
                 self._publish_event(ev)
             else:
                 pendings = self.pending_dict.pop(ev.track_id, [])
-                if pendings:
-                    LOGGER.info(f"drop short track events: track_id={ev.track_id}, length={len(pendings)}")
+                if pendings and self.logger and self.logger.isEnabledFor(logging.INFO):
+                    self.logger.info(f"drop short track events: track_id={ev.track_id}, length={len(pendings)}")
         elif is_long_trail:
             self._publish_event(ev)
         else:
@@ -51,9 +54,10 @@ class DropShortTrail(EventProcessor):
             # pending된 event의 수가 threshold (min_trail_length) 이상이면 long-trail으로 설정하고,
             # 더 이상 pending하지 않고, 바로 publish 시킨다.
             if len(pendings) >= self.min_trail_length:
-                self.pending_dict.pop(ev.track_id, None)
+                # 'pending_dict'에서 track을 제거하기 전에 pending event를 publish 해야 한다.
                 self.__publish_pendings(pendings)
                 self.long_trails.add(ev.track_id)
+                self.pending_dict.pop(ev.track_id, None)
 
     def __publish_pendings(self, pendings:List[TrackEvent]) -> None:
         for pev in pendings:

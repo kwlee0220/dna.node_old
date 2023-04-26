@@ -47,7 +47,7 @@ class WorldCoordinateLocalizer:
 
     def from_camera_coord(self, pt:npt.ArrayLike) -> Tuple[np.ndarray,np.double]:
         pt_m, dist = self.localize_point(np.array(pt))
-        return (pt_m, dist) if pt_m is not None else (None, dist)
+        return (pt_m[:2], dist) if pt_m is not None else (None, dist)
 
     def from_camera_box(self, tlbr:npt.ArrayLike) -> Tuple[np.ndarray,np.double]:
         pt = self.select_contact_point(tlbr)

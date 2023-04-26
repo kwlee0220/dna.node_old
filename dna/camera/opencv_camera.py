@@ -216,10 +216,10 @@ class OpenCvImageCapture(ImageCapture):
     @property
     def repr_str(self) -> str:
         state = 'opened' if self.is_open() else 'closed'
-        return f'{state}, size={self.size}, frames={self.frame_index}, fps={self.fps:.0f}/s'
+        return f'{state}, size={self.size}, fps={self.fps:.0f}/s'
 
     def __repr__(self) -> str:
-        return f'OpenCvImageCapture({self.repr_str})'
+        return f'{self.__class__.__name__}({self.repr_str})'
     
 
 class VideoFileCapture(OpenCvImageCapture):

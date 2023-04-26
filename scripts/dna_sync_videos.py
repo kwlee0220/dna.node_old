@@ -62,11 +62,12 @@ class Trajectory:
     def split_by_continuity(self) -> List[Trajectory]:
         samples:List[Sample] = self.samples
         split = [samples[0]]
-        splits:List[Trajectory] = [split]
+        splits:List[List[Sample]] = [split]
         for idx in range(1, len(samples)-1):
             if samples[idx].frame_index - samples[idx-1].frame_index == 1:
                 split.append(samples[idx])
             else:
+                # 연속된 frame index를 갖지 않은 경우에는 새 split을 생성한다.
                 split = [samples[idx]]
                 splits.append(split)
         return [Trajectory(self.luid, split) for split in splits]
@@ -74,6 +75,7 @@ class Trajectory:
     def buffer(self, length:int) -> List[Trajectory]:
         if self.last_frame < length:
             return []
+        
         return (Trajectory(self.luid, segment) for segment in iterables.buffer(self.samples, length, 1, length))
     
     def __repr__(self) -> str:
@@ -112,17 +114,17 @@ def find_isolated_trajectories(events_by_frame:Dict[int,List[TrackEvent]], spars
         
     # 각 frame별로 주변에 일정거리 이내에 위치를 갖는 track event가 없는 track event로 구성된 trajectory를 구성한다.
     trajectories = defaultdict(list)
-    for _, events in events_by_frame.items():
+    for events in events_by_frame.values():
         for te in events:
             if is_isolated(te, events):
                 # 물체의 식별자('track_id')별로 track_event를 누적하여 trajectory를 구성함
                 trajectories[te.track_id].append(Sample.from_event(te))
     return [Trajectory(luid, samples) for luid, samples in trajectories.items()]
     
-def generate_segments(trajs: List[Trajectory], length: int):
+def generate_segments(trajs:List[Trajectory], length:int):
     return iterables.flatten(traj.buffer(length) for traj in trajs)
 
-def load_sparse_trajectories(log_file_path: str, camera_dist:float, sparse_distance:float,
+def load_sparse_trajectories(log_file_path:str, camera_dist:float, sparse_distance:float,
                              min_traj_length:int) -> List[Trajectory]:
     events = load_log_file(log_file_path, camera_dist)
     trajs = (traj for traj in find_isolated_trajectories(events, sparse_distance) if traj.length >= min_traj_length)
@@ -133,15 +135,16 @@ def load_sparse_trajectories(log_file_path: str, camera_dist:float, sparse_dista
     
     return trajs
 
-def match(trajs1: List[Trajectory], trajs2: List[Trajectory], max_frame_delta: int, segment_length: int,
-            traj_distance:float):
+def match(trajs1:List[Trajectory], trajs2:List[Trajectory], max_frame_delta:int, segment_length:int,
+          traj_distance:float):
     matches = defaultdict(list)
     for s1 in generate_segments(trajs1, segment_length):
         for s2 in generate_segments(trajs2, segment_length):
             frame_delta = s1.frame_delta(s2)
             if abs(frame_delta) < max_frame_delta:
                 dist = s1.distance(s2, too_far_dist=10)
-                # print(f"seg1={s1}, seg2={s2}, delta={frame_delta}, dist={dist:.3f}")
+                # if dist != sys.float_info.max:
+                #     print(f"seg1={s1}, seg2={s2}, delta={frame_delta}, dist={dist:.3f}")
                 if dist < traj_distance:
                     matches[frame_delta].append(dist)
     return matches
@@ -160,12 +163,12 @@ def parse_args():
     parser.add_argument("track_files", nargs='+', help="track json files")
     parser.add_argument("--max_camera_distance", type=float, metavar="meter", default=50,
                         help="max. distance from camera (default: 55)")
-    parser.add_argument("--frame_delta", type=int, metavar="count", default=50, 
-                        help="maximum frame difference between videos (default: 50)")
+    parser.add_argument("--frame_delta", type=int, metavar="count", default=20, 
+                        help="maximum frame difference between videos (default: 20)")
     parser.add_argument("--traj_distance", type=float, metavar="value", default=2, 
                         help="maximum valid distance between trajectories (default: 2)")
-    parser.add_argument("--segment_length", type=int, metavar="count", default=30,
-                        help="trajectory segment length (default: 30)")
+    parser.add_argument("--segment_length", type=int, metavar="count", default=10,
+                        help="trajectory segment length (default: 10)")
     parser.add_argument("--sparse_distance", type=float, metavar="meter", default=10,
                         help="min. distance for sparse trajectories (default: 10)")
     parser.add_argument("--topk", type=int, metavar="count", default=5,

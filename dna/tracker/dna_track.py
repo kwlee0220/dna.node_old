@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Union, List
 
+import logging
 import numpy as np
 import cv2
 
@@ -48,7 +49,7 @@ _UNKNOWN_ZONE_ID = -2
 
 class DNATrack(ObjectTrack):
     def __init__(self, mean, covariance, track_id:str, frame_index:int, ts:float,
-                    params:DNATrackParams, detection:Detection) -> None:
+                    params:DNATrackParams, detection:Detection, *, logger:logging.Logger) -> None:
         super().__init__(id=track_id, state=TrackState.Tentative, location=to_box(to_tlbr(mean[:4])),
                         frame_index=frame_index, timestamp=ts)
 
@@ -72,6 +73,7 @@ class DNATrack(ObjectTrack):
         self.max_age = params.max_age
         self.__exit_zone = _UNKNOWN_ZONE_ID
         self.__stable_zone = self.home_zone
+        self.logger = logger
 
     @property
     def age(self) -> int:
@@ -152,7 +154,7 @@ class DNATrack(ObjectTrack):
                                                     self.frame_index, self.timestamp)
             max_lost_age = self.max_age
             if self.archived_state.stable_zone >= 0:
-                max_lost_age *= 5
+                max_lost_age *= 4
             if self.time_since_update > max_lost_age:
                 self.mark_deleted()
 
@@ -186,9 +188,13 @@ class DNATrack(ObjectTrack):
         return (f'{self.id}({self.state.abbr})[{len(self.detections)}{interval_str}]({self.time_since_update}), '
                 f'nfeats={len(self.features)}, frame={self.frame_index}')
 
-    def take_over(self, track:DNATrack, kf:KalmanFilter, frame:Frame, track_params:DNATrackParams,
-                  track_events:List[TrackEvent]) -> None:
+    def take_over(self, victim_track:DNATrack, kf:KalmanFilter, frame:Frame, track_events:List[TrackEvent]) -> None:
         archived_state = self.archived_state
+        
+        if self.logger.isEnabledFor(logging.INFO):
+            last_frame_index = victim_track.last_frame_index
+            self.logger.info(f'taking over other track: track={self.id}[{archived_state.frame_index+1}-{last_frame_index}], '
+                             f'victim={victim_track.id}[{victim_track.first_frame_index}-{victim_track.last_frame_index}]')
 
         self.mean = archived_state.mean
         self.covariance = archived_state.covariance
@@ -198,13 +204,13 @@ class DNATrack(ObjectTrack):
         self.archived_state = None
 
         # Take-over할 track의 첫 detection 전까지는 추정된 위치를 사용한다.
-        for i in range(archived_state.frame_index+1, track.first_frame_index):
+        for i in range(archived_state.frame_index+1, victim_track.first_frame_index):
             self.predict(kf, frame_index=i, ts=-1)
             self.detections.append(None)
 
         # Take-over할 track에게 할당된 detection으로 본 track의 위치를 재조정한다.
-        replay_frame = Frame(frame.image, track.first_frame_index, track.first_timestamp)
-        for det in track.detections:
+        replay_frame = Frame(frame.image, victim_track.first_frame_index, victim_track.first_timestamp)
+        for det in victim_track.detections:
             self.predict(kf, replay_frame.index, replay_frame.ts)
             if det:
                 self.update(kf, replay_frame, det)
@@ -213,6 +219,6 @@ class DNATrack(ObjectTrack):
                 self.timestamp = replay_frame.ts
                 self.detections.append(None)
             track_events.append(self.to_track_event())
-            replay_frame = Frame(frame.image, replay_frame.index+1, track.first_timestamp)
+            replay_frame = Frame(frame.image, replay_frame.index+1, victim_track.first_timestamp)
 
-        track.mark_deleted()
+        victim_track.mark_deleted()

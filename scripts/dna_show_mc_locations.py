@@ -123,7 +123,7 @@ class MCLocationDrawer:
         cv2.destroyWindow(title)
 
     def _draw_circles(self, convas:Image, location:Location, fill_color:BGR) -> Image:
-        center = tuple(location.point.to_rint()xy)
+        center = tuple(location.point.to_rint().xy)
         # convas = cv2.circle(convas, center, radius=3, color=color.RED, thickness=-1, lineType=cv2.LINE_AA)
         convas = plot_utils.draw_label(convas, f'{location.distance:.1f}', location.point.to_rint(),
                                        color=color.BLACK, fill_color=fill_color, thickness=1)

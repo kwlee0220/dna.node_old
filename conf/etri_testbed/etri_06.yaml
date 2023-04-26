@@ -8,7 +8,7 @@ camera:
   sync: False
   # begin_frame: 12015
   # open_ts: 590
-  open_ts: 0
+  # open_ts: 0
 
 tracker:
   draw: ['tracks', 'track_zones']
@@ -35,11 +35,11 @@ dna_kafka_connection: &dna_kafka_connection
   bootstrap_servers: [kafka01:9092, kafka02:9092, kafka03:9092]
 
 publishing:
-  # tick_interval: 1.0
+  tick_interval: 1.0
   refine_tracks:
-    buffer_size: 10
-    buffer_timeout: 1.5
-  # min_path_length: 10
+    buffer_size: 15
+    buffer_timeout: 2
+  min_path_length: 10
   attach_world_coordinates:
     camera_geometry: regions/etri_testbed/etri_testbed.json
     camera_index: 2
@@ -59,15 +59,15 @@ publishing:
       'CA': 'CA'
       'CB': 'CB'
 
-  plugins:
-    publish_tracks:
-      <<: *local_kafka_connection
-      topic: 'track-events'
-    publish_motions:
-      <<: *local_kafka_connection
-      topic: 'track-motions'
-    publish_features:
-      distinct_distance: 0.2
-      min_crop_size: 80x50
-      <<: *local_kafka_connection
-      topic: 'track-features'
+  # plugins:
+  #   publish_tracks:
+  #     <<: *local_kafka_connection
+  #     topic: 'track-events'
+  #   publish_motions:
+  #     <<: *local_kafka_connection
+  #     topic: 'track-motions'
+  #   publish_features:
+  #     distinct_distance: 0.2
+  #     min_crop_size: 80x50
+  #     <<: *local_kafka_connection
+  #     topic: 'track-features'

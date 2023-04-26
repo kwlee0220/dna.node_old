@@ -152,7 +152,7 @@ class Tracker:
     def _initiate_track(self, detection: Detection, frame:Frame) -> None:
         mean, covariance = self.kf.initiate(detection.bbox.xyah)
         track = DNATrack(mean, covariance, self._next_id, frame.index, frame.ts,
-                            self.params, detection)
+                         self.params, detection, logger=self.logger)
         self.tracks.append(track)
         self._next_id += 1
 
@@ -242,48 +242,52 @@ class Tracker:
         merged_tracks = set()
         
         # Stable zone에서 시작된 track들을 검색한다.
-        if not (stable_home_tracks := self.build_stable_home_tracks(session)):
+        if not (stable_zone_birth_tracks := self._collect_stable_zone_birth_tracks()):
             # Stable zone에서 시작된 track이 없는 경우 merge할 대상이 없기 때문에 바로 반환함.
             return merged_tracks
         
+        # 모든 stable zone에 대해서, merge할 track이 있는가 확인하여 merge를 시도한다.
         for zid, _ in enumerate(self.params.stable_zones):
             # 각 stable zone에 temporarily lost된 track들을 검색한다.
-            tl_tracks = self.find_tlost_stable_tracks(zid, session)
+            tl_tracks = self._find_tlost_stable_tracks(zid, session)
             # 해당 stable zone에서 시작된 track들을 검색한다.
-            sh_tracks = stable_home_tracks[zid]
+            sh_tracks = stable_zone_birth_tracks[zid]
+            
+            # 여기서 tl_tracks은 'zid' 식별자를 갖는 stable zone에 temporarily lost된 track들이고,
+            # sh_tracks은 'zid' 식별자를 갖는 stable zone에서 시작된 track들이다.
+            # tl_tracks들과 sh_tracks들 사이의 feature를 기준으로한 cost matrix를 생성하여
+            # feature간 distance를 활용하여 matching 시킨다.
+            
             if tl_tracks and sh_tracks:
                 metric_cost = self.build_metric_cost(tl_tracks, sh_tracks)
 
                 matcher = ReciprocalCostMatcher(metric_cost, self.params.metric_threshold, name='take_over')
                 matches = matcher.match(utils.all_indices(tl_tracks), utils.all_indices(sh_tracks))
                 for t_idx, d_idx in matches:
-                    stable_home_track = stable_home_tracks[zid][d_idx]
+                    stable_home_track = stable_zone_birth_tracks[zid][d_idx]
                     # match된 stable zone track을 제거하고, 대신 해당 track 정보를
                     # match된 temporarily lost된 track에 붙인다
-                    tl_tracks[t_idx].take_over(stable_home_track, self.kf, frame, self.params, track_events)
+                    tl_tracks[t_idx].take_over(stable_home_track, self.kf, frame, track_events)
                     merged_tracks.add(tl_tracks[t_idx])
                     if self.logger.isEnabledFor(logging.DEBUG):
                         self.logger.debug(f'track-take-over: {stable_home_track.id} -> {tl_tracks[t_idx].id}: '
                                             f'count={len(stable_home_track.detections)} stable_zone[{zid}]')
         return merged_tracks
         
-    def find_tlost_stable_tracks(self, zid:int, session:MatchingSession) -> List[DNATrack]:
+    def _find_tlost_stable_tracks(self, zid:int, session:MatchingSession) -> List[DNATrack]:
         return [track for track in utils.get_items(self.tracks, session.unmatched_tlost_track_idxes) \
                             if track.archived_state.stable_zone == zid]
 
-    def build_stable_home_tracks(self, session:MatchingSession) -> Dict[int,List[DNATrack]]:
+    def _collect_stable_zone_birth_tracks(self) -> Dict[int,List[DNATrack]]:
         # Stable zone에서 시작된 track들을 검색한다.
         # 검색된 track들은 해당 stable zone에서 lost 중인 track 때문에 생성된 것일 수 있음.
-        stable_home_tracks = defaultdict(list)
+        stable_zone_birth_tracks = defaultdict(list)
         for t_idx, track in enumerate(self.tracks):
-            # track의 처음 생성될 때 특정 stable zone 내에 위치하였고,
-            # 현재 상태가 Confirmed 또는 tentative 상태이고
-            # 현 track의 현재 위치가 아직 자신이 생성된 stable zone내인 경우
-            if (zid:=track.home_zone) >= 0 \
-                and (track.is_confirmed() or track.is_tentative()) \
-                and track.stable_zone == zid:
-                    stable_home_tracks[zid].append(track)
-        return stable_home_tracks
+            if ( (zid:=track.home_zone) >= 0                        # track의 처음 생성될 때 특정 stable zone 내에 위치하였고,
+                and (track.is_confirmed() or track.is_tentative())  # 현재 상태가 Confirmed 또는 tentative 상태이고
+                and track.stable_zone == zid ):                     # 현 track의 현재 위치가 아직 자신이 생성된 stable zone내인 경우
+                    stable_zone_birth_tracks[zid].append(track)
+        return stable_zone_birth_tracks
 
     def build_metric_cost(self, tl_tracks:List[DNATrack], sh_tracks:List[DNATrack]) -> np.ndarray:
         cost_matrix = np.ones((len(tl_tracks), len(sh_tracks)))
