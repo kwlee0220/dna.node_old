@@ -38,7 +38,7 @@ class FrameProcessor(metaclass=ABCMeta):
 class ImageProcessor(AbstractExecution):
     __ALPHA = 0.2
     __slots__ = ('capture', 'frame_processors', 'suffix_processors', 'show_processor',
-                 'is_drawing', 'fps_measured', 'logger', 'cond', 'ready')
+                 'is_drawing', 'fps_measured', 'logger')
 
     from dataclasses import dataclass
     @dataclass(frozen=True)    # slots=True
@@ -50,9 +50,7 @@ class ImageProcessor(AbstractExecution):
 
         def __repr__(self):
             return (f"elapsed={timedelta(seconds=self.elapsed)}, "
-                    f"frame_count={self.frame_count}, "
-                    f"fps={self.fps_measured:.1f}")
-
+                    f"frame_count={self.frame_count}, fps={self.fps_measured:.1f}")
 
     def __init__(self, cap:ImageCapture, *,
                  show:Optional[str|Size2d|bool]=False,
@@ -64,6 +62,7 @@ class ImageProcessor(AbstractExecution):
         self.capture = cap
         self.frame_processors: List[FrameProcessor] = []
         self.suffix_processors: List[FrameProcessor] = []
+        self.logger = logging.getLogger('dna.image_processor')
 
         self.show_processor:ShowFrame = None
         
@@ -78,23 +77,24 @@ class ImageProcessor(AbstractExecution):
         if self.is_drawing:
             self.suffix_processors.append(DrawFrameTitle())
         if output_video:
-            self.suffix_processors.append(ImageWriteProcessor(Path(output_video)))
+            self.suffix_processors.append(ImageWriteProcessor(Path(output_video),
+                                                              logger=self.logger.getChild('image_writer')))
 
         if show:
             window_name = f'camera={cap.camera.uri}'
-            self.show_processor = ShowFrame(window_name, tuple(show.wh) if show else None)
+            self.show_processor = ShowFrame(window_name, tuple(show.wh) if show else None,
+                                            logger=self.logger.getChild('show_frame'))
             self.suffix_processors.append(self.show_processor)
 
         if show_progress:
             # 카메라 객체에 'begin_frame' 속성과 'end_frame' 속성이 존재하는 경우에만 ShowProgress processor를 추가한다.
             camera = self.capture.camera
-            if hasattr(camera, 'begin_frame') and hasattr(camera, 'end_frame') and hasattr(self.capture, 'total_frame_count'):
+            if ( hasattr(camera, 'begin_frame')
+                and hasattr(camera, 'end_frame')
+                and hasattr(self.capture, 'total_frame_count') ):
                 self.suffix_processors.append(ShowProgress())
 
         self.fps_measured = 0.
-        self.logger = logging.getLogger('dna.image_processor')
-
-        self.ready = False
         
     def close(self) -> None:
         self.stop("close requested", nowait=True)
@@ -103,28 +103,21 @@ class ImageProcessor(AbstractExecution):
         self.frame_processors.append(frame_proc)
         if self.show_processor:
             self.show_processor.add_processor(frame_proc)
-
-    def wait_for_ready(self) -> None:
-        with self.cond:
-            while not self.ready:
-                self.cond.wait()
         
     def run_work(self) -> Result:
         started = time.time()
 
+        # 등록된 모든 frame processor들의 'on_started()' 메소드를 호출하여 ImageProcessor가 시작됨을 알린다.
         processors = self.frame_processors + self.suffix_processors
         for fproc in processors:
             fproc.on_started(self)
-
-        with self.cond:
-            self.ready = True
-            self.cond.notify_all()
 
         capture_count = 0
         self.fps_measured = 0.
         failure_cause = None
         try:
-            self.logger.info(f'start: ImageProcess[cap={self.capture}]')
+            if self.logger.isEnabledFor(logging.INFO):
+                self.logger.info(f'start: ImageProcess[cap={self.capture}]')
             while self.capture.is_open():
                 # 사용자에 의해 동작 멈춤이 요청된 경우 CallationError 예외를 발생시킴
                 self.check_stopped()
@@ -170,6 +163,7 @@ class ImageProcessor(AbstractExecution):
     def finalize(self) -> None:
         self.capture.close()
 
+
 class DrawFrameTitle(FrameProcessor):
     def on_started(self, proc:ImageProcessor) -> None:
         self.proc = proc
@@ -184,12 +178,13 @@ class DrawFrameTitle(FrameProcessor):
 class ShowFrame(FrameProcessor):
     _PAUSE_MILLIS = int(timedelta(hours=1).total_seconds() * 1000)
 
-    def __init__(self, window_name: str, window_size: Optional[Tuple[int,int]]) -> None:
+    def __init__(self, window_name:str, window_size:Optional[Tuple[int,int]],
+                 *, logger:Optional[logging.Logger]=None) -> None:
         super().__init__()
         self.window_name = window_name
         self.window_size:Optional[Tuple[int,int]] = window_size if window_size != (0,0) else None
         self.processors: List[FrameProcessor] = []
-        self.logger = logging.getLogger('dna.node.frame_processor.show_frame')
+        self.logger = logger
         
     def add_processor(self, proc:FrameProcessor) -> None:
         self.processors.append(proc)
@@ -197,12 +192,14 @@ class ShowFrame(FrameProcessor):
     def on_started(self, proc:ImageProcessor) -> None:
         win_size = self.window_size if self.window_size else tuple(proc.capture.size.wh)
         
-        self.logger.info(f'create window: {self.window_name}, size=({win_size[0]}x{win_size[1]})')
+        if self.logger and self.logger.isEnabledFor(logging.INFO):
+            self.logger.info(f'create window: {self.window_name}, size=({win_size[0]}x{win_size[1]})')
         cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
         cv2.resizeWindow(self.window_name, win_size[0], win_size[1])
 
     def on_stopped(self) -> None:
-        self.logger.info(f'destroy window: {self.window_name}')
+        if self.logger and self.logger.isEnabledFor(logging.INFO):
+            self.logger.info(f'destroy window: {self.window_name}')
         with suppress(Exception): cv2.destroyWindow(self.window_name)
 
     def process_frame(self, frame:Frame) -> Optional[Frame]:
@@ -212,14 +209,17 @@ class ShowFrame(FrameProcessor):
         key = cv2.waitKey(int(1)) & 0xFF
         while True:
             if key == ord('q'):
-                self.logger.info(f'interrupted by a key-stroke')
+                if self.logger and self.logger.isEnabledFor(logging.DEBUG):
+                    self.logger.debug(f'interrupted by a key-stroke')
                 return None
             elif key == ord(' '):
-                self.logger.info(f'paused by a key-stroke')
+                if self.logger and self.logger.isEnabledFor(logging.DEBUG):
+                    self.logger.debug(f'paused by a key-stroke')
                 while True:
                     key = cv2.waitKey(ShowFrame._PAUSE_MILLIS) & 0xFF
                     if key == ord(' '):
-                        self.logger.info(f'resumed by a key-stroke')
+                        if self.logger and self.logger.isEnabledFor(logging.DEBUG):
+                            self.logger.debug(f'resumed by a key-stroke')
                         key = 1
                         break
                     elif key == ord('q'):
@@ -264,21 +264,25 @@ class ShowProgress(FrameProcessor):
     
     
 class ImageWriteProcessor(FrameProcessor):
-    def __init__(self, path: Path) -> None:
+    __slots__ = ( 'path', 'writer', 'logger' )
+    
+    def __init__(self, path: Path, *, logger:Optional[logging.Logger]=None) -> None:
         super().__init__()
         
         self.path = path.resolve()
-        self.logger = logging.getLogger('dna.node.frame_processor.video_writer')
+        self.logger = logger
 
     def on_started(self, proc:ImageProcessor) -> None:
-        self.logger.info(f'opening video file: {self.path}')
+        if self.logger and self.logger.isEnabledFor(logging.INFO):
+            self.logger.info(f'opening video file: {self.path}')
         
         from .video_writer import VideoWriter
         self.writer = VideoWriter(self.path.resolve(), proc.capture.fps, proc.capture.size)
         self.writer.open()
 
     def on_stopped(self) -> None:
-        self.logger.info(f'closing video file: {self.path}')
+        if self.logger and self.logger.isEnabledFor(logging.INFO):
+            self.logger.info(f'closing video file: {self.path}')
         with suppress(Exception): self.writer.close()
 
     def process_frame(self, frame:Frame) -> Optional[Frame]:

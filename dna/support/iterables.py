@@ -14,8 +14,8 @@ def mean(iterable) -> float:
         iterable = list(iterable)
     return sum(iterable) / len(iterable)
 
-def first(iterable:Iterable[T]) -> Optional[T]:
-    return next(iter(iterable), None)
+def first(iterable:Iterable[T], *, default:Optional[T]=None) -> Optional[T]:
+    return next(iter(iterable), default)
 
 def flatmap(func, iterable):
     return itertools.chain.from_iterable(map(func, iterable))
@@ -23,7 +23,7 @@ def flatmap(func, iterable):
 def flatten(iterable):
     return itertools.chain.from_iterable(iterable)
 
-def buffer(list:List[Any], count:int, skip:int=None, min_length:int=0):
+def buffer(list:List[Any], count:int, skip:int=None, min_length:int=0) -> Generator[List[T], None, None]:
     if skip and skip <= 0:
         raise ValueError(f"invalid skip: {skip}")
     if min_length > count:

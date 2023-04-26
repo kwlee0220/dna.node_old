@@ -36,6 +36,8 @@ class PublishReIDFeatures(FrameProcessor,EventProcessor):
         tracks = []
         for track in group:
             if track.is_confirmed() or track.is_tentative():
+                # ReID feature의 안정성 향상을 위해 detection box의 크기가
+                # 일정 크기 이상인 것만 reid feature를 추출한다.
                 if track.detection_box.size() >= self.min_crop_size:
                     tracks.append(track)
             elif track.is_deleted():
