@@ -227,6 +227,19 @@ class Size2d:
             bool: 유효성 여부. 넓이와 높이가 모두 0보다 크거나 같은지 여부.
         """
         return self.wh[0] >= 0 and self.wh[1] >= 0
+    
+    @staticmethod
+    def from_image(img:np.ndarray) -> Size2d:
+        """주어진 OpenCV 이미지의 크기를 반환한다.
+
+        Args:
+            img (np.ndarray): OpenCV 이미지 객체.
+
+        Returns:
+            Size2d: 이미지 크기 (width, height)
+        """
+        h, w, _ = img.shape
+        return Size2d([w, h])
 
     @property
     def width(self) -> int|float:
@@ -407,6 +420,11 @@ class Box:
             Box: a Box object.
         """
         w, h = tuple(size.wh) if isinstance(size, Size2d) else tuple(np.array(size))
+        return Box([0, 0, w, h])
+    
+    @staticmethod
+    def from_image(img:np.ndarray) -> Box:
+        h, w, _ = img.shape
         return Box([0, 0, w, h])
 
     def translate(self, delta:Union[Size2d,npt.ArrayLike]) -> Box:
