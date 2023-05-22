@@ -70,7 +70,7 @@ class ImageProcessor(AbstractExecution):
             if isinstance(show, bool):
                 return cap.size if show else None
             else:
-                return Size2d.from_expr(show)
+                return Size2d.from_expr(show).to_rint()
         show = parse_show(show)
 
         self.is_drawing:bool = show is not None or output_video is not None
