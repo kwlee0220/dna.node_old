@@ -1,2 +1,4 @@
-from .types import TrackletId, Association, TrajectoryFragment
-from .tracklet_associator import FeatureBasedTrackletAssociator
+from .types import TrajectoryFragment
+from .association import Association, BinaryAssociation
+from .collection import AssociationCollection, AssociationCollector
+from .closure import AssociationClosureBuilder

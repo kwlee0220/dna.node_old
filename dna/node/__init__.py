@@ -1,4 +1,4 @@
-from .types import TimeElapsed, KafkaEvent, TrackEvent, TrackId, NodeId, TrackFeature
+from .types import TimeElapsed, KafkaEvent, TrackEvent, TrackDeleted, TrackId, NodeId, TrackletId, TrackFeature
 # from .tracklet import Tracklet
 # from .tracklet_store import TrackletStore
 from .event_processor import EventQueue, EventListener, EventProcessor

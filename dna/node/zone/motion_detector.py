@@ -6,7 +6,7 @@ import itertools
 
 from dna import utils
 from ..event_processor import EventProcessor
-from .types import Motion, TrackDeleted
+from .types import TrackletMotion, TrackDeleted
 from .zone_sequence_collector import ZoneSequence
     
 
@@ -23,20 +23,28 @@ class MotionDetector(EventProcessor):
 
     def handle_event(self, ev:ZoneSequence|TrackDeleted) -> None:
         if isinstance(ev, ZoneSequence):
-            seq = ''.join([zone.zone_id for zone in ev])
+            seq = ''.join([visit.zone_id for visit in ev])
             seq = ''.join(i for i, _ in itertools.groupby(seq))
+            seq_str = ev.sequence_str()
+            enter_zone = seq[0] if seq else None
+            exit_zone = seq[-1] if seq else None
             motion_id = self.motion_definitions.get(seq)
+            
             if motion_id:
-                frame_index_range = utils.seq_to_range((ev.first_frame_index, ev.frame_index))
-                ts_range = utils.seq_to_range((ev.first_ts, ev.ts))
-                motion = Motion(node_id=self.node_id, track_id=ev.track_id, motion=motion_id)
                 if self.logger and self.logger.isEnabledFor(logging.DEBUG):
-                    self.logger.debug(f'detect motion: track={ev.track_id}, seq={seq}, motion={motion.motion}, '
-                                      f'frame={ev.frame_index}')
-                self._publish_event(motion)
+                    self.logger.debug(f'detect motion: track={ev.track_id}, seq={seq_str}, motion={motion.motion}, '
+                                        f'frame={ev.frame_index}')
             else:
-                if self.logger and self.logger.isEnabledFor(logging.WARN):
-                    self.logger.warn(f'unknown motion: track={ev.track_id}, seq={seq}, frame={ev.frame_index}')
+                self.logger.warn(f'unknown motion: track={ev.track_id}, seq={seq_str}, frame={ev.frame_index}')
+                    
+            motion = TrackletMotion(node_id=self.node_id,
+                                    track_id=ev.track_id,
+                                    zone_sequence=seq_str,
+                                    enter_zone=enter_zone,
+                                    exit_zone=exit_zone,
+                                    motion=motion_id,
+                                    ts=ev.ts)
+            self._publish_event(motion)
         else:
             self._publish_event(ev)
     

@@ -10,9 +10,8 @@ from dna.camera import FrameProcessor, ImageProcessor
 from dna.tracker import TrackState
 from ..types import TrackEvent
 from ..event_processor import EventQueue, EventListener
-from .types import ResidentChanged
+from .types import ResidentChanged, TrackletMotion
 from .resident_changes import ResidentChanges
-from .motion_detector import Motion
 
 
 class ZoneSequenceDisplay(FrameProcessor,EventListener):
@@ -29,11 +28,11 @@ class ZoneSequenceDisplay(FrameProcessor,EventListener):
         for key in self.motion_counts.keys():
             self.motion_counts[key] = 0
         
-    def handle_event(self, ev:Union[TrackEvent,Motion]) -> None:
+    def handle_event(self, ev:Union[TrackEvent,TrackletMotion]) -> None:
         if isinstance(ev, TrackEvent):
             if ev.state == TrackState.Deleted:
                 self.track_locations[ev.track_id] = ev.location
-        elif isinstance(ev, Motion):
+        elif isinstance(ev, TrackletMotion) and ev.motion:
             self.motion_counts[ev.motion] += 1
             self.motion_tracks.add(ev.track_id)
 

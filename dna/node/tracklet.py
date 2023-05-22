@@ -5,31 +5,6 @@ from dataclasses import dataclass, field
 
 from dna.tracker import TrackState
 from .types import TrackEvent, TrackId
-from .zone.types import Motion
-
-
-@dataclass(frozen=True, eq=True)
-class TrackletMeta:
-    node_id: str
-    track_id: str
-    enter_zone: str = field(default=None)
-    exit_zone: str = field(default=None)
-    motion: str = field(default=None)
-    
-    @staticmethod
-    def from_motion(motion:Motion) -> TrackletMeta:
-        seq = motion.motion
-        return TrackletMeta(node_id=motion.node_id, track_id=motion.track_id,
-                            enter_zone=seq[0] if seq else None,
-                            exit_zone=seq[-1] if seq else None,
-                            motion=seq)
-        
-    @staticmethod
-    def from_row(row:Tuple) -> TrackletMeta:
-        return TrackletMeta(node_id=row[0], track_id=row[1], enter_zone=row[2], exit_zone=row[3], motion=row[4])
-    
-    def to_row(self) -> Tuple:
-        return (self.node_id, self.track_id, self.enter_zone, self.exit_zone, self.motion)
 
 
 class Tracklet:

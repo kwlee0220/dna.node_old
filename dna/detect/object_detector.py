@@ -22,6 +22,9 @@ class ObjectDetector(metaclass=ABCMeta):
             List[Detection]: a list of Detection objects
         """
         pass
+    
+    def detect_images(self, frames:List[Frame]) -> List[List[Detection]]:
+        return [self.detect(frame) for frame in frames]
 
 
 class ScoreFilteredObjectDetector(ObjectDetector):

@@ -35,10 +35,10 @@ class SQLConnector:
     password: str = field(default='urc2004')
     port: int = field(default=5432)
     
-    @staticmethod
-    def from_conf(conf:OmegaConf):
+    @classmethod
+    def from_conf(cls, conf:OmegaConf):
         infos = {key[3:]:value for key, value in dict(conf).items() if key in _DB_CONF_KEYS}
-        return SQLConnector(**infos)
+        return cls(**infos)
     
     def connect(self):
         import psycopg2

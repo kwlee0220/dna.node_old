@@ -8,7 +8,7 @@ import numpy.typing as npt
 from omegaconf.omegaconf import OmegaConf
 
 import dna
-from dna import Size2d, Box
+from dna import Size2d, Box, config
 from dna.detect import Detection
 from dna.zone import Zone
 

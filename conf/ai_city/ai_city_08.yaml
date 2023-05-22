@@ -7,7 +7,7 @@ camera:
   end_frame: 3000
 
 tracker:
-  draw: ["tracks", "track_zones", "e  xit_zones"]
+  draw: ["tracks", "track_zones", "exit_zones"]
   track_zones:
     - [[3,300], [1031,2], [1567,177], [1913,576], [1917,1074], [1,1076]]
   magnifying_zones:

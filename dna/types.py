@@ -258,6 +258,9 @@ class Size2d:
             int|float: 본 Size2d의 높이 값.
         """
         return self.wh[1]
+    
+    def __iter__(self):
+        return (c for c in self.wh)
         
     def __array__(self, dtype=None):
         if not dtype or dtype == self.wh.dtype:
@@ -288,6 +291,9 @@ class Size2d:
             Size2d: int형식으로 반올림한 크기를 갖는 Size2d 객체.
         """
         return Size2d(np.rint(self.wh).astype(int))
+    
+    def __hash__(self):
+        return hash(tuple(self))
 
     def __add__(self, rhs) -> Size2d:
         if isinstance(rhs, Size2d):

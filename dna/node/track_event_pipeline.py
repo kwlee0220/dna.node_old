@@ -4,7 +4,7 @@ import dataclasses
 import threading
 
 import logging
-import time
+import numpy as np
 from datetime import timedelta
 from omegaconf import OmegaConf
 
@@ -80,13 +80,31 @@ class LogTrackEventPipeline(EventQueue):
 class MinFrameIndexComposer:
     def __init__(self) -> None:
         self.processors:List[EventProcessor] = []
+        self.min_indexes:List[int] = []
+        self.min_holder = -1
         
     def append(self, proc:EventProcessor) -> None:
         self.processors.append(proc)
+        self.min_indexes.append(None)
         
     def min_frame_index(self) -> int:
-        min_indexes = [min_idx for proc in self.processors if (min_idx := proc.min_frame_index()) is not None]
-        return min(min_indexes) if min_indexes else None
+        import sys
+        
+        if self.min_holder >= 0:
+            min = self.processors[self.min_holder].min_frame_index()
+            if min == self.min_indexes[self.min_holder]:
+                return min
+        for idx, proc in enumerate(self.processors):
+            min = proc.min_frame_index()
+            self.min_indexes[idx] = min if min else sys.maxsize
+        
+        self.min_holder = np.argmin(self.min_indexes)
+        min = self.min_indexes[self.min_holder]
+        if min != sys.maxsize:
+            return min
+        else:
+            self.min_holder = -1
+            return None
 
 
 class TrackEventPipeline(EventQueue):
@@ -234,26 +252,28 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
     publish_tracks_conf = config.get(plugins_conf, 'publish_tracks')
     if publish_tracks_conf:
         from .kafka_event_publisher import KafkaEventPublisher
-        plugin = KafkaEventPublisher(publish_tracks_conf, logger=logger.getChild('kafka.tracks'))
+        plugin = KafkaEventPublisher.from_conf(publish_tracks_conf, logger=logger.getChild('kafka.tracks'))
         pipeline.add_listener(plugin)
         pipeline.plugins['publish_tracks'] = plugin
             
     # 'PublishReIDFeatures' plugin은 ImageProcessor가 지정된 경우에만 등록시킴
-    publish_features_conf = OmegaConf.select(plugins_conf, "publish_features", default=None)
+    publish_features_conf = config.get(plugins_conf, "publish_features")
     if publish_features_conf and image_processor:
         from dna.support.sql_utils import SQLConnector
-        from .tracklet_store import TrackletStore
+        from ..assoc.tracklet_store import TrackletStore
         from dna.tracker.dna_tracker import load_feature_extractor
         from .reid_features import PublishReIDFeatures
-        frame_buf_size = pipeline.group_event_queue.max_pending_frames + 2
         distinct_distance = publish_features_conf.get('distinct_distance', 0.0)
         min_crop_size = Size2d.from_expr(publish_features_conf.get('min_crop_size', '80x80'))
-        publish = PublishReIDFeatures(frame_buffer_size=frame_buf_size,
-                                      extractor=load_feature_extractor(normalize=True),
+        publish = PublishReIDFeatures(extractor=load_feature_extractor(normalize=True),
                                       distinct_distance=distinct_distance,
                                       min_crop_size=min_crop_size)
         pipeline.group_event_queue.add_listener(publish)
         image_processor.add_frame_processor(publish)
+        
+        plugin = KafkaEventPublisher.from_conf(publish_features_conf, logger=logger.getChild('kafka.features'))
+        publish.add_listener(plugin)
+        pipeline.plugins['publish_features'] = plugin
         
     zone_pipeline:ZonePipeline = pipeline.plugins.get('zone_pipeline')
     if zone_pipeline:
@@ -262,7 +282,7 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
             from .kafka_event_publisher import KafkaEventPublisher
             motions = zone_pipeline.event_queues.get('motions')
             if motions:
-                plugin = KafkaEventPublisher(publish_motions_conf, logger=logger.getChild('kafka.motions'))
+                plugin = KafkaEventPublisher.from_conf(publish_motions_conf, logger=logger.getChild('kafka.motions'))
                 motions.add_listener(plugin)
                 pipeline.plugins['publish_motions'] = plugin
     

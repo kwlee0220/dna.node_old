@@ -88,14 +88,14 @@ class Yolov5Detector(ObjectDetector):
 
         return self._to_detections(result.xyxy[0])
 
-    @torch.no_grad()
-    def detect_images(self, frames:List[Frame]) -> List[List[Detection]]:
-        batch = [self._preprocess(frame.image) for frame in frames]
+    # @torch.no_grad()
+    # def detect_images(self, frames:List[Frame]) -> List[List[Detection]]:
+    #     batch = [self._preprocess(frame.image) for frame in frames]
 
-        # inference
-        result = self.model(batch)
+    #     # inference
+    #     result = self.model(batch)
 
-        return [self._to_detections(xyxy) for xyxy in result.xyxy]
+    #     return [self._to_detections(xyxy) for xyxy in result.xyxy]
 
     def _preprocess(self, image:Image) -> torch.Tensor:
         return image[:,:,::-1]

@@ -1,12 +1,12 @@
 from __future__ import annotations
-from typing import Union, List, Tuple, Generator, Iterable, Optional, ByteString
+from typing import List, Tuple, Generator, Iterable, Optional
 
 from contextlib import closing
 
-from .types import TrackEvent, TrackId, NodeId, TrackFeature
-from .zone import Motion
-from .tracklet import Tracklet, TrackletMeta
-from dna.assoc import TrajectoryFragment, TrackletId, Association
+from ..node.types import TrackEvent, TrackId, NodeId, TrackletId, TrackFeature
+from ..node.zone import TrackletMotion
+from ..node.tracklet import Tracklet
+from dna.assoc import TrajectoryFragment, Association
 from dna.support import sql_utils, iterables
 
 
@@ -22,30 +22,32 @@ _CREATE_TRACK_EVENTS = """
         distance_to_camera real,
         zone_relation character varying,
         frame_index integer,
-        ts bigint,
+        ts bigint NOT NULL,
         CONSTRAINT track_events_pkey PRIMARY KEY (row_no)
     )
     """
 _CREATE_INDEX_ON_TRACK_EVENTS = """
-    CREATE INDEX node_track_idx ON track_events(node_id, track_id)
+    CREATE INDEX track_events_idx ON track_events(node_id, track_id)
     """
 
-_CREATE_TRACKLETS = """
-    CREATE TABLE IF NOT EXISTS tracklets
+_CREATE_TRACKET_ROUTES = """
+    CREATE TABLE IF NOT EXISTS tracklet_motions
     (
         node_id character varying NOT NULL,
         track_id character varying NOT NULL,
+        zone_sequence character varying NOT NULL,
         enter_zone character varying,
         exit_zone character varying,
         motion character varying,
+        ts bigint NOT NULL,
         PRIMARY KEY (node_id, track_id)
     );
     """
 _CREATE_INDEX_ON_TRACKLET_ENTERS = """
-    CREATE INDEX tracklet_enter_idx ON tracklets(node_id, enter_zone ASC NULLS LAST)
+    CREATE INDEX tracklet_enter_idx ON tracklet_motions(node_id, enter_zone ASC NULLS LAST)
 """
 _CREATE_INDEX_ON_TRACKLET_EXITS = """
-    CREATE INDEX tracklet_exit_idx ON tracklets(node_id, exit_zone ASC NULLS LAST)
+    CREATE INDEX tracklet_exit_idx ON tracklet_motions(node_id, exit_zone ASC NULLS LAST)
 """
 
 _CREATE_TRACKLET_FEATURES = """
@@ -53,20 +55,24 @@ _CREATE_TRACKLET_FEATURES = """
     (
         node_id character varying NOT NULL,
         track_id character varying NOT NULL,
-        feature bytea NOT NULL,
+        feature bytea,
+        zone_relation character varying,
         ts bigint NOT NULL,
         PRIMARY KEY (node_id, track_id, ts)
     );
 """
 
 _CREATE_TRAJECTORIES = """
-    CREATE TABLE IF NOT EXISTS trajectory_fragments
+    CREATE TABLE IF NOT EXISTS trajectories
     (
         traj_id bigint NOT NULL,
         node_id character varying NOT NULL,
         track_id character varying NOT NULL,
-        CONSTRAINT trajectory_fragments_pkey PRIMARY KEY (node_id, track_id)
+        PRIMARY KEY (traj_id)
     )
+"""
+_CREATE_INDEX_ON_TRAJECTORIES = """
+    CREATE INDEX trajectories_idx ON trajectories(node_id, track_id)
 """
 _CREATE_SEQUENCE_TRAJECTORY = """
     CREATE SEQUENCE trajectory_seq
@@ -78,23 +84,31 @@ class TrackletStore:
         self.connector = connector
         
     def connect(self):
+        '''Tracklet Store를 구성하는 DBMS에 접속한다.'''
         return self.connector.connect()
+    
+    def close(self) -> None:
+        self.connector.close()
         
     def format(self) -> None:
-        with closing(self.connector.connect()) as conn:
+        '''Tracklet Store를 구성하는 DBMS 테이블들을 생성한다.'''
+        with closing(self.connect()) as conn:
             cursor = conn.cursor()
-            cursor.execute(_CREATE_TRACK_EVENTS)
-            cursor.execute(_CREATE_INDEX_ON_TRACK_EVENTS)
-            cursor.execute(_CREATE_TRACKLETS)
-            cursor.execute(_CREATE_INDEX_ON_TRACKLET_ENTERS)
-            cursor.execute(_CREATE_INDEX_ON_TRACKLET_EXITS)
-            cursor.execute(_CREATE_TRACKLET_FEATURES)
-            cursor.execute(_CREATE_TRAJECTORIES)
-            cursor.execute(_CREATE_SEQUENCE_TRAJECTORY)
+            
+            cursor.execute(_CREATE_TRACK_EVENTS)                # track_events
+            cursor.execute(_CREATE_INDEX_ON_TRACK_EVENTS)       # track_events_idx
+            cursor.execute(_CREATE_TRACKET_ROUTES)              # tracklet_motions
+            cursor.execute(_CREATE_INDEX_ON_TRACKLET_ENTERS)    # tracklet_enter_idx
+            cursor.execute(_CREATE_INDEX_ON_TRACKLET_EXITS)     # tracklet_exit_idx
+            cursor.execute(_CREATE_TRACKLET_FEATURES)           # track_features
+            cursor.execute(_CREATE_TRAJECTORIES)                # trajectories
+            cursor.execute(_CREATE_INDEX_ON_TRAJECTORIES)       # trajectories_idx
+            cursor.execute(_CREATE_SEQUENCE_TRAJECTORY)         # trajectory_seq
             conn.commit()
             
     def drop(self) -> None:
-        sql = 'drop table if exists track_events, tracklets, track_features, trajectories;'
+        '''Tracklet Store를 구성하는 DBMS 테이블들을 삭제한다.'''
+        sql = 'drop table if exists track_events, tracklet_motions, track_features, trajectories;'
         sql2 = 'drop sequence if exists trajectory_seq;'
         with closing(self.connector.connect()) as conn:
             cursor = conn.cursor()
@@ -111,15 +125,15 @@ class TrackletStore:
         
     def insert_track_events_conn(self, conn, tracks:Iterable[TrackEvent], batch_size:int) -> int:
         count = 0
-        cursor = conn.cursor()
-        for bulk in iterables.buffer_iterable(tracks, count=batch_size):
-            values = [track.to_row() for track in bulk]
-            cursor.executemany('INSERT INTO track_events VALUES(default, %s,%s,%s, %s,%s,%s, %s, %s,%s)', values)
-            count += len(values)
-        conn.commit()
+        with conn.cursor() as cursor:
+            for bulk in iterables.buffer_iterable(tracks, count=batch_size):
+                values = [track.to_row() for track in bulk]
+                cursor.executemany('INSERT INTO track_events VALUES(default, %s,%s,%s, %s,%s,%s, %s, %s,%s)', values)
+                count += len(values)
+            conn.commit()
         return count
         
-    def read_tracklet(self, node_id:NodeId, track_id:TrackId) -> Tracklet:
+    def read_track_events(self, node_id:NodeId, track_id:TrackId) -> Tracklet:
         sql = 'select * from track_events where node_id=%s and track_id=%s order by row_no'
         with closing(self.connector.connect()) as conn:
             cursor = conn.cursor()
@@ -127,12 +141,23 @@ class TrackletStore:
             events = [TrackEvent.from_row(row) for row in cursor.fetchall()]
             return Tracklet(track_id, events)
         
-    def list_tracklet_range(self, node_id:NodeId, begin_ts:int, end_ts:int) -> List[str]:
-        sql = 'select distinct track_id from track_events where node_id=%s and ts >= %s and ts <= %s'
+    def list_tracklets_in_range(self, node_id:NodeId, begin_ts:int, end_ts:int) -> List[TrackletId]:
+        """주어진 node에서 주어진 기간동안 TrackEvent를 발생시킨 모든 track들의 식별자를 반환한다.
+        TrackEvent 발생이 주어진 시간 구간을 포함하는 모든 track들의 식별자를 반환한다.
+
+        Args:
+            node_id (NodeId): 검색 대상 node 식별자.
+            begin_ts (int):  검색 시작 시각
+            end_ts (int): 검색 종료 시각
+
+        Returns:
+            List[str]: TrackEvent 발생이 주어진 시간 구간을 포함하는 모든 track들의 식별자 리스트.
+        """
+        sql = 'select distinct node_id, track_id from track_events where node_id=%s and ts >= %s and ts <= %s'
         with closing(self.connector.connect()) as conn:
             cursor = conn.cursor()
             cursor.execute(sql, (node_id, begin_ts, end_ts))
-            return [row[0] for row in cursor.fetchall()]
+            return [TrackletId(row[0], row[1]) for row in cursor.fetchall()]
 
     ############################################################################################################
     ############################################# Track Features ###############################################
@@ -146,15 +171,30 @@ class TrackletStore:
         cursor = conn.cursor()
         for bulk in iterables.buffer_iterable(features, count=batch_size):
             values = [feature.to_row() for feature in bulk]
-            cursor.executemany('INSERT INTO track_features VALUES(%s,%s,%s,%s)', values)
+            cursor.executemany('INSERT INTO track_features VALUES(%s,%s,%s,%s,%s)', values)
             count += len(values)
         conn.commit()
         return count
         
-    def read_track_features(self, node_id:NodeId, track_id:TrackId, /,
-                            begin_ts:Optional[int]=None,
-                            end_ts:Optional[int]=None) -> List[TrackFeature]:
-        params = [node_id, track_id]
+    def read_tracklet_features(self, tracklet_id:TrackletId,
+                               *,
+                               begin_ts:Optional[int]=None,
+                               end_ts:Optional[int]=None,
+                               skip_eot:bool=True) -> List[TrackFeature]:
+        """주어진 track에 의해 생성된 feature 레코드를 검색한다.
+
+        Args:
+            node_id (NodeId): 검색 대상 track이 검출되는 노드의 식별자.
+            track_id (TrackId): 검색 대상 track의 식별자.
+            begin_ts (Optional[int], optional): 검색할 feature의 시작 timestamp. Defaults to None.
+            end_ts (Optional[int], optional): 검색할 feature의 종료 timestamp.
+                'end_ts'보다 작은 timestamp를 갖는 feature가 검색된다. Defaults to None.
+            skip_eot (Optional[bool]): End-of-Track feature 레코드 무시 여부.
+
+        Returns:
+            List[TrackFeature]: 검색된 Track record 리스트.
+        """
+        params = list(tracklet_id)
         sql = 'select * from track_features where node_id=%s and track_id=%s'
         if begin_ts is not None:
             sql = sql + ' and frame_index >= %s'
@@ -162,10 +202,12 @@ class TrackletStore:
         if end_ts is not None:
             sql = sql + ' and frame_index < %s'
             params.append(end_ts)
+        if skip_eot:
+            sql = sql + " and zone_relation <> 'D'"
             
         with closing(self.connector.connect()) as conn:
             cursor = conn.cursor()
-            cursor.execute(sql, tuple(params))
+            cursor.execute(sql, params)
             return [TrackFeature.from_row(row) for row in cursor.fetchall()]
 
 
@@ -173,26 +215,26 @@ class TrackletStore:
     ############################################## Track Motions ###############################################
     ############################################################################################################ 
         
-    def insert_tracklet_meta_conn(self, conn, motions:Iterable[Motion], batch_size:int) -> int:
+    def insert_tracklet_motion_conn(self, conn, motions:Iterable[TrackletMotion], batch_size:int) -> int:
         count = 0
         cursor = conn.cursor()
         for bulk in iterables.buffer_iterable(motions, count=batch_size):
-            rows = [TrackletMeta.from_motion(motion).to_row() for motion in bulk]
-            cursor.executemany('INSERT INTO tracklets VALUES(%s,%s,%s,%s,%s)', rows)
+            rows = [motion.to_row() for motion in bulk]
+            cursor.executemany('INSERT INTO tracklet_motions VALUES(%s,%s,%s,%s,%s,%s,%s)', rows)
             count += len(rows)
         conn.commit()
         return count
     
-    def list_tracklet_metas(self, node_id:str, /,
-                            enter_zone:Optional[str]=None, exit_zone:Optional[str]=None) -> List[TrackletMeta]:
+    def list_tracklet_motions(self, node_id:str, *,
+                              enter_zone:Optional[str]=None, exit_zone:Optional[str]=None) -> List[TrackletMotion]:
         enter_zone_pred = f" and enter_zone = '{enter_zone}'" if enter_zone else ''
         exit_zone_pred = f" and exit_zone = '{exit_zone}'" if exit_zone else ''
-        sql = f"select * from tracklets where node_id = '{node_id}'{enter_zone_pred}{exit_zone_pred}"
+        sql = f"select * from tracklet_motions where node_id = '{node_id}'{enter_zone_pred}{exit_zone_pred}"
 
         with closing(self.connector.connect()) as conn:
             cursor = conn.cursor()
             cursor.execute(sql)
-            return [TrackletMeta.from_row(row) for row in cursor.fetchall()]
+            return [TrackletMotion.from_row(row) for row in cursor.fetchall()]
 
 
     ############################################################################################################
@@ -206,9 +248,9 @@ class TrackletStore:
             row = cursor.fetchone()
             return TrajectoryFragment.from_row(row) if row else None
     
-    def list_fragments_of_tracklet(self, tracklet:TrackletId) -> List[TrajectoryFragment]:
+    def list_fragments_of_tracklet(self, node_id:NodeId, track_id:TrackId) -> List[TrajectoryFragment]:
         sql = ( f"select traj_id, node_id, track_id from trajectory_fragments "
-                f"where node_id = '{tracklet.node_id}' and track_id = '{tracklet.track_id}'" )
+                f"where node_id = '{node_id}' and track_id = '{track_id}'" )
         with closing(self.connector.connect()) as conn:
             cursor = conn.cursor()
             cursor.execute(sql)
@@ -306,4 +348,4 @@ class TrackletStore:
             enter_zone = enter_zone if enter_zone else 'NULL'
             exit_zone = exit_zone if exit_zone else 'NULL'
             value = (node_id, track_id, enter_zone, exit_zone, length, first_ts, last_ts)
-            cursor.execute("insert into tracklets values (%s,%s,%s,%s,%s,%s,%s) on conflict do update", value)
+            cursor.execute("insert into tracklet_motions values (%s,%s,%s,%s,%s,%s,%s) on conflict do update", value)

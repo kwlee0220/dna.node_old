@@ -61,6 +61,14 @@ def split_list(list:List, cond) -> Tuple[List,List]:
         else:
             falses.append(v)
     return trues, falses
+    
+def remove_cond_from_list(list:List[T], cond:Callable[[T],bool]) -> List[T]:
+    length = len(list)
+    removeds = []
+    for idx in range(length-1, -1, -1):
+        if cond(list[idx]):
+            removeds.append(list.pop(idx))
+    return removeds
 
 from dna import color, plot_utils
 import cv2
@@ -104,6 +112,21 @@ def initialize_logger(conf_file_path: Optional[str]=None):
 def has_method(obj, name:str) -> bool:
     method = getattr(obj, name, None)
     return callable(method) if method else False
+
+
+def detect_outliers(values:List[T], weight:float=1.5, *,
+                    key:Optional[Callable[[T],float]]=None) -> Tuple[List[T],List[T]]:
+    keys = [key(v) for v in values] if key else values
+    
+    v25, v75 = np.percentile(keys, [25, 75])
+    iqr = v75 - v25
+    step = weight * iqr
+    lowest, highest = v25 - step, v75 + step
+    
+    low_outlier_idxes = [i for i, k in enumerate(keys) if k < lowest]
+    high_outlier_idxes = [i for i, k in enumerate(keys) if k > highest]
+    return [values[i] for i in low_outlier_idxes], [values[i] for i in high_outlier_idxes]
+    
         
 _RADIUS = 4
 class RectangleDrawer:

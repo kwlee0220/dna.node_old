@@ -29,8 +29,8 @@
                 // "--output_video", "D:/Temp/dna.node_output/etri_074_track.mp4",   // -v <file>
                 // "--begin_frame", "4000",
                 // "--end_frame", "4100",
-                // "--show", //"1280x720",
-                "--show_progress",  // -p
+                "--show", //"1280x720",
+                // "--show_progress",  // -p
             ],
             "justMyCode": true
         },
@@ -57,12 +57,13 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--camera", "data/2022/crops/etri_041_crop.mp4", "--sync",
-                "--conf", "conf/etri_testbed/etri_05.yaml",
+                "--conf", "conf/etri_testbed/etri_04.yaml",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 // "--detector", "dna.detect.yolov4:score=0.1",
                 // "--detector", "dna.detect.rcnn50_fpn",
                 // "--detector", "dna.detect.rcnn50_fpn_v2",
                 // "--detector", "dna.detect.yolov5:model=l6&score=0.1",
+                "--detector", "dna.detect.yolov5:model=l6&score=0.37&agnostic=True&max_det=50&classes=car,bus,truck",
                 // "--detector", "file:${env:HOME}/Dropbox/data/etri/etri_051_det.txt",
                 // "--output", "output/2022/etri_04_det.csv",   // -o <file>
                 // "--output_video", "output/2022/etri_04_det.mp4",   // -v <file>
@@ -88,21 +89,31 @@
             ],
             "justMyCode": true
         },
+        { "name": "ImportTracklet",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_import_tracklets.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "--topic", "track-events", "track-motions", "track-features",
+                "-f",
+            ],
+            "justMyCode": true
+        },
         { "name": "DrawTrajs",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_draw_trajs.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "output/2022/etri_074_event.json",
-                "--video", "data/2022/etri_072.mp4",
-                "--frame", "1",
+                "output/2022/etri_041_event.json",
+                "--video", "data/2022/etri_041.mp4",
+                "--frame", "17",
                 "--type", "json",
-                "--camera_index", "3",
+                "--camera_index", "0",
                 "--contact_point", "simulation",
                 // "--world_view",
                 "--thickness", "1",
                 // "-i",
-                // "--color", "SKYBLUE",
+                // "--color", "YELLOW",
                 "--color", "RED",
                 // "-o", "output/result.jpg",
             ],
@@ -147,6 +158,7 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "output/2022/etri_041_event.json",
+                "output/2022/etri_051_event.json",
                 "output/2022/etri_061_event.json",
                 "--frame_delta", "20",
                 "--max_camera_distance", "55",
@@ -158,6 +170,17 @@
 
 
 
+        { "name": "SyncMCTracklets",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_sync_tracklets.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "etri:04-etri:06", "etri:04-etri:05", "etri:05-etri:06", "etri:05-etri:07",
+                "--max_distance_to_camera", "65",
+                "--max_track_distance", "5",
+            ],
+            "justMyCode": true
+        },
         { "name": "GenerateTrainSet",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_gen_trainset.py",
@@ -202,39 +225,12 @@
             ],
             "justMyCode": true
         },
-        { "name": "AssocMCTracklets",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_assoc_tracklets.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "output/2022/etri_044_event.json",
-                "output/2022/etri_054_event.json",
-                "output/2022/etri_064_event.json",
-                "--max_camera_distance", "55",
-                // "--offsets", "0, 7, 3, 0",     // 041, 051, 061, 071
-                // "--offsets", "0, 7, 2, 1",     // 042, 052, 062, 072
-                // "--offsets", "10, 6, 0, 0",     // 043, 053, 063, 073
-                "--offsets", "12, 8, 1, 0",     // 044, 054, 064, 074
-                "--output", "output/tracklet_matches.csv"
-            ],
-            "justMyCode": true
-        },
         { "name": "Tracklet",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_tracklet.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "format", "-f",
-                // "upload",
-                //     "output/2023/etri_04_event.json",
-                //     "output/2023/etri_05_event.json",
-                //     "output/2023/etri_06_event.json",
-                //     "output/2023/etri_07_event.json",
-                //     "--batch", "20",
-                // "update", "etri:04", "1",
-                // "listen",
-                //     "--topic", "track-events", "track-motions", "track-features",
-                    // "--topic", "track-features",
             ],
             "justMyCode": true
         },
@@ -243,23 +239,39 @@
             "program": "${workspaceFolder}/scripts/dna_assoc_tracklets.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                // "--listen", "etri:04", "etri:05", "etri:06", "etri:07",
-                "--listen", "etri:07",
+                // "--listen", "etri:07",
+                "--listen", "etri:04", "etri:05", "etri:06", "etri:07",
             ],
             "justMyCode": true
         },
-        { "name": "Publish",
+        { "name": "FuseAssocTracklet",
             "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_publish_events.py",
+            "program": "${workspaceFolder}/scripts/dna_fuse_assoc_tracklets.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "output/etri/etri_041_event.json",
-                // "output/etri/etri_051_event.json",
-                // "output/etri/etri_061_event.json",
-                // "output/etri/etri_071_event.json",
-                "--servers", "localhost:9092",
-                "--loop",
-                "--sync"
+                "etri:04-etri:06", "etri:04-etri:05", "etri:05-etri:06", "etri:05-etri:07",
+                "--listen", "etri:04", "etri:05", "etri:06", "etri:07",
+                // "--listen", "etri:07",
+                "--max_distance_to_camera", "65",
+                "--max_track_distance", "5",
+            ],
+            "justMyCode": true
+        },
+        { "name": "DownloadNSort",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_download_n_sort.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+            ],
+            "justMyCode": true
+        },
+        { "name": "Replay",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_replay.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "output/track-events.pickle", "output/track-motions.pickle", "output/track-features.pickle",
+                // "--sync",
             ],
             "justMyCode": true
         },
@@ -272,16 +284,6 @@
                 // "data/event_publisher/test_etri_041.json",
                 "data/event_publisher/test_etri_051.json",
                 // "data/event_publisher/test_etri_051_2.json",
-            ],
-            "justMyCode": true
-        },
-        { "name": "TrackEventPublishServer",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_publish_event_server.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "--request_qname", "track_requests",
-                "--sync"
             ],
             "justMyCode": true
         },

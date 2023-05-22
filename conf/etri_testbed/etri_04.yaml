@@ -3,12 +3,12 @@ id: etri:04
 camera:
   # uri: data/2021/etri_04.mp4
   # uri: data/2022/crops/etri_04_crop.mp4
-  uri: data/etri_04_hot.mp4
-  # uri: data/2022/etri_041.mp4
+  # uri: data/etri_04_hot.mp4
+  uri: data/2022/etri_041.mp4
   sync: False
   # begin_frame: 930
   # end_frame: 941
-  # open_ts: 0
+  open_ts: 0
 
 tracker:
   draw: ["tracks", "track_zones"]
@@ -55,15 +55,15 @@ publishing:
       'CA': 'CA'
       'CB': 'CB'
 
-  # plugins:
-  #   publish_tracks:
-  #     <<: *local_kafka_connection
-  #     topic: 'track-events'
-  #   publish_motions:
-  #     <<: *local_kafka_connection
-  #     topic: 'track-motions'
-  #   publish_features:
-  #     distinct_distance: 0.2
-  #     min_crop_size: 80x40
-  #     <<: *local_kafka_connection
-  #     topic: 'track-features'
+  plugins:
+    publish_tracks:
+      <<: *local_kafka_connection
+      topic: 'track-events'
+    publish_motions:
+      <<: *local_kafka_connection
+      topic: 'track-motions'
+    publish_features:
+      distinct_distance: 0.2
+      min_crop_size: 80x40
+      <<: *local_kafka_connection
+      topic: 'track-features'

@@ -9,7 +9,6 @@ class EventListener(metaclass=ABCMeta):
     def handle_event(self, ev:Any) -> None:
         pass
 
-    @abstractmethod
     def close(self) -> None:
         pass
 

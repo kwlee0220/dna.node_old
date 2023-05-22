@@ -1,5 +1,5 @@
 
-from typing import Tuple, List, Dict, Union, Generator
+from typing import List, Optional
 
 from omegaconf import OmegaConf
 from contextlib import closing
@@ -10,7 +10,7 @@ from collections import defaultdict
 from dna import initialize_logger
 from dna import config
 from dna.node import TrackEvent
-from dna.node.tracklet_store import TrackletStore
+from dna.assoc.tracklet_store import TrackletStore
 from dna.node.utils import read_tracks_json
 from dna.support import iterables
 from dna.support import sql_utils
@@ -31,6 +31,8 @@ def parse_args():
     
     format_parser = subparsers.add_parser('format')
     format_parser.add_argument('-f', '--force', action='store_true', help='drop them if the tables exist')
+    
+    format_parser = subparsers.add_parser('drop')
 
     upload_parser = subparsers.add_parser('upload')
     upload_parser.add_argument("track_files", nargs='+', help="track json files")
@@ -43,6 +45,7 @@ def parse_args():
     listen_parser = subparsers.add_parser('listen')
     listen_parser.add_argument("--topic", nargs='+', help="Kafka listen port(s)")
     listen_parser.add_argument("--boostrap_servers", default=['localhost:9092'], help="kafka server")
+    listen_parser.add_argument("--offset", default='earliest', help="A policy for resetting offsets: 'latest', 'earliest', 'none'")
 
     return parser.parse_known_args()
 
@@ -59,21 +62,22 @@ def upload(conf:OmegaConf, tracklet_store:TrackletStore) -> None:
         total += count
     print(f'uploaded: total count = {total}')
 
+
 def update_tracklet(conf:OmegaConf, store:TrackletStore) -> None:
     store.insert_or_update_tracklet(conf.node_id, conf.track_id)
     
     
-def listen(conf:OmegaConf, store:TrackletStore) -> None:
+def listen(store:TrackletStore, bootstrap_servers:List[str], topic:str, *,
+           auto_offset_reset:Optional[str]='earliest') -> None:
     from kafka import KafkaConsumer
     from dna.node import TrackFeature
     from dna.node.zone import Motion
     
     # consumer = KafkaConsumer(['track-events', 'track-motions'],
-    consumer = KafkaConsumer(bootstrap_servers=conf.boostrap_servers,
-                             auto_offset_reset='earliest',
-                             key_deserializer=lambda x: x.decode('utf-8'))
-    consumer.subscribe(conf.topic)
-    # consumer.subscribe(['track-features'])
+    consumer = KafkaConsumer(bootstrap_servers=bootstrap_servers,
+                             auto_offset_reset=auto_offset_reset,
+                             key_deserializer=lambda k: k.decode('utf-8'))
+    consumer.subscribe(topic)
     while True:
         partitions = consumer.poll(timeout_ms=500, max_records=100)
         if partitions:
@@ -85,7 +89,7 @@ def listen(conf:OmegaConf, store:TrackletStore) -> None:
                             store.insert_track_events_conn(conn, tracks, batch_size=30)
                         case 'track-motions':
                             metas = [Motion.deserialize(serialized.value) for serialized in partition]
-                            store.insert_tracklet_meta_conn(conn, metas, batch_size=30)
+                            store.insert_tracklet_motion_conn(conn, metas, batch_size=30)
                         case 'track-features':
                             features = [TrackFeature.deserialize(serialized.value) for serialized in partition]
                             features = [feature for feature in features if feature.zone_relation != 'D']

@@ -21,6 +21,7 @@ def parse_args():
                         help="the last frame number")
     parser.add_argument("--nosync", action='store_true')
 
+    parser.add_argument("--output_video", "-v", metavar="mp4 file", default=argparse.SUPPRESS, help="output video file.")
     parser.add_argument("--show", "-s", nargs='?', const='0x0', default='0x0')
     parser.add_argument("--loop", action='store_true')
 
@@ -40,10 +41,11 @@ def main():
     camera = create_opencv_camera_from_conf(conf.camera)
 
     # args에 포함된 ImageProcess 설정 정보를 추가한다.
-    config.update_values(conf, args, 'show')
+    config.update_values(conf, args, 'show', 'output_video')
 
     while True:
-        img_proc = ImageProcessor(camera.open(), show=conf.show)
+        options = config.to_dict(config.filter(conf, 'show', 'output_video'))
+        img_proc = ImageProcessor(camera.open(), **options)
         result: ImageProcessor.Result = img_proc.run()
         if not args.loop or result.failure_cause is not None:
             break

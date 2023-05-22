@@ -1,5 +1,7 @@
 
 
+python scripts/dna_show.py --camera rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/5/media.smp
+
 ======================================================================== Node =================================================================================================================
 python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2023/etri_04_join.mp4 --output D:/Temp/dna_output/etri_04_event.json --output_video D:/Temp/dna_output/etri_04_track.mp4 --show_progress
 python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2023/etri_05_join.mp4 --output D:/Temp/dna_output/etri_05_event.json --output_video D:/Temp/dna_output/etri_05_track.mp4 --show_progress
@@ -26,6 +28,7 @@ python scripts/dna_node.py --conf conf/etri_testbed/etri_07_org.yaml --camera da
 python scripts/dna_node.py --conf conf/etri_testbed/etri_07_org.yaml --camera data/2022/etri_073.mp4 --output D:/Temp/dna_output/etri_073_event.json --output_video D:/Temp/dna_output/etri_073_track.mp4 --show_progress
 python scripts/dna_node.py --conf conf/etri_testbed/etri_07_org.yaml --camera data/2022/etri_074.mp4 --output D:/Temp/dna_output/etri_074_event.json --output_video D:/Temp/dna_output/etri_074_track.mp4 --show_progress
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 ===================================================================== Motions =================================================================================================================
 python scripts/dna_motions.py output/2023/etri_04_event.json --conf conf/etri_testbed/etri_04.yaml --output output/motions_04.csv
@@ -104,8 +107,3 @@ python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2
 python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_051.mp4 --show_progres
 python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_061.mp4 --show_progress
 python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_071.mp4 --show_progress
-
-python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_042.mp4 --show_progress
-python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_052.mp4 --show_progress
-python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_062.mp4 --show_progress
-python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_072.mp4 --show_progress

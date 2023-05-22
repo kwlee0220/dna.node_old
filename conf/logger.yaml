@@ -71,6 +71,19 @@ loggers:
         level: INFO
         handlers: [console]
         propagate: no
+    dna.assoc:
+        level: DEBUG
+        handlers: [console]
+        propagate: no
+    dna.assoc.motion:
+        level: WARN
+        handlers: [console]
+        propagate: no
+
+    kafka:
+        level: WARN
+        handlers: [console]
+        propagate: no
 
     # <module.x>:
     #     level: DEBUG

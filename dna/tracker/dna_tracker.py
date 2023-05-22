@@ -111,13 +111,13 @@ class DNATracker(ObjectTracker):
         # Detection끼리 너무 많이 겹치는 경우 low-score detection을 제거한다.
         def supress_overlaps(detections:List[Detection]) -> List[Detection]:
             remains = sorted(detections.copy(), key=lambda d: d.score, reverse=True)
-            supresseds = []
+            survivors = []
             while remains:
                 head = remains.pop(0)
-                supresseds.append(head)
+                survivors.append(head)
                 remains = [det for det in remains if head.bbox.iou(det.bbox) < self.params.max_nms_score]
                 pass
-            return supresseds
+            return survivors
         detections = supress_overlaps(detections)
 
         # 모든 detection들에게 exit-zone 소속 여부에 따라 zone-id를 부여한다.

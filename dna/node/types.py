@@ -22,6 +22,18 @@ _WGS84_PRECISION = 7
 _DIST_PRECISION = 3
 
 
+@dataclass(frozen=True, order=True, slots=True)
+class TrackletId:
+    node_id: NodeId
+    track_id: TrackId
+    
+    def __iter__(self):
+        return iter((self.node_id, self.track_id))
+    
+    def __repr__(self) -> str:
+        return f'{self.node_id}[{self.track_id}]'
+
+
 @dataclass(frozen=True)
 class TimeElapsed:
     ts: int = field(default_factory=lambda: int(round(time.time() * 1000)))
@@ -69,6 +81,10 @@ class TrackEvent(KafkaEvent):
 
     def key(self) -> str:
         return self.node_id
+    
+    @property
+    def tracklet_id(self) -> TrackletId:
+        return TrackletId(self.node_id, self.track_id)
     
     def is_deleted(self) -> bool:
         return self.state == TrackState.Deleted
@@ -190,10 +206,26 @@ class TrackEvent(KafkaEvent):
                             frame_index=frame_idx, ts=ts, world_coord=world_coord, distance=dist)
     
     def __repr__(self) -> str:
-        return (f"TrackEvent[id={self.track_id}({self.state.abbr}), frame={self.frame_index}, loc={self.location}]")
+        return (f"TrackEvent[id={self.node_id}[{self.track_id}]({self.state.abbr}), frame={self.frame_index}, loc={self.location}, ts={self.ts}]")
 
 EOT:TrackEvent = TrackEvent(node_id=None, track_id=None, state=None, location=None,
                             world_coord=None, distance=None, frame_index=-1, ts=-1)
+
+@dataclass(frozen=True, eq=True, slots=True)
+class TrackDeleted:
+    node_id: NodeId     # node id
+    track_id: TrackId   # tracking object id
+    ts: int = field(hash=False)
+
+    def key(self) -> str:
+        return self.node_id
+    
+    @property
+    def tracklet_id(self) -> TrackletId:
+        return TrackletId(self.node_id, self.track_id)
+    
+    def __repr__(self) -> str:
+        return (f"{self.__class__.__name__}: id={self.node_id}[{self.track_id}], ts={self.ts}")
 
 
 from ..utils import utc2datetime
@@ -212,7 +244,11 @@ class TrackFeature(KafkaEvent):
         
     def key(self) -> str:
         return self.node_id
-        
+    
+    @property
+    def tracklet_id(self) -> TrackletId:
+        return TrackletId(self.node_id, self.track_id)
+    
     @property
     def feature(self) -> np.ndarray:
         if self._bfeature is None and self._feature is None:
@@ -231,10 +267,10 @@ class TrackFeature(KafkaEvent):
         
     @staticmethod
     def from_row(args) -> TrackFeature:
-        return TrackFeature(node_id=args[0], track_id=args[1], bfeature=args[2], ts=args[3])
+        return TrackFeature(node_id=args[0], track_id=args[1], bfeature=args[2], zone_relation=args[3], ts=args[4])
     
     def to_row(self) -> Tuple[str,str,ByteString,int]:
-        return (self.node_id, self.track_id, self.bfeature, self.ts)
+        return (self.node_id, self.track_id, self.bfeature, self.zone_relation, self.ts)
     
     def serialize(self) -> bytes:
         return self.to_bytes()
@@ -263,5 +299,5 @@ class TrackFeature(KafkaEvent):
                             zone_relation=proto.zone_relation, ts=proto.ts)
         
     def __repr__(self) -> str:
-        dt = utc2datetime(self.ts)
-        return f'node={self.node_id}, track={self.track_id}, zone={self.zone_relation}, ts={dt}'
+        # dt = utc2datetime(self.ts)
+        return f'{self.__class__.__name__}[id={self.node_id}[{self.track_id}], zone={self.zone_relation}, ts={self.ts}]'

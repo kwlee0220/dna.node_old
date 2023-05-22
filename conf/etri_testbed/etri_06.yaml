@@ -7,8 +7,7 @@ camera:
   uri: data/2022/etri_061.mp4
   sync: False
   # begin_frame: 12015
-  # open_ts: 590
-  # open_ts: 0
+  open_ts: 0
 
 tracker:
   draw: ['tracks', 'track_zones']
@@ -59,15 +58,15 @@ publishing:
       'CA': 'CA'
       'CB': 'CB'
 
-  # plugins:
-  #   publish_tracks:
-  #     <<: *local_kafka_connection
-  #     topic: 'track-events'
-  #   publish_motions:
-  #     <<: *local_kafka_connection
-  #     topic: 'track-motions'
-  #   publish_features:
-  #     distinct_distance: 0.2
-  #     min_crop_size: 80x50
-  #     <<: *local_kafka_connection
-  #     topic: 'track-features'
+  plugins:
+    publish_tracks:
+      <<: *local_kafka_connection
+      topic: 'track-events'
+    publish_motions:
+      <<: *local_kafka_connection
+      topic: 'track-motions'
+    publish_features:
+      distinct_distance: 0.2
+      min_crop_size: 80x50
+      <<: *local_kafka_connection
+      topic: 'track-features'
