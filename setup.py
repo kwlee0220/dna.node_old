@@ -50,7 +50,7 @@ setup(
         'pyproj',
 
         # PostgreSQL
-        'psycopg2',
+        # 'psycopg2',
 
         # rabbitmq
         'pika',
@@ -59,12 +59,21 @@ setup(
         'ipython',
         'psutil',
         
+        # ultralytics-yolov5
+        'ultralytics',
+        'gitpython',
+        'gitdb',
+        'smmap',
+        
         # protobuf
         'protobuf',
         
         # machine-learning
         'scikit-learn',
         'matplotlib',
+        
+        # association
+        'networkx',
 
         # siammot
         # 'gluoncv',
@@ -76,6 +85,6 @@ setup(
     package_data = {
         'conf': ['logger.yaml']
     },
-    python_requires = '>=3.10',
+    python_requires = '>=3.8',
     zip_safe = False
 )

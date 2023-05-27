@@ -27,6 +27,7 @@ pika
 # yolov5
 ipython
 psutil
+ultralytics
 
 # PostgreSQL
 psycopg2
@@ -37,3 +38,6 @@ protobuf
 # matchine-learning
 scikit-learn
 matplotlib
+
+# MTMOT association
+networkx
