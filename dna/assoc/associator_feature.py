@@ -118,9 +118,8 @@ class AssociationSession:
             # 아직 enter-zone이 결정되지 않은 상태면, 새롭게 추가된 feature 정보에서
             # enter-zone 진입 여부를 확인한다.
             zone_rel, zone_id = ZoneRelation.parseRelationStr(t_feature.zone_relation)
-            match zone_rel:
-                case ZoneRelation.Entered | ZoneRelation.Inside:
-                    self.enter_zone = zone_id
+            if zone_rel == ZoneRelation.Entered or zone_rel == ZoneRelation.Inside:
+                self.enter_zone = zone_id
     
     def calc_topk_distance(self, track_features:List[TrackFeature], top_k:int, logger:logging.Logger) -> float:
         if track_features:

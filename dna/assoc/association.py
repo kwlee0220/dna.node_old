@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Optional, List, Tuple, Dict, Set, Iterator, Iterable, Generator, NewType, Callable
+from typing import Any, Union, Optional, List, Tuple, Dict, Set, Iterator, Iterable, Generator, NewType, Callable
 from abc import ABCMeta, abstractmethod
 
 import functools
@@ -67,11 +67,11 @@ class Association(metaclass=ABCMeta):
         trk = self.tracklet(node)
         return trk.track_id if trk else None
     
-    def is_subset(self, other:Association|Iterable[TrackletId], *, exclude_same=False) -> bool:
+    def is_subset(self, other:Union[Association,Iterable[TrackletId]], *, exclude_same=False) -> bool:
         other_trks = set(other.tracklets if isinstance(other, Association) else other)
         return self.tracklets.issubset(other_trks) and (not exclude_same or len(self.tracklets) != len(other_trks))
     
-    def is_superset(self, other:Association|Iterable[TrackletId], *, exclude_same=False) -> bool:
+    def is_superset(self, other:Union[Association,Iterable[TrackletId]], *, exclude_same=False) -> bool:
         other_trks = set(other.tracklets if isinstance(other, Association) else other)
         return self.tracklets.issuperset(other_trks) and (not exclude_same or len(self.tracklets) != len(other_trks))
     
@@ -152,18 +152,18 @@ class Association(metaclass=ABCMeta):
         else:
             return self.is_more_specific(other)
     
-    def intersect_nodes(self, other:Association|Iterable[NodeId]) -> List[NodeId]:
+    def intersect_nodes(self, other:Union[Association,Iterable[NodeId]]) -> List[NodeId]:
         other_nodes = other.nodes if isinstance(other, Association) else set(other)
         return self.nodes.intersection(other_nodes)
     
-    def intersect_tracklets(self, other:Association|Iterable[TrackletId]) -> List[TrackletId]:
+    def intersect_tracklets(self, other:Union[Association,Iterable[TrackletId]]) -> List[TrackletId]:
         other_tracklets = other.tracklets if isinstance(other, Association) else set(other)
         return self.tracklets.intersection(other_tracklets)
     
     def __len__(self) -> int:
         return len(self.tracklets)
     
-    def __contains__(self, key:TrackletId|NodeId|Iterable[TrackletId|NodeId]) -> bool:
+    def __contains__(self, key:Union[TrackletId,NodeId,Iterable[Union[TrackletId,NodeId]]]) -> bool:
         if isinstance(key, TrackletId):
             return bool(iterables.find(self.tracklets, key))
         elif isinstance(key, str):  # NodeId

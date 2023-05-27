@@ -80,7 +80,7 @@ class TrailCollector(TrackProcessor):
                 self.trails.pop(track.id, None)
 
 
-from dna.camera import ImageProcessor, FrameProcessor
+from dna.camera import FrameProcessor
 class TrackingPipeline(FrameProcessor):
     __slots__ = ( 'tracker', '_trail_collector', '_track_processors', 'draw')
 
@@ -89,7 +89,7 @@ class TrackingPipeline(FrameProcessor):
 
         self.tracker = tracker
         self._trail_collector = TrailCollector()
-        self._track_processors = [self._trail_collector]
+        self._track_processors:List[TrackProcessor] = [self._trail_collector]
         self.draw = draw
 
     @staticmethod

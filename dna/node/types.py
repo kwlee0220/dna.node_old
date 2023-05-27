@@ -22,7 +22,7 @@ _WGS84_PRECISION = 7
 _DIST_PRECISION = 3
 
 
-@dataclass(frozen=True, order=True, slots=True)
+@dataclass(frozen=True, order=True) # slots=True
 class TrackletId:
     node_id: NodeId
     track_id: TrackId
@@ -66,7 +66,7 @@ def json_to_box(tlbr_list:Optional[Iterable[float]]) -> Box:
     return Box(tlbr_list) if tlbr_list else None
 
 
-@dataclass(frozen=True, eq=True, order=False, repr=False, slots=True)
+@dataclass(frozen=True, eq=True, order=False, repr=False)   # slots=True
 class TrackEvent(KafkaEvent):
     node_id: NodeId     # node id
     track_id: TrackId   # tracking object id
@@ -211,7 +211,7 @@ class TrackEvent(KafkaEvent):
 EOT:TrackEvent = TrackEvent(node_id=None, track_id=None, state=None, location=None,
                             world_coord=None, distance=None, frame_index=-1, ts=-1)
 
-@dataclass(frozen=True, eq=True, slots=True)
+@dataclass(frozen=True, eq=True)    # slots=True
 class TrackDeleted:
     node_id: NodeId     # node id
     track_id: TrackId   # tracking object id

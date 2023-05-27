@@ -116,7 +116,7 @@ class Stabilizer(EventProcessor):
     def min_frame_index(self) -> int:
         return self.pending_events[0].frame_index if self.pending_events else None
         
-    def handle_event(self, ev:TrackEvent|TimeElapsed) -> None:
+    def handle_event(self, ev:Union[TrackEvent,TimeElapsed]) -> None:
         if isinstance(ev, TrackEvent):
             self.pending_events.append(ev)
             x, y = tuple(ev.world_coord.xy)

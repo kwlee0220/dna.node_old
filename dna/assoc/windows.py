@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, List, Tuple, Set, Dict, Iterable, Generator
+from typing import Union, Optional, List, Tuple, Set, Dict, Iterable, Generator
 
 import sys
 import logging
@@ -71,7 +71,7 @@ class TumblingWindowAssigner(EventProcessor):
             
         super().close()
         
-    def handle_event(self, ev:TrackEvent|TimeElapsed) -> None:
+    def handle_event(self, ev:Union[TrackEvent,TimeElapsed]) -> None:
         if isinstance(ev, TrackEvent):
             self.dirty = True
             

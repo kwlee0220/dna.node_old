@@ -11,20 +11,21 @@ from .zone.zone_pipeline import ZonePipeline
 from .zone.zone_sequences_display import ZoneSequenceDisplay
  
 
-def build_node_processor(image_processor:ImageProcessor, conf: OmegaConf, *,
-                         tracker_pipeline:Optional[TrackingPipeline]=None) \
+def build_node_processor(image_processor:ImageProcessor, conf: OmegaConf,
+                         *,
+                         tracking_pipeline:Optional[TrackingPipeline]=None) \
     -> Tuple[ImageProcessor, TrackingPipeline, TrackEventPipeline]:
     # TrackingPipeline 생성하고 ImageProcessor에 등록함
-    if not tracker_pipeline:
+    if not tracking_pipeline:
         tracker_conf = config.get_or_insert_empty(conf, 'tracker')
-        tracker_pipeline = TrackingPipeline.load(tracker_conf)
-    image_processor.add_frame_processor(tracker_pipeline)
+        tracking_pipeline = TrackingPipeline.load(tracker_conf)
+    image_processor.add_frame_processor(tracking_pipeline)
 
     # TrackEventPipeline 생성하고 TrackingPipeline에 등록함
     publishing_conf = config.get_or_insert_empty(conf, 'publishing')
     track_event_pipeline = TrackEventPipeline(conf.id, publishing_conf=publishing_conf,
                                               image_processor=image_processor)
-    tracker_pipeline.add_track_processor(track_event_pipeline)
+    tracking_pipeline.add_track_processor(track_event_pipeline)
 
     # ZonePipeline이 TrackEventPipeline에 등록되고, motion detection이 정의된 경우
     # 이를 ZonePipeline에 등록시킨다
@@ -39,5 +40,5 @@ def build_node_processor(image_processor:ImageProcessor, conf: OmegaConf, *,
                                           motion_queue=motion_queue)
             image_processor.add_frame_processor(display)
     
-    return tracker_pipeline, track_event_pipeline
+    return tracking_pipeline, track_event_pipeline
     

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Optional, Generator, Tuple, Set, Dict, Iterable
+from typing import Union, List, Optional, Generator, Tuple, Set, Dict, Iterable
 import logging
 import math
 
@@ -20,7 +20,7 @@ class AssociationClosure:
     def add_mapping(self, tracklet_id:TrackletId) -> None:
         self.mappings[tracklet_id.node_id] = tracklet_id.track_id
     
-    def __contains__(self, id:NodeId|TrackletId) -> bool:
+    def __contains__(self, id:Union[NodeId,TrackletId]) -> bool:
         if isinstance(id, TrackletId):
             return id.track_id == self.mappings.get(id.node_id)
         elif isinstance(id, NodeId):
@@ -40,7 +40,7 @@ class AssociationAggregator(EventProcessor):
     def close(self) -> None:
         super().close()
         
-    def handle_event(self, ev:Association|TrackEvent) -> None:
+    def handle_event(self, ev:Union[Association,TrackEvent]) -> None:
         if isinstance(ev, Association):
             self.add_association(ev)
         elif isinstance(ev, TrackEvent):
@@ -66,7 +66,7 @@ class AssociationAggregator(EventProcessor):
         elif gassoc1 != gassoc2:
             raise ValueError(f"error")
             
-    def find_global_assoc(self, tracklet_id:TrackletId|NodeId) -> Optional[AssociationClosure]:
+    def find_global_assoc(self, tracklet_id:Union[TrackletId,NodeId]) -> Optional[AssociationClosure]:
         for gassoc in self.global_associations:
             if tracklet_id in gassoc:
                 return gassoc
@@ -88,7 +88,7 @@ class BestAssociationAggregator(EventProcessor):
             
         super().close()
         
-    def handle_event(self, ev:Association|TrackEvent) -> None:
+    def handle_event(self, ev:Union[Association,TrackEvent]) -> None:
         if isinstance(ev, Association):
             self.handle_association(ev)
         elif isinstance(ev, TrackEvent):

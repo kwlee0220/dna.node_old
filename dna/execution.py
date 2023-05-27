@@ -182,20 +182,18 @@ class AbstractExecution(Execution):
             
             state = None
             with self.lock:
-                match self.state:
-                    case ExecutionState.RUNNING:
-                        state = self.state = ExecutionState.COMPLETED
-                    case ExecutionState.STOPPING:
-                        state = self.state = ExecutionState.STOPPED
-                    case _:
-                        raise AssertionError(f'invalid execution state: {self.state.name}, '
-                                             f'expected={ExecutionState.RUNNING.name}')
+                if self.state == ExecutionState.RUNNING:
+                    state = self.state = ExecutionState.COMPLETED
+                elif self.state == ExecutionState.STOPPING:
+                    state = self.state = ExecutionState.STOPPED
+                else:
+                    raise AssertionError(f'invalid execution state: {self.state.name}, '
+                                            f'expected={ExecutionState.RUNNING.name}')
                 self.cond.notify_all()
-            match state:
-                case ExecutionState.COMPLETED:
-                    self._ctx.completed(result)
-                case ExecutionState.STOPPED:
-                    self._ctx.stopped('user requested')
+            if state == ExecutionState.COMPLETED:
+                self._ctx.completed(result)
+            elif state == ExecutionState.STOPPED:
+                self._ctx.stopped('user requested')
             return result
         except CancellationError as e:
             with self.lock:

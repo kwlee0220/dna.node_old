@@ -95,20 +95,20 @@ def gdown_file(url:str, file: Path, force: bool=False):
         import gdown
         gdown.download(url, str(file.resolve().absolute()), quiet=False)
 
-def initialize_logger(conf_file_path: Optional[str]=None):
-    if conf_file_path is None:
-        import pkg_resources
-        conf_file_path = pkg_resources.resource_filename('conf', 'logger.yaml')
+def initialize_logger(logger_conf_file: Optional[str]=None):
+    import yaml
+    import logging.config
+    
+    if logger_conf_file is None:
+        import pkgutil
+        logger_conf_text = pkgutil.get_data('conf', 'logger.yaml')
+    else:
+        with open(logger_conf_file, 'rt') as f:
+            logger_conf_text = f.read()
+    logger_conf = yaml.safe_load(logger_conf_text)
+    logging.config.dictConfig(logger_conf)
         
-    with open(conf_file_path, 'rt') as f:
-        import yaml
-        import logging.config
-
-        config = yaml.safe_load(f.read())
-        logging.config.dictConfig(config)
         
-        
-
 def has_method(obj, name:str) -> bool:
     method = getattr(obj, name, None)
     return callable(method) if method else False

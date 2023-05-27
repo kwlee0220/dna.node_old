@@ -12,9 +12,10 @@ from .event_processor import EventListener
 class KafkaEventPublisher(EventListener):
     def __init__(self, bootstrap_servers:str, topic:str, *, logger:Optional[logging.Logger]=None) -> None:
         try:
-            self.producer = KafkaProducer(bootstrap_servers=bootstrap_servers)
             self.topic = topic
             self.logger = logger
+            
+            self.producer = KafkaProducer(bootstrap_servers=bootstrap_servers)
             if self.logger and self.logger.isEnabledFor(logging.INFO):
                 self.logger.info(f"connect kafka-servers: {bootstrap_servers}, topic={self.topic}")
         except BaseException as e:

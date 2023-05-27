@@ -107,13 +107,14 @@ class MinFrameIndexComposer:
             return None
 
 
-class TrackEventPipeline(EventQueue):
+class TrackEventPipeline(EventQueue,TrackProcessor):
     __slots__ = ('node_id', 'plugins', '_tick_gen', '_input_queue', '_output_queue',
                  '_current_queue', '_group_event_queue', 'min_frame_indexers')
 
     def __init__(self, node_id:str, publishing_conf:OmegaConf,
                  image_processor:Optional[ImageProcessor]=None) -> None:
-        super().__init__()
+        EventQueue.__init__(self)
+        TrackProcessor.__init__(self)
 
         self.node_id = node_id
         self.plugins = dict()
@@ -187,7 +188,9 @@ class TrackEventPipeline(EventQueue):
         if self._tick_gen:
             self._tick_gen.stop()
         self._input_queue.close()
+        
         super().close()
+        
         for plugin in reversed(self.plugins.values()):
             if hasattr(plugin, 'close') and callable(plugin.close):
                 plugin.close()
@@ -228,7 +231,7 @@ class TrackEventPipeline(EventQueue):
 from dataclasses import replace
 from .zone import ZoneEvent, TrackDeleted
 class ZoneToTrackEventTransform(EventProcessor):
-    def handle_event(self, ev:ZoneEvent|TrackDeleted) -> None:
+    def handle_event(self, ev:Union[ZoneEvent,TrackDeleted]) -> None:
         if isinstance(ev, ZoneEvent):
             if ev.source:
                 track_ev = replace(ev.source, zone_relation=ev.relation_str())

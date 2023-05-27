@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Tuple, List, Any
+from typing import Union, Optional, Tuple, List, Any
 from abc import ABCMeta, abstractmethod
 from contextlib import suppress
 
@@ -53,7 +53,7 @@ class ImageProcessor(AbstractExecution):
                     f"frame_count={self.frame_count}, fps={self.fps_measured:.1f}")
 
     def __init__(self, cap:ImageCapture, *,
-                 show:Optional[str|Size2d|bool]=False,
+                 show:Optional[Union[str,Size2d,bool]]=False,
                  output_video:Optional[str]=None,
                  show_progress:bool=False,
                  context:Optional[ExecutionContext]=None):

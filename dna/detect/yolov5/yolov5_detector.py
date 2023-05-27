@@ -26,6 +26,7 @@ class Yolov5Detector(ObjectDetector):
         model_id = 'yolov5' + kwargs.get('model', 's')
         LOGGER.info(f'Loading {Yolov5Detector.__name__}: model={model_id}')
 
+        # self.model = torch.hub.load('ultralytics/yolov5', 'custom', f'models/yolov5/{model_id}', verbose=False)
         self.model = torch.hub.load('ultralytics/yolov5', model_id, pretrained=True, verbose=False)
         self.names = self.model.names
 

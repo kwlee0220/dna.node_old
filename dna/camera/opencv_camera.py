@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple, Any
+from typing import Union, Optional, Tuple, Any
 import dataclasses
 import time
 import uuid
@@ -115,7 +115,7 @@ class OpenCvCamera(Camera):
             
         return self._size
     
-    def _open_video_capture(self, uri:str|int) -> cv2.VideoCapture:
+    def _open_video_capture(self, uri:Union[str,int]) -> cv2.VideoCapture:
         vid = cv2.VideoCapture(uri)
         if self._target_size is not None:
             vid.set(cv2.CAP_PROP_FRAME_WIDTH, self._target_size.width)

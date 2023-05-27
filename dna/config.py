@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Optional, List, Tuple, Dict, Any
+from typing import Optional, List, Tuple, Dict, Any, Union
 from pathlib import Path
 
 from argparse import Namespace
@@ -10,12 +10,12 @@ from omegaconf import OmegaConf
 _NOT_EXISTS = OmegaConf.create(None)
 
 
-def load(config_path:str|Path) -> OmegaConf:
+def load(config_path:Union[str,Path]) -> OmegaConf:
     config_path = Path(config_path) if isinstance(config_path, str) else config_path
     return OmegaConf.load(config_path)
 
 
-def to_conf(value:OmegaConf|Namespace|Dict=dict(), *keys:List[str]) -> OmegaConf:
+def to_conf(value:Union[Dict,Namespace,OmegaConf]=dict(), *keys:List[str]) -> OmegaConf:
     if OmegaConf.is_config(value):
         return value
     elif isinstance(value, Namespace):
@@ -51,7 +51,7 @@ def get_parent(conf:OmegaConf, key:str) -> Tuple[OmegaConf, str, str]:
         return (None, None, key)
 
 
-def update(conf:OmegaConf, key:str, value:Dict|Namespace|OmegaConf) -> None:
+def update(conf:OmegaConf, key:str, value:Union[Dict,Namespace,OmegaConf]) -> None:
     values_dict = value
     if isinstance(value, Namespace):
         values_dict = vars(value)
@@ -60,7 +60,7 @@ def update(conf:OmegaConf, key:str, value:Dict|Namespace|OmegaConf) -> None:
 
     OmegaConf.update(conf, key, value, merge=True)
     
-def update_values(conf:OmegaConf, values:Dict|Namespace|OmegaConf, *keys) -> None:
+def update_values(conf:OmegaConf, values:Union[Dict,Namespace,OmegaConf], *keys) -> None:
     values_dict = values
     if isinstance(values, Namespace):
         values_dict = vars(values)

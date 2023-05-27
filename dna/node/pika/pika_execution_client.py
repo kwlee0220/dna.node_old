@@ -60,31 +60,31 @@ class PikaExecutionClient:
         self.start(request)
         
         *_, last_report = self.report_progress()
-        match last_report['state']:
-            case ExecutionState.COMPLETED.name:
-                return last_report['result']
-            case ExecutionState.STOPPED.name:
-                raise CancellationError(last_report['cause'])
-            case ExecutionState.FAILED.name:
-                raise RpcCallError(last_report['cause'])
-            case _:
-                raise AssertionError(f"unexpected status message: {last_report['state']}")
+        if last_report['state'] == ExecutionState.COMPLETED.name:
+            return last_report['result']
+        elif last_report['state'] == ExecutionState.STOPPED.name:
+            raise CancellationError(last_report['cause'])
+        elif last_report['state'] == ExecutionState.FAILED.name:
+            raise RpcCallError(last_report['cause'])
+        else:
+            raise AssertionError(f"unexpected status message: {last_report['state']}")
             
     def report_progress(self) -> Generator[Dict,None,None]:
         while True:
             self.conn.process_data_events(time_limit=None)
             state = self.response['state']
-            match state:
-                case 'STARTED':
-                    self.control_qname = self.response.get('control_queue', None)
-                    yield self.response
-                case ExecutionState.RUNNING.name:
-                    yield self.response
-                case ExecutionState.COMPLETED.name | ExecutionState.STOPPED.name | ExecutionState.FAILED.name:
-                    yield self.response
-                    return
-                case _:
-                    raise AssertionError(f'unexpected progress message: {self.response}')
+            if state == 'STARTED':
+                self.control_qname = self.response.get('control_queue', None)
+                yield self.response
+            elif state == ExecutionState.RUNNING.name:
+                yield self.response
+            elif state == ExecutionState.COMPLETED.name \
+                or state == ExecutionState.STOPPED.name \
+                or state == ExecutionState.FAILED.name:
+                yield self.response
+                return
+            else:
+                raise AssertionError(f'unexpected progress message: {self.response}')
 
     def on_response(self, channel, method, props:pika.BasicProperties, body:Any):
         if props.correlation_id in self.corr_id:

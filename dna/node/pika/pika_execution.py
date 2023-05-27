@@ -15,7 +15,7 @@ from .pika_execution_context import PikaExecutionContext
 LOGGER = logging.getLogger('dna.node.pika')
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True) # slots=True
 class PikaConnector:
     password:str
     host:str = field(default='localhost')

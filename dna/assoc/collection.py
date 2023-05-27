@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Optional, List, Tuple, Iterable, Generator, Callable
+from typing import Union, Any, Optional, List, Tuple, Iterable, Generator, Callable
 
 import logging
 
@@ -9,13 +9,13 @@ from .association import Association
 
 
 class ExactMatch:
-    def __init__(self, key:Association|List[TrackletId]):
+    def __init__(self, key:Union[Association,List[TrackletId]]):
         self.key = key.tracklets if isinstance(key, Association) else key
     def __call__(self, assoc:Association) -> Any:
         return self.key == assoc.tracklets
 
 class PartialMatch:
-    def __init__(self, key:Association|Iterable[TrackletId]|TrackletId):
+    def __init__(self, key:Union[Association,Iterable[TrackletId],TrackletId]):
         if isinstance(key, Association):
             self.key = key.tracklets
         elif isinstance(key, Iterable):
@@ -69,7 +69,7 @@ class AssociationCollection:
     
     def query(self, condition:Callable[[Association],bool],
               *,
-              include_index:bool=False) -> Generator[Association|Tuple[int, Association], None, None]:
+              include_index:bool=False) -> Generator[Union[Association,Tuple[int, Association]], None, None]:
         """주어진 condition을 만족하는 모든 association 객체들을 반환한다.
 
         Args:
@@ -77,7 +77,7 @@ class AssociationCollection:
             include_index (bool): 검색 결과에 검색된 association의 index 포함 여부.
 
         Returns:
-             Generator[Association|Tuple[int, Association], None, None]: 조건을 만족하는 association을 반환하는 generator
+             Generator[Union[Association,Tuple[int, Association]]], None, None]: 조건을 만족하는 association을 반환하는 generator
         """
         for idx, assoc in enumerate(self.collection):
             if condition(assoc):

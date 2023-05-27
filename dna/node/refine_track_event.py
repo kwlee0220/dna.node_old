@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Dict, Optional
+from typing import Union, List, Dict, Optional
 import sys
 from dataclasses import dataclass, field
 
@@ -11,7 +11,7 @@ from .types import TrackEvent, TimeElapsed, TrackId
 from .event_processor import EventProcessor
 
 
-@dataclass(eq=True, slots=True)
+@dataclass(eq=True) # slots=True
 class Session:
     id: TrackId = field(hash=True)
     '''본 세션에 해당하는 track id.'''
@@ -80,7 +80,7 @@ class RefineTrackEvent(EventProcessor):
             self.oldest_pending_session = min(pending_sessions, key=lambda s: s.first_frame_index) if pending_sessions else None
         return self.oldest_pending_session.first_frame_index if self.oldest_pending_session else None
 
-    def handle_event(self, ev:TrackEvent|TimeElapsed) -> None:
+    def handle_event(self, ev:Union[TrackEvent,TimeElapsed]) -> None:
         if isinstance(ev, TrackEvent):
             self.handle_track_event(ev)
             pass
@@ -111,81 +111,77 @@ class RefineTrackEvent(EventProcessor):
         # track과 관련된 session 정보가 없다는 것은 이 track event가 한 물체의 첫번째 track event라는 것을 
         # 의미하기 때문에 session을 새로 생성한다.
         self.sessions[ev.track_id] = session = Session(id=ev.track_id, state=ev.state, pendings=[])
-        match ev.state:
-            case TrackState.Tentative:
-                self._append_track_event(session, ev)
-            case TrackState.Confirmed:
-                self._publish_event(ev)
-            case TrackState.Deleted:
-                self._remove_session(ev.track_id)
-            case _:
-                raise AssertionError(f"unexpected track event (invalid track state): {ev}")
+        if ev.state == TrackState.Tentative:
+            self._append_track_event(session, ev)
+        elif ev.state == TrackState.Confirmed:
+            self._publish_event(ev)
+        elif ev.state == TrackState.Deleted:
+            self._remove_session(ev.track_id)
+        else:
+            raise AssertionError(f"unexpected track event (invalid track state): {ev}")
 
     def __on_confirmed(self, session:Session, ev:TrackEvent) -> None:
-        match ev.state:
-            case TrackState.Confirmed:
-                self._publish_event(ev)
-            case TrackState.TemporarilyLost:
-                self._append_track_event(session, ev)
-                session.state = TrackState.TemporarilyLost
-            case TrackState.Deleted:
-                self._publish_event(ev)
-                self._remove_session(ev.track_id)
-            case _:
-                raise AssertionError(f"unexpected track event (invalid track state): "
-                                    f"state={session.state}, event={ev.track}")
+        if ev.state == TrackState.Confirmed:
+            self._publish_event(ev)
+        elif TrackState.TemporarilyLost:
+            self._append_track_event(session, ev)
+            session.state = TrackState.TemporarilyLost
+        elif TrackState.Deleted:
+            self._publish_event(ev)
+            self._remove_session(ev.track_id)
+        else:
+            raise AssertionError(f"unexpected track event (invalid track state): "
+                                f"state={session.state}, event={ev.track}")
 
     def __on_tentative(self, session:Session, ev:TrackEvent) -> None:
-        match ev.state:
-            case TrackState.Confirmed:
-                # 본 trail을 임시 상태에서 정식의 trail 상태로 변환시키고,
-                # 지금까지 pending된 모든 tentative event를 trail에 포함시킨다
-                self._publish_all_pended_events(session)
-                self._unset_oldest_pending_session(session)
-                self._publish_event(ev)
-                session.state = TrackState.Confirmed
-            case TrackState.Tentative:
-                self._append_track_event(session, ev)
-            case TrackState.Deleted:
-                if self.logger and self.logger.isEnabledFor(logging.DEBUG):
-                    self.logger.debug(f"discard tentative track: "
-                                      f"track_id={ev.track_id}, count={len(session.pendings)}")
-                # track 전체를 제거하기 때문에, 'delete' event로 publish하지 않는다.
-                self._remove_session(ev.track_id)
-            case _:
-                raise AssertionError(f"unexpected track event (invalid track state): "
-                                     f"state={session.state}, event={ev.track}")
+        if ev.state == TrackState.Confirmed:
+            # 본 trail을 임시 상태에서 정식의 trail 상태로 변환시키고,
+            # 지금까지 pending된 모든 tentative event를 trail에 포함시킨다
+            self._publish_all_pended_events(session)
+            self._unset_oldest_pending_session(session)
+            self._publish_event(ev)
+            session.state = TrackState.Confirmed
+        elif TrackState.Tentative:
+            self._append_track_event(session, ev)
+        elif TrackState.Deleted:
+            if self.logger and self.logger.isEnabledFor(logging.DEBUG):
+                self.logger.debug(f"discard tentative track: "
+                                    f"track_id={ev.track_id}, count={len(session.pendings)}")
+            # track 전체를 제거하기 때문에, 'delete' event로 publish하지 않는다.
+            self._remove_session(ev.track_id)
+        else:
+            raise AssertionError(f"unexpected track event (invalid track state): "
+                                    f"state={session.state}, event={ev.track}")
 
     def __on_temporarily_lost(self, session:Session, ev:TrackEvent) -> None:
-        match ev.state:
-            case TrackState.Confirmed:
-                session.trim_right_to(ev.frame_index)
-                self._publish_all_pended_events(session)
+        if ev.state == TrackState.Confirmed:
+            session.trim_right_to(ev.frame_index)
+            self._publish_all_pended_events(session)
+            self._unset_oldest_pending_session(session)
+            self._publish_event(ev)
+            session.state = TrackState.Confirmed
+        elif TrackState.TemporarilyLost:
+            self._append_track_event(session, ev)
+            # event buffer가 overflow가 발생하면, overflow되는
+            # event 갯수만큼 oldest event를 publish시킨다.
+            n_overflows = len(session.pendings) - self.buffer_size
+            if n_overflows > 0:
+                if self.logger and self.logger.isEnabledFor(logging.INFO):
+                    self.logger.info(f'flush overflowed {n_overflows} TrackEvent: track_id={session.id}, '
+                                        f'range={session.pendings[0].frame_index}-{session.pendings[n_overflows-1].frame_index}')
+                for tev in session.pendings[:n_overflows]:
+                    self._publish_event(tev)
+                session.pendings = session.pendings[n_overflows:]
                 self._unset_oldest_pending_session(session)
-                self._publish_event(ev)
-                session.state = TrackState.Confirmed
-            case TrackState.TemporarilyLost:
-                self._append_track_event(session, ev)
-                # event buffer가 overflow가 발생하면, overflow되는
-                # event 갯수만큼 oldest event를 publish시킨다.
-                n_overflows = len(session.pendings) - self.buffer_size
-                if n_overflows > 0:
-                    if self.logger and self.logger.isEnabledFor(logging.INFO):
-                        self.logger.info(f'flush overflowed {n_overflows} TrackEvent: track_id={session.id}, '
-                                         f'range={session.pendings[0].frame_index}-{session.pendings[n_overflows-1].frame_index}')
-                    for tev in session.pendings[:n_overflows]:
-                        self._publish_event(tev)
-                    session.pendings = session.pendings[n_overflows:]
-                    self._unset_oldest_pending_session(session)
-            case TrackState.Deleted:
-                if self.logger and self.logger.isEnabledFor(logging.DEBUG):
-                    self.logger.debug(f"discard all pending lost track events: "
-                                    f"track_id={ev.track_id}, count={len(session.pendings)}")
-                self._publish_event(ev)
-                self._remove_session(ev.track_id)
-            case _:
-                raise AssertionError(f"unexpected track event (invalid track state): "
-                                     f"state={session.state}, event={ev.track}")
+        elif TrackState.Deleted:
+            if self.logger and self.logger.isEnabledFor(logging.DEBUG):
+                self.logger.debug(f"discard all pending lost track events: "
+                                f"track_id={ev.track_id}, count={len(session.pendings)}")
+            self._publish_event(ev)
+            self._remove_session(ev.track_id)
+        else:
+            raise AssertionError(f"unexpected track event (invalid track state): "
+                                    f"state={session.state}, event={ev.track}")
         
     def _unset_oldest_pending_session(self, session) -> None:
         if self.oldest_pending_session == session:

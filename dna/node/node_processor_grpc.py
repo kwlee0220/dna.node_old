@@ -73,11 +73,10 @@ class NodeProcessorServicer(node_processor_pb2_grpc.NodeProcessorServicer):
         
     def Run(self, request, context):
         conf = OmegaConf.create()
-        match request.WhichOneof('conf'):
-            case 'node_id':
-                conf = config.load(f'conf/etri_testbed/{request.node_id}.yaml')
-            case 'conf_path':
-                conf = config.load(request.conf_path)
+        if request.WhichOneof('conf') == 'node_id':
+            conf = config.load(f'conf/etri_testbed/{request.node_id}.yaml')
+        elif request.WhichOneof('conf') == 'conf_path':
+            conf = config.load(request.conf_path)
                 
         camera_conf = conf.camera
         camera_conf.sync = request.sync if request.HasField('sync') else False
@@ -100,9 +99,9 @@ class NodeProcessorServicer(node_processor_pb2_grpc.NodeProcessorServicer):
             last_status = status_reporter.wait_for_change(last_status)
             yield last_status
             
-            match last_status.status:
-                case node_processor_pb2.Status.FINISHED | node_processor_pb2.Status.STOPPED:
-                    break
+            if last_status.status == node_processor_pb2.Status.FINISHED \
+                or last_status.status == node_processor_pb2.Status.STOPPED:
+                break
         thread.join()
     
     def Stop(self, request, context):
@@ -134,14 +133,14 @@ def listen(reporter:StatusReporter) -> None:
     last_status = None
     while True:
         last_status = reporter.wait_for_change(last_status=last_status)
-        match last_status.status:
-            case node_processor_pb2.Status.RUNNING:
-                print(f'status changed: {last_status.running}')
-            case node_processor_pb2.Status.STARTED:
-                print(f'process started: {last_status.started}')
-            case node_processor_pb2.Status.FINISHED | node_processor_pb2.Status.STOPPED:
-                print(f'process done: {last_status.stopped}')
-                break
+        if last_status.status == node_processor_pb2.Status.RUNNING:
+            print(f'status changed: {last_status.running}')
+        elif last_status.status == node_processor_pb2.Status.STARTED:
+            print(f'process started: {last_status.started}')
+        elif last_status.status == node_processor_pb2.Status.FINISHED \
+            or last_status.status == node_processor_pb2.Status.STOPPED:
+            print(f'process done: {last_status.stopped}')
+            break
     
     
 if __name__ == '__main__':

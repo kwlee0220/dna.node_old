@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, List, Tuple, Iterable, Generator
+from typing import Union, Optional, List, Tuple, Iterable, Generator
 from datetime import timedelta
 import logging
 
@@ -86,7 +86,7 @@ class MotionBasedAssociator(EventProcessor):
     def close(self) -> None:
         super().close()
         
-    def handle_event(self, ev:Tuple[Window,Optional[TrackletId]]|TrackEvent) -> None:
+    def handle_event(self, ev:Union[Tuple[Window,Optional[TrackletId]],TrackEvent]) -> None:
         if isinstance(ev, TrackEvent):
             if ev.is_deleted():
                 self._publish_event(TrackDeleted(node_id=ev.node_id, track_id=ev.track_id, ts=ev.ts))

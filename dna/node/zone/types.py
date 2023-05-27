@@ -73,19 +73,18 @@ class ZoneRelation(Enum):
         def parseZoneId(expr:str) -> str:
             return expr[2:-1]
             
-        match rel_str[0]:
-            case 'U':
-                return ZoneRelation.Unassigned, None
-            case 'E':
-                return ZoneRelation.Entered, parseZoneId(rel_str)
-            case 'L':
-                return ZoneRelation.Left, parseZoneId(rel_str)
-            case 'I':
-                return ZoneRelation.Inside, parseZoneId(rel_str)
-            case 'T':
-                return ZoneRelation.Through, parseZoneId(rel_str)
-            case 'D':
-                return ZoneRelation.Deleted, parseZoneId(rel_str)
+        if rel_str[0] == 'U':
+            return ZoneRelation.Unassigned, None
+        elif rel_str[0] == 'E':
+            return ZoneRelation.Entered, parseZoneId(rel_str)
+        elif rel_str[0] == 'L':
+            return ZoneRelation.Left, parseZoneId(rel_str)
+        elif rel_str[0] == 'I':
+            return ZoneRelation.Inside, parseZoneId(rel_str)
+        elif rel_str[0] == 'T':
+            return ZoneRelation.Through, parseZoneId(rel_str)
+        elif rel_str[0] == 'D':
+            return ZoneRelation.Deleted, parseZoneId(rel_str)
 
 
 @dataclass(frozen=True)

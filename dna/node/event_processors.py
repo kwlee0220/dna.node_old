@@ -67,7 +67,7 @@ class GroupByFrameIndex(EventProcessor):
             self._publish_event(group)
         super().close()
 
-    def handle_event(self, ev:TrackEvent|TimeElapsed) -> None:
+    def handle_event(self, ev:Union[TrackEvent,TimeElapsed]) -> None:
         if isinstance(ev, TrackEvent):
             # 만일 새 TrackEvent가 이미 publish된 track event group의 frame index보다 작은 경우
             # late-arrived event 문제가 발생하여 예외를 발생시킨다.

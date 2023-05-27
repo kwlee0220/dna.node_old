@@ -32,20 +32,20 @@ class Point:
         self.xy:np.ndarray = np.array(xy)
 
     @property
-    def x(self) -> int|float:
+    def x(self) -> Union[int,float]:
         """Point 객체 좌표의 x축 값.
 
         Returns:
-            int|float: 좌표의 x축 값.
+            Union[int,float]: 좌표의 x축 값.
         """
         return self.xy[0]
 
     @property
-    def y(self) -> int|float:
+    def y(self) -> Union[int,float]:
         """Point 객체 좌표의 y축 값.
 
         Returns:
-            int|float: 좌표의 y축 값.
+            Union[int,float]: 좌표의 y축 값.
         """
         return self.xy[1]
         
@@ -242,20 +242,20 @@ class Size2d:
         return Size2d([w, h])
 
     @property
-    def width(self) -> int|float:
+    def width(self) -> Union[int,float]:
         """본 Size2d의 넓이 값.
 
         Returns:
-            int|float: 본 Size2d의 넓이 값.
+            Union[int,float]: 본 Size2d의 넓이 값.
         """
         return self.wh[0]
     
     @property
-    def height(self) -> int|float:
+    def height(self) -> Union[int,float]:
         """본 Size2d의 높이 값.
 
         Returns:
-            int|float: 본 Size2d의 높이 값.
+            Union[int,float]: 본 Size2d의 높이 값.
         """
         return self.wh[1]
     
@@ -414,13 +414,13 @@ class Box:
         return Box(tlbr)
 
     @staticmethod
-    def from_size(size:Size2d|npt.ArrayLike) -> Box:
+    def from_size(size:Union[Size2d,npt.ArrayLike]) -> Box:
         """
         Create a box object of the given size.
         The top-left corner of the create box will be (0, 0).
 
         Args:
-            size (Size2d|npt.ArrayLike): the size of the created box.
+            size (Union[Size2d,npt.ArrayLike]): the size of the created box.
 
         Returns:
             Box: a Box object.
@@ -647,11 +647,11 @@ class Box:
         x1, y1, x2, y2 = tuple(self.tlbr)
         return image[y1:y2, x1:x2]
     
-    def expand(self, margin:numbers.Number|npt.ArrayLike) -> Box:
+    def expand(self, margin:Union[numbers.Number,npt.ArrayLike]) -> Box:
         """Expand this box with the amount of the given margin.
 
         Args:
-            margin (numbers.Number | npt.ArrayLike): the margin
+            margin (Union[numbers.Number,npt.ArrayLike]): the margin
 
         Returns:
             Box: the expanded box object.

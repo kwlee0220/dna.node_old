@@ -1,5 +1,5 @@
 
-from typing import List, Any, Tuple, TypeVar, Iterable, Generator, Optional, Callable, Dict
+from typing import Union, List, Any, Tuple, TypeVar, Iterable, Generator, Optional, Callable, Dict
 
 import itertools
 from heapq import heappush
@@ -79,7 +79,7 @@ def buffer_iterable(list:Iterable[T], count:int, skip:int=None) -> Generator[Lis
         if buffer:
             yield buffer
             
-def groupby(list:Iterable[T], key:Callable[[T],K], *, value:Callable[[T],V]=lambda t: t) -> Dict[K,List[T|V]]:
+def groupby(list:Iterable[T], key:Callable[[T],K], *, value:Callable[[T],V]=lambda t: t) -> Dict[K,List[Union[T,V]]]:
     groups:Dict[K,List[T]] = dict()
     for v in list:
         grp_key = key(v)
