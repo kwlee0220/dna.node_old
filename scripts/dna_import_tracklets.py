@@ -56,18 +56,17 @@ def main():
         if partitions:
             with closing(store.connect()) as conn:
                 for topic_info, partition in partitions.items():
-                    match topic_info.topic:
-                        case 'track-events':
-                            tracks = [TrackEvent.deserialize(serialized.value) for serialized in partition]
-                            store.insert_track_events_conn(conn, tracks, batch_size=30)
-                        case 'track-motions':
-                            metas = [TrackletMotion.deserialize(serialized.value) for serialized in partition]
-                            store.insert_tracklet_motion_conn(conn, metas, batch_size=30)
-                        case 'track-features':
-                            features = [TrackFeature.deserialize(serialized.value) for serialized in partition]
-                            # features = [feature for feature in features if feature.zone_relation != 'D']
-                            store.insert_track_features_conn(conn, features, batch_size=8)
-
+                    if topic_info.topic == 'track-events':
+                        tracks = [TrackEvent.deserialize(serialized.value) for serialized in partition]
+                        store.insert_track_events_conn(conn, tracks, batch_size=30)
+                    elif topic_info.topic == 'track-motions':
+                        metas = [TrackletMotion.deserialize(serialized.value) for serialized in partition]
+                        store.insert_tracklet_motion_conn(conn, metas, batch_size=30)
+                    elif topic_info.topic == 'track-features':
+                        features = [TrackFeature.deserialize(serialized.value) for serialized in partition]
+                        # features = [feature for feature in features if feature.zone_relation != 'D']
+                        store.insert_track_features_conn(conn, features, batch_size=8)
+                        
 
 if __name__ == '__main__':
     main()

@@ -80,11 +80,10 @@ def main():
         partitions = consumer.poll(timeout_ms=1000, max_records=100)
         if partitions:
             for topic_info, partition in partitions.items():
-                match topic_info.topic:
-                    case 'track-events':
-                        for te in (TrackEvent.deserialize(serialized.value) for serialized in partition):
-                            count += 1
-                            associator.handle_event(te)
+                if topic_info.topic == 'track-events':
+                    for te in (TrackEvent.deserialize(serialized.value) for serialized in partition):
+                        count += 1
+                        associator.handle_event(te)
         else:
             break
     

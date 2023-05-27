@@ -53,12 +53,11 @@ def consume_tracks_upto(consumer:KafkaConsumer, listener:EventListener, upto_ms:
         partitions = consumer.poll(timeout_ms=1000, max_records=50)
         if partitions:
             for topic_info, partition in partitions.items():
-                match topic_info.topic:
-                    case 'track-events':
-                        for serialized in partition:
-                            ev = TrackEvent.deserialize(serialized.value)
-                            listener.handle_event(ev)
-                            last_ts = ev.ts
+                if topic_info.topic == 'track-events':
+                    for serialized in partition:
+                        ev = TrackEvent.deserialize(serialized.value)
+                        listener.handle_event(ev)
+                        last_ts = ev.ts
             if last_ts > upto_ms:
                 return last_ts
         else:
@@ -69,15 +68,14 @@ def consume_features_upto(consumer:KafkaConsumer, listening_nodes, listener:Even
         partitions = consumer.poll(timeout_ms=1000, max_records=10)
         if partitions:
             for topic_info, partition in partitions.items():
-                match topic_info.topic:
-                    case 'track-features':
-                        for serialized in partition:
-                            ev = TrackFeature.deserialize(serialized.value)
-                            if ev.zone_relation == 'D':
-                                listener.handle_event(ev)
-                            elif serialized.key in listening_nodes:
-                                listener.handle_event(ev)
-                            last_ts = ev.ts
+                if topic_info.topic == 'track-features':
+                    for serialized in partition:
+                        ev = TrackFeature.deserialize(serialized.value)
+                        if ev.zone_relation == 'D':
+                            listener.handle_event(ev)
+                        elif serialized.key in listening_nodes:
+                            listener.handle_event(ev)
+                        last_ts = ev.ts
             if last_ts > upto_ms:
                 return last_ts
         else:

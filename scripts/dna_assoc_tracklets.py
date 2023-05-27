@@ -80,11 +80,10 @@ def main():
         partitions = feature_consumer.poll(timeout_ms=3000, max_records=10)
         if partitions:
             for topic_info, partition in partitions.items():
-                match topic_info.topic:
-                    case 'track-features':
-                        for key, feature in ((serialized.key, TrackFeature.deserialize(serialized.value)) for serialized in partition):
-                            if key in listening_nodes or feature.zone_relation == 'D':
-                                associator.handle_event(feature)
+                if topic_info.topic == 'track-features':
+                    for key, feature in ((serialized.key, TrackFeature.deserialize(serialized.value)) for serialized in partition):
+                        if key in listening_nodes or feature.zone_relation == 'D':
+                            associator.handle_event(feature)
         else:
             break
           

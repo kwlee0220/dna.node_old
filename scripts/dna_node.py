@@ -1,3 +1,4 @@
+import os
 from contextlib import closing
 from datetime import timedelta
 
@@ -35,8 +36,49 @@ def parse_args():
     parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
     return parser.parse_known_args()
 
+def parse_true_false_string(truth:str):
+    truth = truth.lower()
+    if truth in ['yes', 'true', 'y', 't', '1']:
+        return True
+    elif truth in ['no', 'false', 'n', 'f', '0']:
+        return False
+    else:
+        return None
+    
+def update_namespace_with_environ(args:argparse.Namespace) -> argparse.Namespace:
+    args = vars(args)
+    if v := os.environ.get('DNA_NODE_CONF'):
+        args['conf'] = v
+    if v := os.environ.get('DNA_NODE_CAMERA'):
+        args['camera'] = v
+    if v := os.environ.get('DNA_NODE_SYNC'):
+        args['sync'] = parse_true_false_string(v)
+    if v := os.environ.get('DNA_NODE_BEGIN_FRAME'):
+        args['begin_frame'] = v
+    if v := os.environ.get('DNA_NODE_END_FRAME'):
+        args['end_frame'] = v
+    if v := os.environ.get('DNA_NODE_OUTPUT'):
+        args['output'] = v
+    if v := os.environ.get('DNA_NODE_OUTPUT_VIDEO'):
+        args['output_video'] = v
+    if v := os.environ.get('DNA_NODE_SHOW_PROGRESS'):
+        args['show_progress'] = parse_true_false_string(v)
+    if v := os.environ.get('DNA_NODE_SHOW'):
+        truth = parse_true_false_string(v)
+        if truth is None:
+            args['show'] = v
+        elif truth is True:
+            args['show'] = '0x0'
+        else:
+            args['show'] = None
+    if v := os.environ.get('DNA_NODE_LOGGER'):
+        args['logger'] = v
+    return argparse.Namespace(**args)
+    
+
 def main():
     args, _ = parse_args()
+    args = update_namespace_with_environ(args)
 
     dna.initialize_logger(args.logger)
     
