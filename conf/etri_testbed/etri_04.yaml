@@ -7,11 +7,11 @@ camera:
   uri: data/2022/etri_041.mp4
   sync: False
   # begin_frame: 930
-  # end_frame: 941
+  # end_frame: 200
   open_ts: 0
 
 tracker:
-  draw: ["tracks", "track_zones"]
+  draw: ["tracks"]
   track_zones:
     - [[1204, 397], [1183, 412], [1069, 935], [5, 894], [0, 730], [956, 373], [959, 360], [960, 323], [1205, 346]]
   magnifying_zones:

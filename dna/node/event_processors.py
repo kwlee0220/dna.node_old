@@ -55,7 +55,7 @@ class GroupByFrameIndex(EventProcessor):
     def __init__(self, min_frame_index_func:Callable[[],int], *, logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
 
-        self.groups:Dict[int,List[TrackEvent]] = defaultdict(list)
+        self.groups:Dict[int,List[TrackEvent]] = defaultdict(list)  # frame index별로 TrackEvent들의 groupp
         self.min_frame_index_func = min_frame_index_func
         self.max_published_index = 0
         self.logger = logger
@@ -78,7 +78,9 @@ class GroupByFrameIndex(EventProcessor):
             group.append(ev)
             
             # pending된 TrackEvent group 중에서 가장 작은 frame index를 갖는 group을 검색.
-            frame_index, group = min(self.groups.items(), key=lambda t: t[0])
+            frame_index = min(self.groups.keys())
+            group = self.groups[frame_index]
+            # frame_index, group = min(self.groups.items(), key=lambda t: t[0])
             
             # 본 GroupByFrameIndex 이전 EventProcessor들에서 pending된 TrackEvent 들 중에서
             # 가장 작은 frame index를 알아내어, 이 frame index보다 작은 값을 갖는 group의 경우에는

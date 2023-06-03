@@ -7,6 +7,7 @@ import dna
 from dna import config, initialize_logger
 from dna.camera import ImageProcessor, create_opencv_camera_from_conf
 from scripts.utils import load_camera_conf
+from scripts import update_namespace_with_environ
 
 
 import argparse
@@ -30,6 +31,7 @@ def parse_args():
 
 def main():
     args, _ = parse_args()
+    args = update_namespace_with_environ(args)
 
     initialize_logger(args.logger)
     

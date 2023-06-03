@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "dna.node.proto";
+
+package dna.node.proto;
+
+
+message TrackFeatureProto {
+    string node_id = 1;
+    string track_id = 2;
+    oneof optional_bfeature {
+    	bytes bfeature = 3;
+    }
+    string zone_relation = 4;
+    int64 ts = 5;
+};

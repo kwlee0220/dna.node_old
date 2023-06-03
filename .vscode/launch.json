@@ -23,7 +23,7 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--camera", "data/2022/etri_041.mp4",
-                "--conf", "conf/etri_testbed/etri_04.yaml",
+                "--conf", "conf/etri_testbed/etri_07.yaml",
                 // "--conf", "conf/ai_city/ai_city_t3_c01.yaml",
                 // "--output", "D:/Temp/dna.node_output/etri_074_event.json",   // -o <file>
                 // "--output_video", "D:/Temp/dna.node_output/etri_074_track.mp4",   // -v <file>
@@ -76,12 +76,15 @@
         { "name": "Show",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_show.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "DNA_NODE_FFMPEG_PATH": "C:\\local\\ffmpeg\\bin\\ffmpeg"
+            },
             "args": [
-                "--conf", "conf/etri_testbed/etri_04.yaml",
+                // "--conf", "conf/etri_testbed/etri_04.yaml",
                 // "--camera", "data/2022/crops/etri_041_crop.mp4",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/5/media.smp",
-                // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
+                "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",
                 // "--nosync",
@@ -124,12 +127,12 @@
             "program": "${workspaceFolder}/scripts/dna_show_multiple_videos.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "output/2022/etri_042_track.mp4",
-                "output/2022/etri_052_track.mp4",
-                "output/2022/etri_062_track.mp4",
-                "output/2022/etri_072_track.mp4",
+                "data/2022/etri_041.mp4",
+                "data/2022/etri_051.mp4",
+                "data/2022/etri_061.mp4",
+                "data/2022/etri_071.mp4",
                 // "--begin_frames", "0, 7, 3, 0",     // 041, 051, 061, 071
-                "--begin_frames", "0, 7, 2, 1",     // 042, 052, 062, 072
+                // "--begin_frames", "0, 7, 2, 1",     // 042, 052, 062, 072
                 // "--begin_frames", "10, 6, 0, 0",     // 043, 053, 063, 073
                 // "--begin_frames", "12, 8, 1, 0",     // 044, 054, 064, 074
             ],

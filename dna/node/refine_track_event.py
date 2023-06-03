@@ -123,10 +123,10 @@ class RefineTrackEvent(EventProcessor):
     def __on_confirmed(self, session:Session, ev:TrackEvent) -> None:
         if ev.state == TrackState.Confirmed:
             self._publish_event(ev)
-        elif TrackState.TemporarilyLost:
+        elif ev.state == TrackState.TemporarilyLost:
             self._append_track_event(session, ev)
             session.state = TrackState.TemporarilyLost
-        elif TrackState.Deleted:
+        elif ev.state == TrackState.Deleted:
             self._publish_event(ev)
             self._remove_session(ev.track_id)
         else:
@@ -141,9 +141,9 @@ class RefineTrackEvent(EventProcessor):
             self._unset_oldest_pending_session(session)
             self._publish_event(ev)
             session.state = TrackState.Confirmed
-        elif TrackState.Tentative:
+        elif ev.state == TrackState.Tentative:
             self._append_track_event(session, ev)
-        elif TrackState.Deleted:
+        elif ev.state == TrackState.Deleted:
             if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                 self.logger.debug(f"discard tentative track: "
                                     f"track_id={ev.track_id}, count={len(session.pendings)}")
@@ -160,7 +160,7 @@ class RefineTrackEvent(EventProcessor):
             self._unset_oldest_pending_session(session)
             self._publish_event(ev)
             session.state = TrackState.Confirmed
-        elif TrackState.TemporarilyLost:
+        elif ev.state == TrackState.TemporarilyLost:
             self._append_track_event(session, ev)
             # event buffer가 overflow가 발생하면, overflow되는
             # event 갯수만큼 oldest event를 publish시킨다.
@@ -173,7 +173,7 @@ class RefineTrackEvent(EventProcessor):
                     self._publish_event(tev)
                 session.pendings = session.pendings[n_overflows:]
                 self._unset_oldest_pending_session(session)
-        elif TrackState.Deleted:
+        elif ev.state == TrackState.Deleted:
             if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                 self.logger.debug(f"discard all pending lost track events: "
                                 f"track_id={ev.track_id}, count={len(session.pendings)}")

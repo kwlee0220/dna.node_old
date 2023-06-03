@@ -300,7 +300,7 @@ class RTSPOpenCvCamera(OpenCvCamera):
         self.ffmpeg_cmd = None
         if uri.find("&end=") >= 0 or uri.find("start=") >= 0:
             ffmpeg_path = options.get('ffmpeg_path')
-            if not self.ffmpeg_path:
+            if not ffmpeg_path:
                 raise ValueError(f'FFMPEG command is not specified')
             
             self.ffmpeg_cmd = [ffmpeg_path, "-re", "-rtsp_transport", "tcp", "-i", uri,
@@ -311,6 +311,7 @@ class RTSPOpenCvCamera(OpenCvCamera):
             ffmpeg_cmd = self.ffmpeg_cmd.copy()
             
             new_uri = f"rtsp://localhost:8554/{uuid.uuid1()}"
+            # new_uri = f"rtsp://localhost:8554/visual"
             ffmpeg_cmd.append(new_uri)
             proc = Popen(ffmpeg_cmd, stdout=DEVNULL, stderr=DEVNULL)
             cv2.waitKey(5000)

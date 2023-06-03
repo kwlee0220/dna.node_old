@@ -230,7 +230,7 @@ class TrackDeleted:
 
 from ..utils import utc2datetime
 from .types import KafkaEvent
-from .proto.reid_metrics_pb2 import TrackFeatureProto
+from .proto.reid_feature_pb2 import TrackFeatureProto
 class TrackFeature(KafkaEvent):
     __slots__ = ('node_id', 'track_id', '_bfeature', '_feature', 'zone_relation', 'ts')
     
