@@ -5,7 +5,7 @@ import sys
 import logging
 
 from dna.support import iterables
-from dna.node import TrackletId, EventProcessor, EventQueue, EventListener, TrackDeleted
+from dna.event import EventProcessor, EventListener, TrackDeleted, TrackletId
 from .association import Association, BinaryAssociation
 from .collection import AssociationCollection, AssociationCollector
 from .closure import AssociationClosure, AssociationClosureBuilder, PartialMatch

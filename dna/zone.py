@@ -6,7 +6,8 @@ import numpy.typing as npt
 from shapely.geometry.base import BaseGeometry
 import shapely.geometry as geometry
 
-from dna import Point, Image, BGR, plot_utils
+from dna import Point, Image, BGR
+from dna.support import plot_utils
 
 
 class Zone:

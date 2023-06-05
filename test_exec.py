@@ -15,7 +15,7 @@ from dna import Box
 from dna.camera import create_opencv_camera_from_conf
 from dna.camera.image_processor import ImageProcessor
 from dna.execution import LoggingExecutionContext
-from dna.utils import RectangleDrawer
+from dna.support.rectangle_drawer import RectangleDrawer
 
 dna.utils.initialize_logger()
 logger = logging.getLogger("dna.test")

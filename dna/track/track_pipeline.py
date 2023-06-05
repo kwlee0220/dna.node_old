@@ -7,7 +7,8 @@ from omegaconf import OmegaConf
 import numpy as np
 import cv2
 
-from dna import plot_utils, color, Point, BGR, Image, Frame
+from dna import color, Point, BGR, Image, Frame
+from dna.support import plot_utils
 from .types import ObjectTrack, TrackState, ObjectTracker, TrackProcessor
 from . import utils
 
@@ -94,7 +95,7 @@ class TrackingPipeline(FrameProcessor):
 
     @staticmethod
     def load(tracker_conf:OmegaConf) -> TrackingPipeline:
-        tracker_uri = tracker_conf.get("uri", "dna.tracker")
+        tracker_uri = tracker_conf.get("uri", "dna.track")
         parts = tracker_uri.split(':', 1)
         id, query = tuple(parts) if len(parts) > 1 else (tracker_uri, "")
         

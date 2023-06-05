@@ -2,9 +2,10 @@ from __future__ import annotations
 from typing import Union, List, Tuple, Generator, Dict, ByteString
 
 from dataclasses import dataclass, field
+from ..event.track_event import TrackEvent
 
-from dna.tracker import TrackState
-from .types import TrackEvent, TrackId
+from dna.track import TrackState
+from dna.event import TrackId
 
 
 class Tracklet:

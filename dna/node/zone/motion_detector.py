@@ -5,8 +5,8 @@ import logging
 import itertools
 
 from dna import utils
-from ..event_processor import EventProcessor
-from .types import TrackletMotion, TrackDeleted
+from dna.event import EventProcessor, TrackDeleted
+from .types import TrackletMotion
 from .zone_sequence_collector import ZoneSequence
     
 

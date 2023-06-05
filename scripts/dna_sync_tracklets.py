@@ -6,10 +6,12 @@ from kafka import KafkaConsumer
 from datetime import timedelta
 
 from dna import initialize_logger, config
-from dna.node import TrackEvent, TrackletId, EventListener, TrackDeleted
+from dna.event.types import TrackDeleted, TrackletId
+from dna.node import EventListener
+from dna.event.track_event import TrackEvent
 from dna.node.utils import read_tracks_json
 from dna.assoc.associator_motion import NodeAssociationSchema, MotionBasedTrackletAssociator
-from dna.node.event_processors import PrintEvent
+from dna.event.event_processors import PrintEvent
 from dna.assoc import Association, AssociationCollector, AssociationCollection
 from dna.assoc.closure import AssociationClosureBuilder
 from dna.assoc.utils import ClosedAssociationPublisher, AssociationCloser, FixedIntervalCollector

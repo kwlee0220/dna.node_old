@@ -6,10 +6,9 @@ import cv2
 
 from dna import Point
 from dna.color import BGR
-from dna.tracker import TrackState
-from .local_path_event import LocalPathEvent
-from .types import TrackEvent
-from .event_processor import EventProcessor
+from dna.track import TrackState
+from ..event.local_path_event import LocalPathEvent
+from dna.event import TrackEvent, EventProcessor
 
 class Session:
     def __init__(self, node_id:str, luid:str) -> None:

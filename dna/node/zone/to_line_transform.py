@@ -3,9 +3,8 @@ from typing import Tuple, Dict, Optional, Any
 
 import logging
 
-from ..types import TrackEvent
-from ..event_processor import EventProcessor
-from .types import TrackDeleted, LineTrack
+from dna.event import TrackEvent, EventProcessor, TrackDeleted
+from .types import LineTrack
 
 
 class ToLineTransform(EventProcessor):
@@ -34,4 +33,5 @@ class ToLineTransform(EventProcessor):
             self.last_events[ev.track_id] = ev
         else:
             self.last_events.pop(ev.track_id, None)
-            self._publish_event(TrackDeleted(track_id=ev.track_id, frame_index=ev.frame_index, ts=ev.ts, source=ev))
+            self._publish_event(TrackDeleted(node_id=ev.node_id, track_id=ev.track_id,
+                                             frame_index=ev.frame_index, ts=ev.ts, source=ev))

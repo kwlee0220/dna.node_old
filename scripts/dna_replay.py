@@ -14,7 +14,9 @@ from argparse import Namespace
 import numpy as np
 
 from dna import initialize_logger, config
-from dna.node import NodeId, TrackFeature, TrackEvent, KafkaEvent
+from dna.node import NodeId
+from dna.event import KafkaEvent, TrackEvent
+from dna.event.track_feature import TrackFeature
 from dna.node.zone import TrackletMotion
 
 TOPIC_TRACK_EVENTS = "track-events"

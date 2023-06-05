@@ -1,13 +1,14 @@
 from __future__ import annotations
 from typing import Union, Optional, List, Tuple, Iterable, Generator
+
 from datetime import timedelta
 import logging
 
 import numpy as np
 
+from dna.event import TrackEvent, TrackDeleted, TrackletId, EventProcessor
 from dna.support import iterables
-from dna.node import TrackEvent, TrackDeleted, TrackletId, EventProcessor
-from dna.node.event_processors import TimeElapsedGenerator, EventRelay
+from dna.event.event_processors import TimeElapsedGenerator, EventRelay
 from .windows import Window, TumblingWindowAssigner
 from .association import Association, BinaryAssociation
 from .schema import NodeAssociationSchema

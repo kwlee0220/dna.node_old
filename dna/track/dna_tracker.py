@@ -8,7 +8,8 @@ import numpy as np
 import cv2
 from omegaconf.omegaconf import OmegaConf
 
-from dna import Frame, Image, BGR, color, plot_utils
+from dna import Frame, Image, BGR, color
+from dna.support import plot_utils
 
 FILE = Path(__file__).absolute()
 DNA_TRACK_DIR = str(FILE.parents[0])
@@ -23,7 +24,7 @@ from .dna_track_params import load_track_params, DNATrackParams
 from .feature_extractor import DeepSORTMetricExtractor
 from .dna_track import DNATrack
 from .tracker import Tracker
-from dna.node.types import TrackEvent
+from dna.event.track_event import TrackEvent
 
 import logging
 LOGGER = logging.getLogger('dna.tracker')

@@ -6,7 +6,7 @@ import sys
 import logging
 
 from dna.support import iterables
-from dna.node import NodeId, TrackletId, TrackEvent, TimeElapsed, TrackDeleted, EventProcessor
+from dna.event import NodeId, EventProcessor, TrackEvent, TimeElapsed, TrackDeleted, TrackletId
 from .association import Association
 from .collection import AssociationCollector
 from .closure import AssociationClosure, AssociationClosureBuilder

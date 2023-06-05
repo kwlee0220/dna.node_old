@@ -7,8 +7,8 @@ import shapely.geometry as geometry
 from omegaconf.omegaconf import OmegaConf
 from collections import defaultdict
 
-from ..event_processor import EventQueue, EventProcessor
-from .types import TrackDeleted, ZoneRelation, ZoneEvent, LocationChanged
+from dna.event import EventQueue, EventProcessor, TrackDeleted
+from .types import ZoneRelation, ZoneEvent, LocationChanged
 
 
 class TrackLocations:

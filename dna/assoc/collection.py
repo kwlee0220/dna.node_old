@@ -2,9 +2,10 @@ from __future__ import annotations
 from typing import Union, Any, Optional, List, Tuple, Iterable, Generator, Callable
 
 import logging
+from dna.event.types import TrackDeleted, TrackletId
 
 from dna.support import iterables
-from dna.node import TrackletId, EventProcessor, TrackDeleted
+from dna.event import EventProcessor
 from .association import Association
 
 

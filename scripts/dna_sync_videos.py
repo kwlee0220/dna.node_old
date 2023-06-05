@@ -9,7 +9,7 @@ import itertools
 
 import time
 from dna import Point, initialize_logger
-from dna.node import TrackEvent
+from dna.event.track_event import TrackEvent
 from dna.support import iterables
 
 import logging

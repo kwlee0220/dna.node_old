@@ -9,22 +9,8 @@ import json
 import numpy as np
 
 from dna import Point
-from .. import TrackEvent, KafkaEvent, TrackletId
+from dna.event import TrackletId, KafkaEvent, TrackEvent
 from dna.utils import utc2datetime
-
-
-@dataclass(frozen=True)
-class TrackDeleted:
-    track_id: str
-    frame_index: int
-    ts: float
-    source: TrackEvent = field(default=None)
-
-
-def to_line_string(pt0:Point, pt1:Point) -> geometry.LineString:
-    return geometry.LineString([list(pt0.xy), list(pt1.xy)])
-def to_line_end_points(ls:geometry.LineString) -> Tuple[Point,Point]:
-    return tuple(Point(xy) for xy in ls.coords[:2])
 
 
 @dataclass(frozen=True)
@@ -48,11 +34,17 @@ class LineTrack:
         
     @staticmethod
     def from_events(t0:TrackEvent, t1:TrackEvent):
+        def to_line_string(pt0:Point, pt1:Point) -> geometry.LineString:
+            return geometry.LineString([list(pt0.xy), list(pt1.xy)])
+
         p0 = t0.location.center()
         p1 = t1.location.center()
         return LineTrack(track_id=t1.track_id, line=to_line_string(p0, p1), frame_index=t1.frame_index, ts=t1.ts, source=t1)
     
     def __repr__(self) -> str:
+        def to_line_end_points(ls:geometry.LineString) -> Tuple[Point,Point]:
+            return tuple(Point(xy) for xy in ls.coords[:2])
+        
         if self.line:
             start, end = to_line_end_points(self.line)
             return f'{self.track_id}: line={start}-{end}, frame={self.frame_index}]'

@@ -1,69 +1,19 @@
 from __future__ import annotations
+from typing import ByteString, Iterable, List, Optional, Tuple
+from dataclasses import asdict, dataclass, field
 
-from typing import Optional, List, NewType, Iterable, ByteString, Tuple, Any
-from abc import ABCMeta, abstractmethod
-from dataclasses import dataclass, field, asdict
-
-import threading
-import time
-from datetime import timedelta
 import json
+
 import numpy as np
 
-from dna import Point, Box
+from dna import Box, Point
+from .types import NodeId, TrackId, TrackletId, KafkaEvent
 from dna.support import sql_utils
-from dna.tracker import TrackState
+from dna.track import TrackState
 
-
-NodeId = NewType('NodeId', str)
-TrackId = NewType('TrackId', str)
 
 _WGS84_PRECISION = 7
 _DIST_PRECISION = 3
-
-
-@dataclass(frozen=True, order=True) # slots=True
-class TrackletId:
-    node_id: NodeId
-    track_id: TrackId
-    
-    def __iter__(self):
-        return iter((self.node_id, self.track_id))
-    
-    def __repr__(self) -> str:
-        return f'{self.node_id}[{self.track_id}]'
-
-
-@dataclass(frozen=True)
-class TimeElapsed:
-    ts: int = field(default_factory=lambda: int(round(time.time() * 1000)))
-
-
-class KafkaEvent(metaclass=ABCMeta):
-    @abstractmethod
-    def key(self) -> str: pass
-    
-    @abstractmethod
-    def serialize(self) -> Any: pass
-    
-
-class KVKafkaEvent(KafkaEvent):
-    def __init__(self, key:str, value:Any) -> None:
-        self.key = key
-        self.value = value
-        
-    def key(self) -> str:
-        return self.key
-    
-    def serialize(self) -> Any:
-        return self.value
-
-
-def box_to_json(box:Box) -> List[float]:
-    return [round(v, 2) for v in box.tlbr.tolist()] if box else None
-
-def json_to_box(tlbr_list:Optional[Iterable[float]]) -> Box:
-    return Box(tlbr_list) if tlbr_list else None
 
 
 @dataclass(frozen=True, eq=True, order=False, repr=False)   # slots=True
@@ -81,20 +31,20 @@ class TrackEvent(KafkaEvent):
 
     def key(self) -> str:
         return self.node_id
-    
+
     @property
     def tracklet_id(self) -> TrackletId:
         return TrackletId(self.node_id, self.track_id)
-    
+
     def is_deleted(self) -> bool:
         return self.state == TrackState.Deleted
-    
+
     def is_confirmed(self) -> bool:
         return self.state == TrackState.Confirmed
-    
+
     def is_tentative(self) -> bool:
         return self.state == TrackState.Tentative
-    
+
     def is_temporarily_lost(self) -> bool:
         return self.state == TrackState.TemporarilyLost
 
@@ -117,7 +67,7 @@ class TrackEvent(KafkaEvent):
                             zone_relation=row[7],
                             frame_index=row[8],
                             ts=row[9])
-    
+
     def to_row(self) -> Tuple:
         return (self.node_id, self.track_id, self.state.abbr,
                 sql_utils.to_sql_box(self.location.to_rint()),
@@ -127,6 +77,9 @@ class TrackEvent(KafkaEvent):
 
     @staticmethod
     def from_json(json_str:str) -> TrackEvent:
+        def json_to_box(tlbr_list:Optional[Iterable[float]]) -> Box:
+            return Box(tlbr_list) if tlbr_list else None
+
         json_obj = json.loads(json_str)
 
         world_coord = json_obj.get('world_coord', None)
@@ -147,6 +100,9 @@ class TrackEvent(KafkaEvent):
                             ts=json_obj['ts'])
 
     def to_json(self) -> str:
+        def box_to_json(box:Box) -> List[float]:
+            return [round(v, 2) for v in box.tlbr.tolist()] if box else None
+
         serialized = {'node':self.node_id, 'track_id':self.track_id, 'state':self.state.name,
                     'location':box_to_json(self.location)}
         if self.world_coord is not None:
@@ -162,7 +118,7 @@ class TrackEvent(KafkaEvent):
 
     def serialize(self) -> str:
         return self.to_json().encode('utf-8')
-    
+
     @staticmethod
     def deserialize(serialized:ByteString) -> TrackEvent:
         return TrackEvent.from_json(serialized.decode('utf-8'))
@@ -201,103 +157,14 @@ class TrackEvent(KafkaEvent):
         else:
             world_coord = None
             dist = None
-            
+
         return TrackEvent(node_id=node_id, track_id=track_id, state=state, location=loc,
                             frame_index=frame_idx, ts=ts, world_coord=world_coord, distance=dist)
-    
+
     def __repr__(self) -> str:
-        return (f"TrackEvent[id={self.node_id}[{self.track_id}]({self.state.abbr}), frame={self.frame_index}, loc={self.location}, ts={self.ts}]")
+        return (f"TrackEvent[id={self.node_id}[{self.track_id}]({self.state.abbr}), ",
+                f"frame={self.frame_index}, loc={self.location}, ts={self.ts}]")
+    
 
 EOT:TrackEvent = TrackEvent(node_id=None, track_id=None, state=None, location=None,
                             world_coord=None, distance=None, frame_index=-1, ts=-1)
-
-@dataclass(frozen=True, eq=True)    # slots=True
-class TrackDeleted:
-    node_id: NodeId     # node id
-    track_id: TrackId   # tracking object id
-    ts: int = field(hash=False)
-
-    def key(self) -> str:
-        return self.node_id
-    
-    @property
-    def tracklet_id(self) -> TrackletId:
-        return TrackletId(self.node_id, self.track_id)
-    
-    def __repr__(self) -> str:
-        return (f"{self.__class__.__name__}: id={self.node_id}[{self.track_id}], ts={self.ts}")
-
-
-from ..utils import utc2datetime
-from .types import KafkaEvent
-from .proto.reid_feature_pb2 import TrackFeatureProto
-class TrackFeature(KafkaEvent):
-    __slots__ = ('node_id', 'track_id', '_bfeature', '_feature', 'zone_relation', 'ts')
-    
-    def __init__(self, **kwargs) -> None:
-        self.node_id:str = kwargs['node_id']
-        self.track_id:str = kwargs['track_id']
-        self._bfeature:Optional[ByteString] = kwargs.get('bfeature')
-        self._feature:Optional[np.ndarray] = kwargs.get('feature')
-        self.zone_relation:str = kwargs.get('zone_relation')
-        self.ts:int = kwargs['ts']
-        
-    def key(self) -> str:
-        return self.node_id
-    
-    @property
-    def tracklet_id(self) -> TrackletId:
-        return TrackletId(self.node_id, self.track_id)
-    
-    @property
-    def feature(self) -> np.ndarray:
-        if self._bfeature is None and self._feature is None:
-            return None
-        if self._feature is None:
-            self._feature = np.frombuffer(self._bfeature, dtype=np.float32)
-        return self._feature
-        
-    @property
-    def bfeature(self) -> ByteString:
-        if self._bfeature is None and self._feature is None:
-            return None
-        if not self._bfeature:
-            self._bfeature = self._feature.tobytes()
-        return self._bfeature
-        
-    @staticmethod
-    def from_row(args) -> TrackFeature:
-        return TrackFeature(node_id=args[0], track_id=args[1], bfeature=args[2], zone_relation=args[3], ts=args[4])
-    
-    def to_row(self) -> Tuple[str,str,ByteString,int]:
-        return (self.node_id, self.track_id, self.bfeature, self.zone_relation, self.ts)
-    
-    def serialize(self) -> bytes:
-        return self.to_bytes()
-    
-    def deserialize(binary_data:ByteString) -> TrackFeature:
-        return TrackFeature.from_bytes(binary_data)
-    
-    def to_bytes(self) -> bytes:
-        proto = TrackFeatureProto()
-        proto.node_id = self.node_id
-        proto.track_id = self.track_id
-        if self.bfeature is not None:
-            proto.bfeature = self.bfeature
-        proto.zone_relation = self.zone_relation
-        proto.ts = self.ts
-        
-        return proto.SerializeToString()
-    
-    @staticmethod
-    def from_bytes(binary_data:bytes) -> TrackFeature:
-        proto = TrackFeatureProto()
-        proto.ParseFromString(binary_data)
-        
-        bfeature = proto.bfeature if proto.HasField('bfeature') else None
-        return TrackFeature(node_id=proto.node_id, track_id=proto.track_id, bfeature=bfeature,
-                            zone_relation=proto.zone_relation, ts=proto.ts)
-        
-    def __repr__(self) -> str:
-        # dt = utc2datetime(self.ts)
-        return f'{self.__class__.__name__}[id={self.node_id}[{self.track_id}], zone={self.zone_relation}, ts={self.ts}]'

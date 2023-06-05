@@ -6,7 +6,7 @@ import functools
 import numpy as np
 import logging
 
-from dna.node import NodeId, TrackId, TrackletId, EventProcessor, TrackDeleted
+from dna.event import TrackDeleted, TrackletId, NodeId, TrackId, EventProcessor
 from dna.support import iterables
 
 

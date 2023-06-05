@@ -6,8 +6,9 @@ from contextlib import closing
 from kafka import KafkaConsumer
 
 from dna import initialize_logger, config
+from dna.event.track_event import TrackEvent
 from dna.support import sql_utils
-from dna.node import TrackEvent, TrackFeature
+from dna.event.track_feature import TrackFeature
 from dna.node.zone import TrackletMotion
 from dna.assoc.tracklet_store import TrackletStore
 

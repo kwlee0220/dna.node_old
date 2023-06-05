@@ -5,9 +5,10 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 
-from dna import Box, Frame, Point, Image, BGR, plot_utils
+from dna import Box, Frame, Point, Image, BGR
 from dna.detect import Detection
-from dna.tracker import ObjectTrack, TrackState, ObjectTracker
+from dna.support import plot_utils
+from dna.track import ObjectTrack, TrackState, ObjectTracker
 
 
 T = TypeVar("T")

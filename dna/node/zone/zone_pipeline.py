@@ -6,16 +6,15 @@ from dataclasses import replace
 
 import time
 from datetime import timedelta
+import logging
 
 from omegaconf import OmegaConf
 
 from dna import config
-from dna.tracker import ObjectTracker, TrackState, TrackProcessor
-from ..types import TimeElapsed
-from .types import TrackDeleted, ZoneEvent
-from ..event_processor import EventQueue, EventListener, EventProcessor
+from dna.track import ObjectTracker, TrackState, TrackProcessor
+from dna.event import TimeElapsed, TrackDeleted, EventQueue, EventListener, EventProcessor
+from .types import ZoneEvent
 
-import logging
 
 
 class ZonePipeline(EventListener):

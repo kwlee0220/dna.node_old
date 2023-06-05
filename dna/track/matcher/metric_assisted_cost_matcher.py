@@ -6,7 +6,7 @@ import logging
 import numpy as np
 
 from .base import Matcher
-from .. import utils
+from ...track import utils
 
 
 class MetricAssistedCostMatcher(Matcher):

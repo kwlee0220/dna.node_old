@@ -9,7 +9,7 @@ import numpy.typing as npt
 import dna
 from dna.detect import Detection
 from .base import Matcher
-from .. import utils
+from ...track import utils
 
 
 SUPERIOR_FACTOR = 1.8

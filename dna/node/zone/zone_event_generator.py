@@ -8,10 +8,11 @@ from shapely.geometry.base import BaseGeometry
 import shapely.geometry as geometry
 from omegaconf.omegaconf import OmegaConf
 
-from dna import Point, Box, Image, BGR, plot_utils
+from dna import Point, Box, Image, BGR
+from dna.support import plot_utils
 from dna.zone import Zone
-from ..event_processor import EventProcessor
-from .types import TrackDeleted, LineTrack, ZoneRelation, ZoneEvent
+from dna.event import EventProcessor, TrackDeleted
+from .types import LineTrack, ZoneRelation, ZoneEvent
 
 
 class ZoneEventGenerator(EventProcessor):

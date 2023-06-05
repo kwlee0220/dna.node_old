@@ -5,9 +5,9 @@ import sys
 import logging
 from collections import defaultdict
 
-from dna.tracker import TrackState
-from .types import TrackEvent, TimeElapsed, TrackId
-from .event_processor import EventProcessor
+from dna.event import TimeElapsed, TrackEvent, TrackId
+from dna.track import TrackState
+from ..event.event_processor import EventProcessor
 
 
 class DropShortTrail(EventProcessor):

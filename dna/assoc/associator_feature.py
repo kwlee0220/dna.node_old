@@ -8,11 +8,11 @@ import numpy as np
 from collections import defaultdict
 from kafka import KafkaConsumer
 
-from dna.node import TrackletId, NodeId, TrackDeleted, TrackFeature, EventProcessor
-from dna.node.event_processors import EventRelay
+from dna.event import NodeId, EventProcessor, TrackDeleted, TrackletId, TrackFeature
+from dna.event.event_processors import EventRelay
 from dna.node.zone import ZoneRelation
 from dna.assoc.tracklet_store import TrackletStore
-from dna.tracker.utils import cosine_distance
+from dna.track.utils import cosine_distance
 from .association import Association, BinaryAssociation
 
 

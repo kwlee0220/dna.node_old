@@ -8,7 +8,7 @@ import numpy as np
 
 from dna import Box
 from dna.camera.opencv_camera import OpenCvCamera, OpenCvVideFile
-from dna.utils import RectangleDrawer
+from dna.support.rectangle_drawer import RectangleDrawer
 
 import os
 

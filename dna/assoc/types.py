@@ -3,7 +3,7 @@ from typing import Tuple
 
 from dataclasses import dataclass, field
 
-from dna.node import TrackletId
+from dna.event.types import TrackletId
 
        
 @dataclass(frozen=True)

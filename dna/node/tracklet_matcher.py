@@ -3,9 +3,10 @@ from typing import Union, List, Tuple, Dict, Set, Optional
 
 from dataclasses import dataclass, field, replace
 import itertools
+from dna.event.track_event import TrackEvent
 
-from dna.tracker import TrackState
-from dna.node import TrackEvent, Tracklet
+from dna.track import TrackState
+from dna.node import Tracklet
 
                 
 def match_tracklets(tracklets1:Dict[str,Tracklet], tracklets2:Dict[str,Tracklet],

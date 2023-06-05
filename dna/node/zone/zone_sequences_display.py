@@ -7,9 +7,9 @@ import heapq
 
 from dna import Frame, Box, color
 from dna.camera import FrameProcessor, ImageProcessor
-from dna.tracker import TrackState
-from ..types import TrackEvent
-from ..event_processor import EventQueue, EventListener
+from dna.track import TrackState
+from ...event.track_event import TrackEvent
+from ...event.event_processor import EventQueue, EventListener
 from .types import ResidentChanged, TrackletMotion
 from .resident_changes import ResidentChanges
 

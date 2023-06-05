@@ -4,8 +4,8 @@ from typing import Tuple, List, Dict, Set, Optional, Union
 import logging
 from datetime import timedelta
 
-from ..event_processor import EventProcessor
-from dna.node.zone import TrackDeleted, ZoneEvent, ZoneVisit, ZoneSequence
+from dna.event import EventProcessor, TrackDeleted
+from dna.node.zone import ZoneEvent, ZoneVisit, ZoneSequence
 
 LOGGER = logging.getLogger('dna.node.zone.Turn')
 

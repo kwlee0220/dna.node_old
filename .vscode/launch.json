@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        
         { "name": "NodeProcessor",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_node_processor.py",
@@ -81,10 +82,10 @@
                 "DNA_NODE_FFMPEG_PATH": "C:\\local\\ffmpeg\\bin\\ffmpeg"
             },
             "args": [
-                // "--conf", "conf/etri_testbed/etri_04.yaml",
+                "--conf", "conf/etri_testbed/etri_04.yaml",
                 // "--camera", "data/2022/crops/etri_041_crop.mp4",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/5/media.smp",
-                "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
+                // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",
                 // "--nosync",

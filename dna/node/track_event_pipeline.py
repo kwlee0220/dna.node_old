@@ -8,13 +8,12 @@ import numpy as np
 from datetime import timedelta
 from omegaconf import OmegaConf
 
-from dna import Frame, Size2d, config
+from dna import Frame, Size2d, config, Box, Point
 from dna.camera import ImageProcessor
-from dna.tracker import TrackProcessor, ObjectTrack, TrackState
-from dna.tracker.dna_tracker import DNATracker
-from .types import TimeElapsed, TrackEvent
-from .event_processor import EventQueue, EventListener, EventProcessor
-from .event_processors import DropEventByType, GroupByFrameIndex, EventRelay
+from dna.event import TrackEvent, TimeElapsed, TrackDeleted, EventQueue, EventListener, EventProcessor
+from dna.event.event_processors import DropEventByType, GroupByFrameIndex, EventRelay
+from dna.track import TrackProcessor, ObjectTrack, TrackState
+from dna.track.dna_tracker import DNATracker
 from .zone.zone_pipeline import ZonePipeline
 
 _DEFAULT_BUFFER_SIZE = 30
@@ -60,7 +59,7 @@ class LogTrackEventPipeline(EventQueue):
     @property
     def group_event_queue(self) -> EventQueue:
         if not self._group_event_queue:
-            from .event_processors import GroupByFrameIndex
+            from ..event.event_processors import GroupByFrameIndex
             self._group_event_queue = GroupByFrameIndex(max_pending_frames=1, timeout=0.5)
             self.add_listener(self._group_event_queue)
         return self._group_event_queue
@@ -206,7 +205,7 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
     @property
     def group_event_queue(self) -> EventQueue:
         if not self._group_event_queue:
-            from .event_processors import GroupByFrameIndex
+            from ..event.event_processors import GroupByFrameIndex
             self._group_event_queue = GroupByFrameIndex(self.min_frame_indexers.min_frame_index)
             self.add_listener(self._group_event_queue)
         return self._group_event_queue
@@ -229,7 +228,7 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
         
         
 from dataclasses import replace
-from .zone import ZoneEvent, TrackDeleted
+from .zone import ZoneEvent
 class ZoneToTrackEventTransform(EventProcessor):
     def handle_event(self, ev:Union[ZoneEvent,TrackDeleted]) -> None:
         if isinstance(ev, ZoneEvent):
@@ -254,7 +253,7 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
         
     publish_tracks_conf = config.get(plugins_conf, 'publish_tracks')
     if publish_tracks_conf:
-        from .kafka_event_publisher import KafkaEventPublisher
+        from ..event.kafka_event_publisher import KafkaEventPublisher
         plugin = KafkaEventPublisher.from_conf(publish_tracks_conf, logger=logger.getChild('kafka.tracks'))
         pipeline.add_listener(plugin)
         pipeline.plugins['publish_tracks'] = plugin
@@ -264,7 +263,7 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
     if publish_features_conf and image_processor:
         from dna.support.sql_utils import SQLConnector
         from ..assoc.tracklet_store import TrackletStore
-        from dna.tracker.dna_tracker import load_feature_extractor
+        from dna.track.dna_tracker import load_feature_extractor
         from .reid_features import PublishReIDFeatures
         distinct_distance = publish_features_conf.get('distinct_distance', 0.0)
         min_crop_size = Size2d.from_expr(publish_features_conf.get('min_crop_size', '80x80'))
@@ -282,7 +281,7 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
     if zone_pipeline:
         publish_motions_conf = config.get(plugins_conf, 'publish_motions')
         if publish_motions_conf:
-            from .kafka_event_publisher import KafkaEventPublisher
+            from ..event.kafka_event_publisher import KafkaEventPublisher
             motions = zone_pipeline.event_queues.get('motions')
             if motions:
                 plugin = KafkaEventPublisher.from_conf(publish_motions_conf, logger=logger.getChild('kafka.motions'))

@@ -7,7 +7,8 @@ from kafka import KafkaConsumer
 import argparse
 
 from dna import initialize_logger
-from dna.node import TrackFeature, TrackEvent
+from dna.event.track_feature import TrackFeature
+from dna.event.track_event import TrackEvent
 from dna.node.zone import TrackletMotion
 
 TOPIC_TRACK_EVENTS = "track-events"

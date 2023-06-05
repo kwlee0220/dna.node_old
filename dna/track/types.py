@@ -6,8 +6,9 @@ from enum import Enum
 import shapely.geometry as geometry
 import cv2
 
-from dna import Box, Point, Size2d, Image, BGR, plot_utils, Frame
+from dna import Box, Point, Size2d, Image, BGR, Frame
 from dna.detect import Detection
+from dna.support import plot_utils
 
 
 _ABBR_TO_STATE:Dict[str,TrackState] = dict()

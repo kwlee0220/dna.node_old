@@ -8,10 +8,11 @@ import numpy.typing as npt
 import dna
 from dna import Box
 from dna.detect import Detection
-from dna.tracker import ObjectTrack, utils
-from dna.tracker.matcher import MatchingSession, matches_str
+from dna.track import ObjectTrack
+from dna.track import utils
+from .matching_session import MatchingSession
 from ..dna_track_params import DNATrackParams, DistanceIoUThreshold
-from .base import Matcher, chain
+from .base import matches_str, Matcher, chain
 from .reciprocal_cost_matcher import ReciprocalCostMatcher
 
 

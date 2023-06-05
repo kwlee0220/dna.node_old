@@ -8,9 +8,11 @@ from datetime import timedelta
 from collections import defaultdict
 from pathlib import Path
 
-from .types import TrackEvent, TimeElapsed
+from .track_event import TrackEvent
+
+from .types import TimeElapsed
 from .event_processor import EventProcessor, EventListener, EventQueue
-from .refine_track_event import RefineTrackEvent
+from ..node.refine_track_event import RefineTrackEvent
 
 
 class PrintEvent(EventListener):

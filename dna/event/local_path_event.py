@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import json
 
-from .kafka_event import KafkaEvent
+from dna.event import KafkaEvent
 
 
 @dataclass(frozen=True, eq=True, order=True)    # slots=True

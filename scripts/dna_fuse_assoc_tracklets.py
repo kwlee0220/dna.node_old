@@ -7,8 +7,10 @@ from omegaconf import OmegaConf
 from kafka import KafkaConsumer
 
 from dna import initialize_logger, config
-from dna.node import TrackEvent, TrackFeature, EventListener
-from dna.node.event_processors import PrintEvent
+from dna.node import EventListener
+from dna.event.track_event import TrackEvent
+from dna.event.track_feature import TrackFeature
+from dna.event.event_processors import PrintEvent
 from dna.assoc.tracklet_store import TrackletStore
 from dna.assoc import Association, AssociationCollection, AssociationCollector
 from dna.assoc.associator_motion import NodeAssociationSchema, MotionBasedTrackletAssociator

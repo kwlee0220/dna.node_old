@@ -5,7 +5,7 @@ from kafka import KafkaProducer
 from omegaconf import OmegaConf
 import logging
 
-from .types import KafkaEvent
+from dna.event import KafkaEvent
 from .event_processor import EventListener
 
 

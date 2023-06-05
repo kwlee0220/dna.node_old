@@ -6,8 +6,7 @@ from omegaconf import OmegaConf
 import numpy as np
 
 from dna import Point
-from dna.node import TrackEvent, TimeElapsed, EventProcessor
-from .types import KafkaEvent
+from dna.event import TimeElapsed, EventProcessor, KafkaEvent, TrackEvent
 
 
 ALPHA = 1   # smoothing hyper parameter

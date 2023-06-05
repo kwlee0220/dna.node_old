@@ -9,7 +9,7 @@ from operator import attrgetter
 import numpy as np
 
 from dna.support import iterables
-from dna.node import NodeId, TrackletId, EventProcessor, TrackDeleted
+from dna.event import NodeId, EventProcessor, TrackDeleted, TrackletId
 from .association import Association, BinaryAssociation
 from .collection import AssociationCollector, AssociationCollection, PartialMatch
     

@@ -5,7 +5,7 @@ from omegaconf import OmegaConf
 
 from dna import config
 from dna.camera import ImageProcessor
-from dna.tracker.track_pipeline import TrackingPipeline
+from dna.track.track_pipeline import TrackingPipeline
 from .track_event_pipeline import TrackEventPipeline
 from .zone.zone_pipeline import ZonePipeline
 from .zone.zone_sequences_display import ZoneSequenceDisplay

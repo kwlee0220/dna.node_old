@@ -2,8 +2,8 @@ from __future__ import annotations
 from typing import Union, Set, Dict
 from dataclasses import dataclass, field
 
-from ..event_processor import EventProcessor
-from .types import ZoneEvent, ResidentChanged, TrackDeleted
+from dna.event import EventProcessor, TrackDeleted
+from .types import ZoneEvent, ResidentChanged
 
 import logging
 LOGGER = logging.getLogger('dna.node.zone.Residents')

@@ -16,21 +16,8 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
-# import warnings
-# from torch.serialization import SourceChangeWarning
-# warnings.filterwarnings("ignore", category=SourceChangeWarning)
-
 import dna
-# from dna import Point, Box, Size2d, Frame
-# from dna.conf import load_node_conf, get_config
-# from scripts.utils import load_camera_conf
-# from dna.camera import ImageProcessor, FrameProcessor, create_camera_from_conf
-# from dna.tracker import TrackState
-from dna.tracker.dna_tracker import load_feature_extractor, DeepSORTMetricExtractor
-# from dna.node import EventProcessor, TrackEvent, TrackId, TrackEventPipeline
-# from dna.node.zone import ZoneEvent, ZonePipeline
-# from dna.node.utils import read_tracks_json
-# from dna.zone import Zone
+from dna.track.dna_tracker import load_feature_extractor, DeepSORTMetricExtractor
 
 
 import argparse

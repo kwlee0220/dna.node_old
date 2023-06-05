@@ -1,15 +1,17 @@
 
+from __future__ import annotations
 from typing import List, Dict, Tuple, Union
 from collections import namedtuple
+
+import logging
 
 from omegaconf import OmegaConf
 
 from dna import Point
-from .types import TrackEvent, TimeElapsed
-from .event_processor import EventProcessor
+from dna.event import TrackEvent, TimeElapsed, EventProcessor
 
-import logging
 LOGGER = logging.getLogger("dna.node.world_coord")
+
 
 CameraGeometry = namedtuple('CameraGeometry', 'K,distort,ori,pos,polygons,planes,cylinder_table,cuboid_table')
 class WorldCoordinateAttacher(EventProcessor):

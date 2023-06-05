@@ -6,9 +6,8 @@ import numpy as np
 
 from dna import Frame, utils, Size2d
 from dna.camera import FrameProcessor, ImageProcessor
-from .types import TrackEvent, TrackFeature, TrackId
-from .event_processor import EventProcessor
-from dna.tracker.feature_extractor import DeepSORTMetricExtractor
+from dna.event import TrackEvent, TrackFeature, TrackId, EventProcessor
+from dna.track.feature_extractor import DeepSORTMetricExtractor
 
 
 class PublishReIDFeatures(FrameProcessor,EventProcessor):

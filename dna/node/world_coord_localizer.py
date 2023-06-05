@@ -11,8 +11,7 @@ from pathlib import Path
 import cv2
 
 from dna import Point
-from .types import TrackEvent
-from .event_processor import EventProcessor
+from dna.event import TrackEvent, EventProcessor
 
 import logging
 LOGGER = logging.getLogger("dna.node.pipeline")

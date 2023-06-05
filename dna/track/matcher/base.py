@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Tuple, List, Optional
 
-from dna.tracker import utils
+from dna.track import utils
 
 INVALID_DIST_DISTANCE = 9999
 INVALID_IOU_DISTANCE = 1

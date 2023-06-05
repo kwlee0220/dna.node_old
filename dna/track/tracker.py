@@ -10,19 +10,20 @@ from numpy.linalg import det
 import cv2
 
 import dna
-from dna import Box, Frame, plot_utils, color, Image, Point
+from dna import Box, Frame, color, Image, Point
 from dna.detect import Detection
-from dna.tracker import utils
-from dna.tracker.dna_track_params import DistanceIoUThreshold
-from dna.tracker.matcher import Matcher, MatchingSession, chain, matches_str, match_str, \
+from dna.support import plot_utils
+from dna.track import utils
+from dna.track.dna_track_params import DistanceIoUThreshold
+from .matcher import Matcher, MatchingSession, chain, matches_str, match_str, \
                                 IoUDistanceCostMatcher, MetricCostMatcher, HungarianMatcher, ReciprocalCostMatcher, \
                                 INVALID_DIST_DISTANCE, INVALID_IOU_DISTANCE
-from dna.tracker.matcher.cost_matrices import build_dist_cost, build_iou_cost, \
+from .matcher.cost_matrices import build_dist_cost, build_iou_cost, \
                                                 build_metric_cost, gate_metric_cost
 from .kalman_filter import KalmanFilter
 from .dna_track_params import DNATrackParams
 from .dna_track import DNATrack
-from dna.node.types import TrackEvent
+from dna.event.track_event import TrackEvent
 
 _EMPTY_FEATURE = np.zeros(1024)
 

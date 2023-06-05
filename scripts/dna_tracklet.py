@@ -9,7 +9,7 @@ from collections import defaultdict
 
 from dna import initialize_logger
 from dna import config
-from dna.node import TrackEvent
+from dna.event.track_event import TrackEvent
 from dna.assoc.tracklet_store import TrackletStore
 from dna.node.utils import read_tracks_json
 from dna.support import iterables
@@ -70,7 +70,7 @@ def update_tracklet(conf:OmegaConf, store:TrackletStore) -> None:
 def listen(store:TrackletStore, bootstrap_servers:List[str], topic:str, *,
            auto_offset_reset:Optional[str]='earliest') -> None:
     from kafka import KafkaConsumer
-    from dna.node import TrackFeature
+    from dna.event.track_feature import TrackFeature
     from dna.node.zone import Motion
     
     # consumer = KafkaConsumer(['track-events', 'track-motions'],

@@ -3,7 +3,7 @@ from typing import List, Tuple, Generator, Iterable, Optional
 
 from contextlib import closing
 
-from ..node.types import TrackEvent, TrackId, NodeId, TrackletId, TrackFeature
+from dna.event import TrackId, NodeId, TrackletId, TrackEvent, TrackFeature
 from ..node.zone import TrackletMotion
 from ..node.tracklet import Tracklet
 from dna.assoc import TrajectoryFragment, Association

@@ -14,7 +14,7 @@ warnings.filterwarnings("ignore", category=SourceChangeWarning)
 import dna
 from dna import config
 from dna.camera import ImageProcessor, create_opencv_camera_from_conf
-from dna.tracker import TrackingPipeline
+from dna.track import TrackingPipeline
 from scripts.utils import load_camera_conf
 
 

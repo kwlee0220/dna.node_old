@@ -5,9 +5,11 @@ import cv2
 import numpy as np
 from omegaconf import OmegaConf
 
-from dna import Box, Size2d, Point, color, plot_utils
+from dna import Box, Size2d, Point, color
+from dna.support import plot_utils
+from dna.support.rectangle_drawer import RectangleDrawer
 from dna.camera import create_opencv_camera_from_conf
-from dna.utils import RectangleDrawer, PolygonDrawer
+from dna.support.polygon_drawer import PolygonDrawer
 from dna.zone import Zone
 
 img = None

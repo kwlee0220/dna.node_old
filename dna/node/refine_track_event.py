@@ -6,9 +6,8 @@ from dataclasses import dataclass, field
 
 import logging
 
-from dna.tracker.dna_track import TrackState
-from .types import TrackEvent, TimeElapsed, TrackId
-from .event_processor import EventProcessor
+from dna.event import TrackId, TimeElapsed, TrackEvent, EventProcessor
+from dna.track.dna_track import TrackState
 
 
 @dataclass(eq=True) # slots=True
