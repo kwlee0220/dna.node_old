@@ -1,5 +1,5 @@
-from .color import BGR, WHITE, RED
 from .types import Box, Size2d, Point, Image, Frame
+from .color import BGR
 from .utils import initialize_logger
 
 __version__ = '2.1.0'

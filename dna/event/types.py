@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 import time
 
-from dna.track import TrackState
+from dna.track.track_state import TrackState
 
 
 NodeId = NewType('NodeId', str)

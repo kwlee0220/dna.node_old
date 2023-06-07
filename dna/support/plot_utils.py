@@ -3,7 +3,8 @@ from typing import List, Optional, Tuple, Union
 import numpy as np
 import cv2
 
-from dna import Box, Point, BGR, WHITE, RED, Image
+from dna import Box, Point, BGR, Image
+from dna.color import WHITE, RED
 
 
 def draw_line(convas:Image, from_pt:Point, to_pt:Point, color:BGR,

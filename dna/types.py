@@ -8,7 +8,6 @@ import math
 
 import numpy as np
 import numpy.typing as npt
-import cv2
 
 from .color import BGR
 
@@ -631,6 +630,8 @@ class Box:
         Returns:
             Image: the image the box is drawn on.
         """
+        import cv2
+        
         box_int = self.to_rint()
         return cv2.rectangle(convas, box_int.tl, box_int.br, color,
                             thickness=line_thickness, lineType=cv2.LINE_AA)

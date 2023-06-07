@@ -2,9 +2,9 @@ from __future__ import annotations
 from typing import Tuple, List, Optional
 
 from dna.detect import Detection
-from dna.track import ObjectTrack
+from ..types import ObjectTrack
 from dna.track import utils
-from ...track.dna_track_params import DNATrackParams
+from ..dna_track_params import DNATrackParams
 
 
 class MatchingSession:

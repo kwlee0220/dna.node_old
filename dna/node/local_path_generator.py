@@ -6,7 +6,7 @@ import cv2
 
 from dna import Point
 from dna.color import BGR
-from dna.track import TrackState
+from dna.track.track_state import TrackState
 from ..event.local_path_event import LocalPathEvent
 from dna.event import TrackEvent, EventProcessor
 

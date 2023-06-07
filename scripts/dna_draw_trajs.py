@@ -20,12 +20,12 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description="Draw paths")
     parser.add_argument("track_file")
-    parser.add_argument("--type", metavar="[csv|json]", default='csv', help="input track file type")
     parser.add_argument("--video", metavar="uri", help="video uri for background image")
     parser.add_argument("--frame", metavar="number", default=1, type=int, help="video frame number")
     parser.add_argument("--camera_index", metavar="index", type=int, default=0, help="camera index")
     parser.add_argument("--contact_point", metavar="contact-point type", 
-                        choices=_contact_point_choices, type=str.lower, default='centroid', help="contact-point type")
+                        choices=_contact_point_choices, type=str.lower, default='simulation',
+                        help="contact-point type, default=simulation")
     parser.add_argument("--world_view", action='store_true', help="show trajectories in world coordinates")
     parser.add_argument("--thickness", metavar="number", type=int, default=1, help="drawing line thickness")
     parser.add_argument("--interactive", "-i", action='store_true', help="show trajectories interactively")
@@ -44,12 +44,6 @@ def load_video_image(video_file:str, frame_no:int) -> Image:
     with closing(camera.open()) as cap:
         frame:Frame = cap()
         return frame.image if frame is not None else None
-
-def load_trajectories_csv(track_file:str) -> Dict[str,List[Box]]:
-    t_boxes = defaultdict(list)
-    for track in read_tracks_csv(track_file):
-        t_boxes[track.track_id].append(track.location)
-    return t_boxes
 
 def load_trajectories_json(track_file:str) -> Dict[str,List[Box]]:
     t_boxes = defaultdict(list)
@@ -114,6 +108,7 @@ class RunningStabilizer:
         self.current, self.upper = 0, 0
         self.pending_xs: List[float] = []
         self.pending_ys: List[float] = []
+
 
 class TrajectoryDrawer:
     def __init__(self, box_trajs: Dict[str,List[Box]], camera_image: Image, world_image: Image=None,
@@ -247,10 +242,11 @@ class TrajectoryDrawer:
 
         return pts_s
 
+
 def main():
     args, _ = parse_args()
 
-    box_trajs = load_trajectories_csv(args.track_file) if args.type == 'csv' else load_trajectories_json(args.track_file)
+    box_trajs = load_trajectories_json(args.track_file)
 
     bg_img = load_video_image(args.video, args.frame)
     contact_point = ContactPointType(_contact_point_choices.index(args.contact_point))
@@ -275,6 +271,7 @@ def main():
         convas = drawer.draw(pause=args.pause or args.output is None)
         if args.output is not None:
             cv2.imwrite(args.output, convas)
+
 
 if __name__ == '__main__':
     main()

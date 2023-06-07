@@ -5,7 +5,7 @@ from dataclasses import dataclass, field, replace
 import itertools
 from dna.event.track_event import TrackEvent
 
-from dna.track import TrackState
+from dna.track.track_state import TrackState
 from dna.node import Tracklet
 
                 

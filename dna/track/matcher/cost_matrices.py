@@ -6,7 +6,7 @@ import numpy.typing as npt
 
 import dna
 from dna.detect import Detection
-from dna.track import ObjectTrack
+from ..types import ObjectTrack
 from dna.track import utils
 from ...track.kalman_filter import KalmanFilter
 from .base import INVALID_DIST_DISTANCE, INVALID_IOU_DISTANCE, INVALID_METRIC_DISTANCE

@@ -9,7 +9,8 @@ import dna
 from dna import Box, Size2d, Image, BGR, Point, Frame
 from dna.detect import Detection
 from dna.support import plot_utils
-from dna.track import ObjectTrack, TrackState
+from dna.track import TrackState
+from dna.track.types import ObjectTrack
 from .kalman_filter import KalmanFilter
 from .dna_track_params import DNATrackParams
 from dna.event.track_event import TrackEvent

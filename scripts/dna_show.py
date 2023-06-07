@@ -1,9 +1,7 @@
 
 from cv2 import merge
 from omegaconf import OmegaConf
-import sys
 
-import dna
 from dna import config, initialize_logger
 from dna.camera import ImageProcessor, create_opencv_camera_from_conf
 from scripts.utils import load_camera_conf

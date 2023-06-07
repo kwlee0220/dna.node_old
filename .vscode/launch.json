@@ -78,7 +78,7 @@
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_show.py",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}",
+                "PYTHONPATH": "${workspaceFolder}\\..\\dna.common;${workspaceFolder}",
                 "DNA_NODE_FFMPEG_PATH": "C:\\local\\ffmpeg\\bin\\ffmpeg"
             },
             "args": [
@@ -110,13 +110,12 @@
             "args": [
                 "output/2022/etri_041_event.json",
                 "--video", "data/2022/etri_041.mp4",
-                "--frame", "17",
-                "--type", "json",
-                "--camera_index", "0",
-                "--contact_point", "simulation",
+                "--frame", "150",
+                // "--camera_index", "0",
+                // "--contact_point", "simulation",
                 // "--world_view",
-                "--thickness", "1",
-                // "-i",
+                // "--thickness", "1",
+                "-i",
                 // "--color", "YELLOW",
                 "--color", "RED",
                 // "-o", "output/result.jpg",

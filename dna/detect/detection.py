@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 
 from dna import BGR, Box, Size2d, Image, Point
-from dna.utils import plot_utils
+from dna.support import plot_utils
 
 
 class Detection:

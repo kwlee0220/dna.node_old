@@ -30,6 +30,10 @@ import logging
 LOGGER = logging.getLogger('dna.tracker')
 
 
+_DEFAULT_DETECTOR = "dna.detect.yolov5:model=l6&score=0.01&agnostic=True&max_det=50&classes=car,bus,truck"
+# _DEFAULT_DETECTOR = "dna.detect.ultralytics:model=yolov8l&type=v8&score=0.1&classes=car,bus,truck&agnostic_nms=True"
+
+
 def load_feature_extractor(model_file:str='models/deepsort/model640.pt', normalize:bool=False):
         model_file = Path(model_file).resolve()
         if not model_file.exists():
@@ -133,8 +137,8 @@ class DNATracker(ObjectTracker):
         for det, feature in zip(metric_detections, self.feature_extractor.extract_dets(frame.image, metric_detections)):
             det.feature = feature
 
-        if dna.DEBUG_SHOW_IMAGE:
-            self.draw_detections(frame.image.copy(), 'detections', detections)
+        # if dna.DEBUG_SHOW_IMAGE:
+        #     self.draw_detections(frame.image.copy(), 'detections', detections)
 
         if LOGGER.isEnabledFor(logging.DEBUG):
             LOGGER.debug(f"{frame.index}: ------------------------------------------------------")
@@ -191,6 +195,15 @@ class DNATracker(ObjectTracker):
         cv2.waitKey(1)
 
         return convas
+    
+    @staticmethod
+    def load(tracker_conf: OmegaConf):
+        from dna.detect.utils import load_object_detector
+
+        detector_uri = tracker_conf.get("detector", _DEFAULT_DETECTOR)
+        detector = load_object_detector(detector_uri)
+
+        return DNATracker(detector, tracker_conf)
 
 
 def _is_valid_detection_size(det:Detection, params:DNATrackParams, max_size:Size2d) -> bool:

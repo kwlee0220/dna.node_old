@@ -8,7 +8,8 @@ import numpy.typing as npt
 from dna import Box, Frame, Point, Image, BGR
 from dna.detect import Detection
 from dna.support import plot_utils
-from dna.track import ObjectTrack, TrackState, ObjectTracker
+from dna.track import TrackState
+from .types import ObjectTrack, ObjectTracker
 
 
 T = TypeVar("T")

@@ -8,9 +8,6 @@ docker run -it --name dna_node --rm ^
 						--gpus all ^
 						-e DISPLAY=%LOCAL_IP%:0.0 ^
 						--network=host ^
-						-v %DNA_NODE_HOME%/conf:/dna.node/conf ^
-						-v %DNA_NODE_HOME%/data:/dna.node/data ^
-						-v %DNA_NODE_HOME%/regions:/dna.node/regions ^
-						-v %DNA_NODE_HOME%/models:/dna.node/models ^
-						kwlee0220/dna-node ^
-						%*
+						-v ./data/data.node:/dna.node ^
+						-v ./data/torch_hub:/root/.cache/torch/hub ^
+						kwlee0220/dna-node %*

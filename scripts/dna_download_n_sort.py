@@ -4,12 +4,12 @@ from typing import List
 import pickle
 from contextlib import suppress
 from kafka import KafkaConsumer
+from kafka.errors import NoBrokersAvailable
 import argparse
 
 from dna import initialize_logger
-from dna.event.track_feature import TrackFeature
-from dna.event.track_event import TrackEvent
-from dna.node.zone import TrackletMotion
+from dna.event import TrackFeature, TrackEvent, TrackletMotion
+from scripts import update_namespace_with_environ
 
 TOPIC_TRACK_EVENTS = "track-events"
 TOPIC_MOTIONS = "track-motions"
@@ -48,16 +48,22 @@ def download(consumer:KafkaConsumer, topic:str, file:str, deserializer):
 
 def main():
     args, _ = parse_args()
+    args = update_namespace_with_environ(args)
 
     initialize_logger(args.logger)
     
-    consumer = KafkaConsumer(bootstrap_servers=args.bootstrap_servers,
-                             auto_offset_reset=args.auto_offset_reset,
-                             key_deserializer=lambda k: k.decode('utf-8'))
-    with suppress(EOFError): download(consumer, TOPIC_TRACK_EVENTS, f"output/{TOPIC_TRACK_EVENTS}.pickle", TrackEvent.deserialize)
-    with suppress(EOFError): download(consumer, TOPIC_MOTIONS, f"output/{TOPIC_MOTIONS}.pickle", TrackletMotion.deserialize)
-    with suppress(EOFError): download(consumer, TOPIC_FEATURES, f"output/{TOPIC_FEATURES}.pickle", TrackFeature.deserialize)
-    consumer.close()
+    try:
+        consumer = KafkaConsumer(bootstrap_servers=args.bootstrap_servers,
+                                auto_offset_reset=args.auto_offset_reset,
+                                key_deserializer=lambda k: k.decode('utf-8'))
+        with suppress(EOFError): download(consumer, TOPIC_TRACK_EVENTS, f"output/{TOPIC_TRACK_EVENTS}.pickle", TrackEvent.deserialize)
+        with suppress(EOFError): download(consumer, TOPIC_MOTIONS, f"output/{TOPIC_MOTIONS}.pickle", TrackletMotion.deserialize)
+        with suppress(EOFError): download(consumer, TOPIC_FEATURES, f"output/{TOPIC_FEATURES}.pickle", TrackFeature.deserialize)
+        consumer.close()
+    except NoBrokersAvailable as e:
+        import sys
+        print(f'fails to connect to Kafka: server={args.bootstrap_servers}', file=sys.stderr)
+        raise e
 
 if __name__ == '__main__':
     main()

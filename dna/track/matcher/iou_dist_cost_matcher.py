@@ -8,7 +8,7 @@ import numpy.typing as npt
 import dna
 from dna import Box
 from dna.detect import Detection
-from dna.track import ObjectTrack
+from ..types import ObjectTrack
 from dna.track import utils
 from .matching_session import MatchingSession
 from ..dna_track_params import DNATrackParams, DistanceIoUThreshold

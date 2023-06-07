@@ -9,7 +9,8 @@ import cv2
 
 from dna import color, Point, BGR, Image, Frame
 from dna.support import plot_utils
-from .types import ObjectTrack, TrackState, ObjectTracker, TrackProcessor
+from .track_state import TrackState
+from .types import ObjectTrack, ObjectTracker, TrackProcessor
 from . import utils
 
 
@@ -95,13 +96,8 @@ class TrackingPipeline(FrameProcessor):
 
     @staticmethod
     def load(tracker_conf:OmegaConf) -> TrackingPipeline:
-        tracker_uri = tracker_conf.get("uri", "dna.track")
-        parts = tracker_uri.split(':', 1)
-        id, query = tuple(parts) if len(parts) > 1 else (tracker_uri, "")
-        
-        import importlib
-        tracker_module = importlib.import_module(id)
-        tracker = tracker_module.load_dna_tracker(tracker_conf)
+        from .dna_tracker import DNATracker
+        tracker = DNATracker.load(tracker_conf)
         
         draw = tracker_conf.get("draw", [])
         tracking_pipeline = TrackingPipeline(tracker=tracker, draw=draw)

@@ -21,7 +21,7 @@ import dna
 from dna import Point, Box, Size2d, Frame
 from dna.config import load_node_conf2, get_config
 from dna.camera import ImageProcessor, FrameProcessor, create_opencv_camera_from_conf
-from dna.track import TrackState
+from dna.track.track_state import TrackState
 from dna.event import EventProcessor, TrackId
 from dna.node import TrackEventPipeline
 from dna.node.zone import ZoneEvent, ZonePipeline

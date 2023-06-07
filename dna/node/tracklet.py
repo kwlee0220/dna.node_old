@@ -4,7 +4,7 @@ from typing import Union, List, Tuple, Generator, Dict, ByteString
 from dataclasses import dataclass, field
 from ..event.track_event import TrackEvent
 
-from dna.track import TrackState
+from dna.track.track_state import TrackState
 from dna.event import TrackId
 
 

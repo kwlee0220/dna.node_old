@@ -12,7 +12,8 @@ from dna import Frame, Size2d, config, Box, Point
 from dna.camera import ImageProcessor
 from dna.event import TrackEvent, TimeElapsed, TrackDeleted, EventQueue, EventListener, EventProcessor
 from dna.event.event_processors import DropEventByType, GroupByFrameIndex, EventRelay
-from dna.track import TrackProcessor, ObjectTrack, TrackState
+from dna.track import TrackState
+from dna.track.types import TrackProcessor, ObjectTrack
 from dna.track.dna_tracker import DNATracker
 from .zone.zone_pipeline import ZonePipeline
 
@@ -253,7 +254,7 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
         
     publish_tracks_conf = config.get(plugins_conf, 'publish_tracks')
     if publish_tracks_conf:
-        from ..event.kafka_event_publisher import KafkaEventPublisher
+        from dna.event import KafkaEventPublisher
         plugin = KafkaEventPublisher.from_conf(publish_tracks_conf, logger=logger.getChild('kafka.tracks'))
         pipeline.add_listener(plugin)
         pipeline.plugins['publish_tracks'] = plugin
@@ -261,8 +262,6 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
     # 'PublishReIDFeatures' plugin은 ImageProcessor가 지정된 경우에만 등록시킴
     publish_features_conf = config.get(plugins_conf, "publish_features")
     if publish_features_conf and image_processor:
-        from dna.support.sql_utils import SQLConnector
-        from ..assoc.tracklet_store import TrackletStore
         from dna.track.dna_tracker import load_feature_extractor
         from .reid_features import PublishReIDFeatures
         distinct_distance = publish_features_conf.get('distinct_distance', 0.0)

@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import sys
 from typing import Tuple, Dict, Any, Optional, List, TypeVar, Callable, Sequence
 from datetime import datetime, timezone
-from time import time
 from pathlib import Path
 
-from . import Point
+from dna import Point
 from .color import BGR
 
 T = TypeVar("T")
@@ -107,9 +105,10 @@ def has_method(obj, name:str) -> bool:
 
 
 
-import numpy as np
 def detect_outliers(values:List[T], weight:float=1.5, *,
                     key:Optional[Callable[[T],float]]=None) -> Tuple[List[T],List[T]]:
+    import numpy as np
+    
     keys = [key(v) for v in values] if key else values
     
     v25, v75 = np.percentile(keys, [25, 75])

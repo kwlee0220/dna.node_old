@@ -1,36 +1,14 @@
 from __future__ import annotations
 from typing import List, Tuple, Set, Dict
 from abc import ABCMeta, abstractmethod
-from enum import Enum
 
 import shapely.geometry as geometry
 import cv2
 
-from dna import Box, Point, Size2d, Image, BGR, Frame
+from dna import Box, Point, Size2d, Image, Frame
 from dna.detect import Detection
 from dna.support import plot_utils
-
-
-_ABBR_TO_STATE:Dict[str,TrackState] = dict()
-
-class TrackState(Enum):
-    Null = (0, 'N')
-    Tentative = (1, 'T')
-    Confirmed = (2, 'C')
-    TemporarilyLost = (3, 'L')
-    Deleted = (4, 'D')
-    
-    def __init__(self, code, abbr) -> None:
-        super().__init__()
-        self.code = code
-        self.abbr = abbr
-    
-    @staticmethod
-    def from_abbr(abbr:str) -> TrackState:
-        global _ABBR_TO_STATE
-        if not _ABBR_TO_STATE:
-            _ABBR_TO_STATE = { state.value[1]:state for state in TrackState }
-        return _ABBR_TO_STATE[abbr]
+from dna.track import TrackState
 
 
 class ObjectTrack:

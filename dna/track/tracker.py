@@ -45,9 +45,9 @@ class Tracker:
         if self.logger.isEnabledFor(logging.DEBUG):
             self.logger.debug(f'{session}')
 
-        if dna.DEBUG_SHOW_IMAGE:
-            # display matching track and detection pairs
-            self.draw_matched_detections("detections", frame.image.copy(), session.matches, detections)
+        # if dna.DEBUG_SHOW_IMAGE:
+        #     # display matching track and detection pairs
+        #     self.draw_matched_detections("detections", frame.image.copy(), session.matches, detections)
 
         # Update locations of tracks from their matched detections.
         for track, det in session.associations:

@@ -9,7 +9,7 @@ import numpy as np
 from dna import Box, Point
 from .types import NodeId, TrackId, TrackletId, KafkaEvent
 from dna.support import sql_utils
-from dna.track import TrackState
+from dna.track.track_state import TrackState
 
 
 _WGS84_PRECISION = 7
@@ -162,7 +162,7 @@ class TrackEvent(KafkaEvent):
                             frame_index=frame_idx, ts=ts, world_coord=world_coord, distance=dist)
 
     def __repr__(self) -> str:
-        return (f"TrackEvent[id={self.node_id}[{self.track_id}]({self.state.abbr}), ",
+        return (f"TrackEvent[id={self.node_id}[{self.track_id}]({self.state.abbr}), "
                 f"frame={self.frame_index}, loc={self.location}, ts={self.ts}]")
     
 

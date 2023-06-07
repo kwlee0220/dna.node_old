@@ -11,7 +11,8 @@ import logging
 from omegaconf import OmegaConf
 
 from dna import config
-from dna.track import ObjectTracker, TrackState, TrackProcessor
+from dna.track import TrackState
+from dna.track.types import ObjectTracker, TrackProcessor
 from dna.event import TimeElapsed, TrackDeleted, EventQueue, EventListener, EventProcessor
 from .types import ZoneEvent
 

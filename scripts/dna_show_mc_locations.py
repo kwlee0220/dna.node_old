@@ -15,7 +15,7 @@ from dna.event.track_event import TrackEvent
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
 from dna.node import stabilizer
 from dna.support import plot_utils
-from dna.track import TrackState
+from dna.track.track_state import TrackState
 
 COLORS = {
     'etri:04': color.RED,

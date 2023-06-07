@@ -6,7 +6,7 @@ import itertools
 
 from dna import utils
 from dna.event import EventProcessor, TrackDeleted
-from .types import TrackletMotion
+from ...event.tracklet_motion import TrackletMotion
 from .zone_sequence_collector import ZoneSequence
     
 

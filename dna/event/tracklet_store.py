@@ -3,10 +3,7 @@ from typing import List, Tuple, Generator, Iterable, Optional
 
 from contextlib import closing
 
-from dna.event import TrackId, NodeId, TrackletId, TrackEvent, TrackFeature
-from ..node.zone import TrackletMotion
-from ..node.tracklet import Tracklet
-from dna.assoc import TrajectoryFragment, Association
+from dna.event import TrackId, NodeId, TrackletId, TrackEvent, TrackFeature, TrackletMotion
 from dna.support import sql_utils, iterables
 
 
@@ -235,70 +232,6 @@ class TrackletStore:
             cursor = conn.cursor()
             cursor.execute(sql)
             return [TrackletMotion.from_row(row) for row in cursor.fetchall()]
-
-
-    ############################################################################################################
-    ################################################# Trajectories #############################################
-    ############################################################################################################
-    def list_fragments_of_trajectory(self, traj_id:int) -> Optional[TrajectoryFragment]:
-        sql = f"select traj_id, node_id, track_id from trajectory_fragments where traj_id = {traj_id}"
-        with closing(self.connector.connect()) as conn:
-            cursor = conn.cursor()
-            cursor.execute(sql)
-            row = cursor.fetchone()
-            return TrajectoryFragment.from_row(row) if row else None
-    
-    def list_fragments_of_tracklet(self, node_id:NodeId, track_id:TrackId) -> List[TrajectoryFragment]:
-        sql = ( f"select traj_id, node_id, track_id from trajectory_fragments "
-                f"where node_id = '{node_id}' and track_id = '{track_id}'" )
-        with closing(self.connector.connect()) as conn:
-            cursor = conn.cursor()
-            cursor.execute(sql)
-            return [TrajectoryFragment.from_row(row) for row in cursor.fetchall()]
-        
-    def insert_association(self, assoc:Association) -> int:
-        with closing(self.connector.connect()) as conn:
-            cursor = conn.cursor()
-            try:
-                trj_id = self.get_trajectory_id_cursor(cursor, assoc.tracklet1)
-                if trj_id >= 0:
-                    frag = TrajectoryFragment(trj_id, assoc.tracklet2)
-                    self.insert_trajectory_fragment_cursor(cursor, frag)
-                    return trj_id
-                
-                trj_id = self.get_trajectory_id_cursor(cursor, assoc.tracklet2)
-                if trj_id >= 0:
-                    frag = TrajectoryFragment(trj_id, assoc.tracklet1)
-                    self.insert_trajectory_fragment_cursor(cursor, frag)
-                    return trj_id
-                
-                trj_id = self.allocate_trajectory_id_cursor(cursor)
-                frag1 = TrajectoryFragment(trj_id, assoc.tracklet1)
-                frag2 = TrajectoryFragment(trj_id, assoc.tracklet2)
-                self.insert_trajectory_fragment_cursor(cursor, frag1, frag2)
-                conn.commit()
-            except Exception as e:
-                conn.rollback()
-                raise e
-                
-    def get_trajectory_id_cursor(self, cursor, tracklet:Tracklet) -> int:
-        sql = ( f"select traj_id, node_id, track_id from trajectory_fragments "
-                f"where node_id = '{tracklet.node_id}' and track_id = '{tracklet.track_id}' "
-                f"limit 1")
-        cursor.execute(sql)
-        rows = cursor.fetchall()
-        if rows:
-            return rows[0][0]
-        else:
-            return -1
-            
-    def allocate_trajectory_id_cursor(self, cursor) -> int:
-        cursor.execute(f"select nextval('trajectory_seq')")
-        return cursor.fetchall()[0][0]
-        
-    def insert_trajectory_fragment_cursor(self, cursor, *frags:TrajectoryFragment) -> None:
-        rows = [frag.to_row() for frag in frags]
-        cursor.executemany('INSERT INTO trajectory_fragments VALUES(%s,%s,%s)', rows)
             
             
             

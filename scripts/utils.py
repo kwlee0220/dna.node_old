@@ -67,6 +67,9 @@ def update_namespace_with_environ(args:Namespace) -> Namespace:
             args['show'] = '0x0'
         else:
             args['show'] = None
+    if v := os.environ.get('DNA_NODE_KAFKA_BROKERS'):
+        brokers = v.split(',')
+        args['bootstrap_servers'] = brokers
     if v := os.environ.get('DNA_NODE_LOGGER'):
         args['logger'] = v
     if v := os.environ.get('DNA_NODE_FFMPEG_PATH'):
