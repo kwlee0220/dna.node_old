@@ -1,8 +1,10 @@
 
 from __future__ import annotations
-from typing import Tuple, Iterable, List, Optional, Callable
 
+from typing import Optional
+from collections.abc import Iterable, Callable
 import logging
+
 import numpy as np
 import numpy.typing as npt
 
@@ -23,7 +25,7 @@ class ReciprocalCostMatcher(Matcher):
         self.name = name if name else 'reciprocal'
         self.logger = logger
         
-    def match(self, row_idxes:List[int], column_idxes:List[int]) -> List[Tuple[int,int]]:
+    def match(self, row_idxes:list[int], column_idxes:list[int]) -> list[tuple[int,int]]:
         unmatched_row_idxes = row_idxes.copy()
         unmatched_col_idxes = column_idxes.copy()
         
@@ -44,7 +46,7 @@ class ReciprocalCostMatcher(Matcher):
                         
         return matches
 
-    def select_reciprocal_top(self, threshold:float, row_idx:int, row_idxes:List[int], col_idxes:List[int]) -> int:
+    def select_reciprocal_top(self, threshold:float, row_idx:int, row_idxes:list[int], col_idxes:list[int]) -> int:
         row = self.cost_matrix[row_idx, :]
         top1_col_idx, top2_col_idx = self.select_top2(row, threshold, col_idxes)
 
@@ -68,7 +70,7 @@ class ReciprocalCostMatcher(Matcher):
         else:
             return None
 
-    def select_reciprocal_top_row(self, threshod:float, col_idx:int, row_idxes:List[int], col_idxes:List[int]) -> int:
+    def select_reciprocal_top_row(self, threshod:float, col_idx:int, row_idxes:list[int], col_idxes:list[int]) -> int:
         column = self.cost_matrix[:, col_idx]
         top1_row_idx, top2_row_idx = self.select_top2(column, threshod, row_idxes)
         if col_idx != self.argmin_row(top1_row_idx, col_idxes):
@@ -80,17 +82,17 @@ class ReciprocalCostMatcher(Matcher):
             return top1_row_idx
         return top1_row_idx if column[top1_row_idx] * SUPERIOR_FACTOR < column[top2_row_idx] else None
 
-    def argmin_column(self, col_idx:int, row_idxes:List[int]):
+    def argmin_column(self, col_idx:int, row_idxes:list[int]):
         column = self.cost_matrix[:, col_idx]
         idx = column[row_idxes].argmin()
         return row_idxes[idx]
 
-    def argmin_row(self, row_idx:int, col_idxes:List[int]):
+    def argmin_row(self, row_idx:int, col_idxes:list[int]):
         row = self.cost_matrix[row_idx,:]
         idx = row[col_idxes].argmin()
         return col_idxes[idx]
 
-    def select_top2(self, values:np.ndarray, threshold:float, idxes:List[int]) -> Tuple[int,int]:
+    def select_top2(self, values:np.ndarray, threshold:float, idxes:list[int]) -> tuple[int,int]:
         selected_idxes = np.where(values <= threshold)[0]
         selected_idxes = utils.intersection(selected_idxes, idxes)
 

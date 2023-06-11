@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import Any, Iterable, Tuple, List, Dict, Set, Optional, Callable, Generator
+
+from typing import Optional
+from collections.abc import Iterable, Callable, Generator
 
 import sys
 import logging
@@ -54,7 +56,7 @@ class ClosedAssociationPublisher(EventProcessor):
         self.collection = collection
         self.publish_partial_close = publish_partial_close
         
-    def handle_event(self, ev:TrackDeleted|Any) -> None:
+    def handle_event(self, ev:TrackDeleted|object) -> None:
         def find_closed_associations(assoc_list:Iterable[Association], trk:TrackletId):
             return (assoc for assoc in assoc_list if trk in assoc and assoc.is_closed())
     
@@ -112,7 +114,7 @@ class FixedIntervalClosureBuilder(EventProcessor):
                         src_assoc.close(tracklet=trk)
             pass
                 
-    def select_best_associations(self) -> Tuple[List[Association], int]:
+    def select_best_associations(self) -> tuple[list[Association], int]:
         selecteds = []
         sorted_closures = sorted(self.closure_builder.collection, key=lambda c:c.score, reverse=True)
         while sorted_closures:

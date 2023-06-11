@@ -16,5 +16,5 @@ class TrajectoryFragment:
         tracklet = TrackletId(args[1], args[2])
         return TrajectoryFragment(id, tracklet)
     
-    def to_row(self) -> Tuple[str,str,str]:
+    def to_row(self) -> tuple[str,str,str]:
         return (self.id, self.tracklet.node_id, self.tracklet.track_id)

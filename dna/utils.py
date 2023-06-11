@@ -1,6 +1,7 @@
 from __future__ import annotations
+from typing import Optional, TypeVar
+from collections.abc import Sequence, Callable
 
-from typing import Tuple, Dict, Any, Optional, List, TypeVar, Callable, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -30,23 +31,23 @@ def utc_now_millis() -> int:
     return round(utc_now_seconds() * 1000)
 
 
-def _parse_keyvalue(kv) -> Tuple[str,str]:
+def _parse_keyvalue(kv) -> tuple[str,str]:
     pair = kv.split('=')
     if len(pair) == 2:
         return tuple(pair)
     else:
         return pair, None
 
-def parse_query(query: str) -> Dict[str,str]:
+def parse_query(query: str) -> dict[str,str]:
     if not query or len(query) == 0:
         return dict()
     return dict([_parse_keyvalue(kv) for kv in query.split('&')])
 
-def get_first_param(args: Dict[str,Any], key: str, def_value=None):
+def get_first_param(args: dict[str,object], key: str, def_value=None) -> object:
     value = args.get(key)
     return value[0] if value else def_value
 
-def split_list(list:List, cond) -> Tuple[List,List]:
+def split_list(list:list[T], cond) -> tuple[list[T],list[T]]:
     trues = []
     falses = []
     for v in list:
@@ -56,7 +57,7 @@ def split_list(list:List, cond) -> Tuple[List,List]:
             falses.append(v)
     return trues, falses
     
-def remove_cond_from_list(list:List[T], cond:Callable[[T],bool]) -> List[T]:
+def remove_cond_from_list(list:list[T], cond:Callable[[T],bool]) -> list[T]:
     length = len(list)
     removeds = []
     for idx in range(length-1, -1, -1):
@@ -105,8 +106,8 @@ def has_method(obj, name:str) -> bool:
 
 
 
-def detect_outliers(values:List[T], weight:float=1.5, *,
-                    key:Optional[Callable[[T],float]]=None) -> Tuple[List[T],List[T]]:
+def detect_outliers(values:list[T], weight:float=1.5, *,
+                    key:Optional[Callable[[T],float]]=None) -> tuple[list[T],list[T]]:
     import numpy as np
     
     keys = [key(v) for v in values] if key else values

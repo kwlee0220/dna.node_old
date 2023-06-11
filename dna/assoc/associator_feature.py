@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import List, Union, Set, Dict, Optional, Tuple, Iterable, Generator
+
+from typing import Union, Optional
+from collections.abc import Iterable, Generator
 from dataclasses import dataclass
 import math
 
@@ -11,7 +13,7 @@ from kafka import KafkaConsumer
 from dna.event import NodeId, EventProcessor, TrackDeleted, TrackletId, TrackFeature
 from dna.event.event_processors import EventRelay
 from dna.node.zone import ZoneRelation
-from dna.assoc.tracklet_store import TrackletStore
+from dna.event.tracklet_store import TrackletStore
 from dna.track.utils import cosine_distance
 from .association import Association, BinaryAssociation
 
@@ -56,7 +58,7 @@ class IncomingLink:
                 f'{self.node_travel_ms:.3f}, {self.transition_ms:.3f}' )
     
 
-NODE_NETWORK:Dict[str,Dict[str,List[IncomingLink]]] = {
+NODE_NETWORK:dict[str,dict[str,list[IncomingLink]]] = {
     'etri:04': {
         'A': [
                 IncomingLink('etri:07', None, 'A', 0, 3),
@@ -99,7 +101,7 @@ class AssociationSession:
     
     def __init__(self, id:TrackletId, *, logger:Optional[logging.Logger]=None) -> None:
         self.id = id
-        self.t_features:List[TrackFeature] = []
+        self.t_features:list[TrackFeature] = []
         self.enter_zone = None
         self.association:Association = None
         self.logger = logger
@@ -121,7 +123,7 @@ class AssociationSession:
             if zone_rel == ZoneRelation.Entered or zone_rel == ZoneRelation.Inside:
                 self.enter_zone = zone_id
     
-    def calc_topk_distance(self, track_features:List[TrackFeature], top_k:int, logger:logging.Logger) -> float:
+    def calc_topk_distance(self, track_features:list[TrackFeature], top_k:int, logger:logging.Logger) -> float:
         if track_features:
             peer_features = np.array([t_f.feature for t_f in track_features])
             distances = cosine_distance(self.features(), peer_features, True).min(axis=0)
@@ -143,7 +145,7 @@ class AssociationSession:
     def __iter__(self):
         return (t_feature for t_feature in self.t_features)
     
-    def __getitem__(self, index) -> Union[TrackFeature, List[TrackFeature]]:
+    def __getitem__(self, index) -> Union[TrackFeature, list[TrackFeature]]:
         return self.t_features[index]
                     
     def features(self) -> np.ndarray:
@@ -159,7 +161,7 @@ class FeatureBasedTrackletAssociator(EventProcessor):
     
     def __init__(self,
                  store:TrackletStore,
-                 listen_nodes:Set[str],
+                 listen_nodes:set[str],
                  *,
                  prefix_length:int=5,
                  top_k:int=4,
@@ -172,8 +174,8 @@ class FeatureBasedTrackletAssociator(EventProcessor):
         self.prefix_length = prefix_length
         self.top_k = top_k
         self.early_stop_score = early_stop_score
-        self.sessions:Dict[TrackletId,AssociationSession] = dict()
-        self.early_stoppeds:Dict[TrackletId,List[NodeId]] = defaultdict(list)
+        self.sessions:dict[TrackletId,AssociationSession] = dict()
+        self.early_stoppeds:dict[TrackletId,list[NodeId]] = defaultdict(list)
         self.logger = logger
         
     def handle_event(self, ev:TrackFeature) -> None: 
@@ -229,7 +231,7 @@ class FeatureBasedTrackletAssociator(EventProcessor):
         for trk, score in candidate_scores:
             yield BinaryAssociation(session.id, trk, score, session.ts)
                 
-    def _find_candidate_tracklets(self, session:AssociationSession, incoming_link:IncomingLink) -> List[TrackletId]:
+    def _find_candidate_tracklets(self, session:AssociationSession, incoming_link:IncomingLink) -> list[TrackletId]:
         incoming_node = incoming_link.node_id
             
         # incoming link로부터 이전 node의 식별자와 비교 대상 시간 구간을 계산하고,

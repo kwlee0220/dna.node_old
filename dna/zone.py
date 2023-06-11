@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Union, Tuple
+from typing import Union, Tuple
 
 import numbers
 import numpy.typing as npt
@@ -66,7 +66,7 @@ class Zone:
         return repr(self.geom)
 
     @staticmethod
-    def find_covering_zone(pt:Point, zones:List[Zone]):
+    def find_covering_zone(pt:Point, zones:list[Zone]):
         for idx, zone in enumerate(zones):
             if zone.covers_point(pt):
                 return idx

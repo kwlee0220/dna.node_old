@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from __future__ import annotations
 
 import numpy as np
 import cv2
@@ -47,10 +47,10 @@ class UltralyticsDetector(ObjectDetector):
         if (v := kwargs.get('device')) is not None:
             self.detect_args['device'] = v
 
-    def _resize(self, frames:List[Frame]) -> List[Frame]:
+    def _resize(self, frames:list[Frame]) -> list[Frame]:
         return [self._resize_image(frame.image) for frame in frames]
 
-    def _resize_image(self, image:Image) -> Tuple[Image, Tuple[float,float]]:
+    def _resize_image(self, image:Image) -> tuple[Image, tuple[float,float]]:
         h, w, d = image.shape
         ratio_h, ratio_w = h / 640, w / 640
         
@@ -61,10 +61,10 @@ class UltralyticsDetector(ObjectDetector):
         else:
             return image, (1, 1)
 
-    def detect(self, frame: Frame) -> List[Detection]:
+    def detect(self, frame: Frame) -> list[Detection]:
         return self.detect_images([frame])[0]
 
-    def detect_images(self, frames:List[Frame]) -> List[List[Detection]]:
+    def detect_images(self, frames:list[Frame]) -> list[list[Detection]]:
         resizeds = self._resize(frames)
         batch = [resized[0] for resized in resizeds]
         wh_ratios = [resized[1] for resized in resizeds]
@@ -73,10 +73,10 @@ class UltralyticsDetector(ObjectDetector):
 
         return [self._to_detections(result, hw_ratio) for result, hw_ratio in zip(results, wh_ratios)]
 
-    def _to_detections(self, result, wh_ratio:Tuple[float,float]) -> List[Detection]:
+    def _to_detections(self, result, wh_ratio:tuple[float,float]) -> list[Detection]:
         return [self._to_detection(pred.boxes[0], wh_ratio) for pred in result.boxes.cpu().numpy()]
 
-    def _to_detection(self, pred:Boxes, wh_ratio:Tuple[float,float]) -> List[Detection]:
+    def _to_detection(self, pred:Boxes, wh_ratio:tuple[float,float]) -> list[Detection]:
         box = Box(pred[:4] * np.array([wh_ratio[0], wh_ratio[1], wh_ratio[0], wh_ratio[1]]))
         name = self.names[int(pred[5])]
         confi = pred[4]

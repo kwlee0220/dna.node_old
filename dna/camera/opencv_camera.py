@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Union, Optional, Tuple, Any
+from typing import Union, Optional
 import dataclasses
 import time
 import uuid
@@ -57,7 +57,7 @@ def create_opencv_camera_from_conf(conf:OmegaConf) -> OpenCvCamera:
 
 
 class OpenCvCamera(Camera):
-    def __init__(self, uri:str, **options:Any):
+    def __init__(self, uri:str, **options:object):
         Camera.__init__(self)
 
         self._uri = uri

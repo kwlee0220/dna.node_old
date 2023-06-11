@@ -1,15 +1,8 @@
 from __future__ import annotations
-from typing import List
 
-# from contextlib import closing
-# from datetime import timedelta
 from pathlib import Path
 import shutil
-# from collections import defaultdict
-# import itertools
 
-# import yaml
-# from omegaconf import OmegaConf
 import cv2
 import numpy as np
 from sklearn.cluster import KMeans
@@ -31,7 +24,7 @@ def parse_args():
     return parser.parse_known_args()
 
 
-def do_kmeans(feature_extractor:DeepSORTMetricExtractor, gtrack:Path, min_k:int, max_k:int) -> List[Path]:
+def do_kmeans(feature_extractor:DeepSORTMetricExtractor, gtrack:Path, min_k:int, max_k:int) -> list[Path]:
     crop_files = [crop_file for crop_file in gtrack.glob('*.png')]
     crops = [cv2.imread(str(crop_file), cv2.IMREAD_COLOR) for crop_file in crop_files]
     features = feature_extractor.extract_crops(crops)

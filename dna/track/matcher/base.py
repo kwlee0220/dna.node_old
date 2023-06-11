@@ -1,6 +1,6 @@
 
 from __future__ import annotations
-from typing import Tuple, List, Optional
+from typing import Optional
 
 from dna.track import utils
 
@@ -19,7 +19,7 @@ def match_str(tracks, match):
 from abc import ABCMeta, abstractmethod
 class Matcher(metaclass=ABCMeta):
     @abstractmethod
-    def match(self, track_idxes:List[int], det_idxes:List[int]) -> List[Tuple[int,int]]:
+    def match(self, track_idxes:list[int], det_idxes:list[int]) -> list[tuple[int,int]]:
         pass
 
 
@@ -27,7 +27,7 @@ class ChainedMatcher(Matcher):
     def __init__(self, *matchers):
         self.matchers = matchers
         
-    def match(self, track_idxes:List[int], det_idxes:List[int]) -> List[Tuple[int,int]]:
+    def match(self, track_idxes:list[int], det_idxes:list[int]) -> list[tuple[int,int]]:
         unmatched_track_idxes = track_idxes.copy()
         unmatched_det_idxes = det_idxes.copy()
 

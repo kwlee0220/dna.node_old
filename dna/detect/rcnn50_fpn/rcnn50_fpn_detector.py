@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 import torch
 from detectron2 import model_zoo
@@ -36,7 +36,7 @@ class Rcnn50FpnDetector(ObjectDetector):
 
         self.class_names = self.predictor.metadata.get("thing_classes")
 
-    def detect(self, frame: Frame) -> List[Detection]:
+    def detect(self, frame: Frame) -> list[Detection]:
         outputs = self.predictor(frame.image)
         insts = outputs["instances"].to("cpu")
 

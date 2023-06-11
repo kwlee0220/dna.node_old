@@ -10,17 +10,21 @@ from .event_processor import EventListener
 
 
 class KafkaEventPublisher(EventListener):
-    def __init__(self, bootstrap_servers:str, topic:str, *, logger:Optional[logging.Logger]=None) -> None:
+    def __init__(self, kafka_brokers:list[str], topic:str, *, logger:Optional[logging.Logger]=None) -> None:
+        self.logger = logger
+        
+        if kafka_brokers is None or isinstance(kafka_brokers, list):
+            raise ValueError(f'invalid kafka_brokers: {kafka_brokers}')
+        
         try:
             self.topic = topic
-            self.logger = logger
             
-            self.producer = KafkaProducer(bootstrap_servers=bootstrap_servers)
+            self.producer = KafkaProducer(bootstrap_servers=kafka_brokers)
             if self.logger and self.logger.isEnabledFor(logging.INFO):
-                self.logger.info(f"connect kafka-servers: {bootstrap_servers}, topic={self.topic}")
+                self.logger.info(f"connect kafka-servers: {kafka_brokers}, topic={self.topic}")
         except BaseException as e:
             if self.logger and self.logger.isEnabledFor(logging.ERROR):
-                self.logger.error(f"fails to connect KafkaBrokers: {bootstrap_servers}")
+                self.logger.error(f"fails to connect KafkaBrokers: {kafka_brokers}")
             raise e
 
     def close(self) -> None:
@@ -29,9 +33,7 @@ class KafkaEventPublisher(EventListener):
         
     @classmethod
     def from_conf(cls, conf:OmegaConf, *, logger:Optional[logging.Logger]=None) -> KafkaEventPublisher:
-        bootstrap_servers = conf.bootstrap_servers
-        topic = conf.topic
-        return cls(bootstrap_servers, topic, logger=logger)
+        return cls(kafka_brokers=conf.kafka_brokers, topic=conf.topic, logger=logger)
 
     def handle_event(self, ev:KafkaEvent) -> None:
         if isinstance(ev, KafkaEvent):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Optional, List, Tuple, Dict, Any, Union
+from typing import Optional, Union
 from pathlib import Path
 
 from argparse import Namespace
@@ -15,7 +15,7 @@ def load(config_path:Union[str,Path]) -> OmegaConf:
     return OmegaConf.load(config_path)
 
 
-def to_conf(value:Union[Dict,Namespace,OmegaConf]=dict(), *keys:List[str]) -> OmegaConf:
+def to_conf(value:Union[dict[str,object],Namespace,OmegaConf]=dict(), *keys:list[str]) -> OmegaConf:
     if OmegaConf.is_config(value):
         return value
     elif isinstance(value, Namespace):
@@ -30,11 +30,11 @@ def exists(conf:OmegaConf, key:str) -> bool:
     return OmegaConf.select(conf, key, default=_NOT_EXISTS) != _NOT_EXISTS
     
 
-def get(conf:OmegaConf, key:str, *, default:Optional[Any]=None) -> Any:
+def get(conf:OmegaConf, key:str, *, default:Optional[object]=None) -> object:
     return OmegaConf.select(conf, key, default=default)
     
 
-def get_or_insert_empty(conf:OmegaConf, key:str) -> Any:
+def get_or_insert_empty(conf:OmegaConf, key:str) -> object:
     value = OmegaConf.select(conf, key, default=_NOT_EXISTS)
     if value == _NOT_EXISTS:
         value = OmegaConf.create()
@@ -42,7 +42,7 @@ def get_or_insert_empty(conf:OmegaConf, key:str) -> Any:
     return value
 
 
-def get_parent(conf:OmegaConf, key:str) -> Tuple[OmegaConf, str, str]:
+def get_parent(conf:OmegaConf, key:str) -> tuple[OmegaConf, str, str]:
     last_idx = key.rfind('.')
     if last_idx >= 0:
         parent = OmegaConf.select(conf, key[:last_idx])
@@ -51,7 +51,10 @@ def get_parent(conf:OmegaConf, key:str) -> Tuple[OmegaConf, str, str]:
         return (None, None, key)
 
 
-def update(conf:OmegaConf, key:str, value:Union[Dict,Namespace,OmegaConf]) -> None:
+def update(conf:OmegaConf, key:str, value:Union[dict[str,object],Namespace,OmegaConf], *, ignore_if_exists:bool=False) -> None:
+    if ignore_if_exists and exists(conf, key):
+        return
+        
     values_dict = value
     if isinstance(value, Namespace):
         values_dict = vars(value)
@@ -60,7 +63,7 @@ def update(conf:OmegaConf, key:str, value:Union[Dict,Namespace,OmegaConf]) -> No
 
     OmegaConf.update(conf, key, value, merge=True)
     
-def update_values(conf:OmegaConf, values:Union[Dict,Namespace,OmegaConf], *keys) -> None:
+def update_values(conf:OmegaConf, values:Union[dict[str,object],Namespace,OmegaConf], *keys) -> None:
     values_dict = values
     if isinstance(values, Namespace):
         values_dict = vars(values)
@@ -72,13 +75,13 @@ def update_values(conf:OmegaConf, values:Union[Dict,Namespace,OmegaConf], *keys)
             OmegaConf.update(conf, k, v, merge=True)
     
 
-def filter(conf:OmegaConf, *keys:List[str]) -> OmegaConf:
+def filter(conf:OmegaConf, *keys:list[str]) -> OmegaConf:
     return OmegaConf.masked_copy(conf, keys)
 
 
-def exclude(conf:OmegaConf, *keys:List[str]) -> OmegaConf:
+def exclude(conf:OmegaConf, *keys:list[str]) -> OmegaConf:
     return OmegaConf.create({k:v for k, v in dict(conf).items() if k not in keys})
 
         
-def to_dict(conf:OmegaConf) -> Dict[str,Any]:
+def to_dict(conf:OmegaConf) -> dict[str,object]:
     return OmegaConf.to_container(conf)

@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import List, NewType, Tuple, Optional, Union, Any, Callable
+from typing import TypeAlias, NewType, Optional, Union
+from collections.abc import Iterable, Sequence, Callable
 
 import numbers
 from dataclasses import dataclass, field
-from collections.abc import Iterable, Sequence
 import math
 
 import numpy as np
@@ -12,6 +12,8 @@ import numpy.typing as npt
 from .color import BGR
 
 Image = NewType('Image', np.ndarray)
+
+ByteString: TypeAlias = Union[bytes, bytearray, memoryview]
 
 
 class Point:
@@ -99,7 +101,7 @@ class Point:
             return (slope * x) + y_int
         return func
 
-    def split_points_to(self, pt2:Point, npoints:int) -> List[Point]:
+    def split_points_to(self, pt2:Point, npoints:int) -> list[Point]:
         func = self.line_function_to(pt2)
         step_x = (pt2.x - self.x) / (npoints+1)
         xs = [self.x + (idx * step_x) for idx in range(1, npoints+1)]
@@ -179,7 +181,7 @@ class Size2d:
         self.wh = np.array(wh)
 
     @staticmethod
-    def from_expr(expr:Any) -> Size2d:
+    def from_expr(expr:object) -> Size2d:
         """인자 값을 'Size2d' 객체로 형 변화시킨다.
         - 인자가 None인 경우는 None을 반환한다.
         - 인자가 Size2d인 경우는 별도의 변환없이 인자를 복사하여 반환한다.
@@ -187,7 +189,7 @@ class Size2d:
         - 그렇지 않은 경우는 numpy.array() 함수를 통해 numpy array로 변환하고 이를 다시 Size2d로 생성함.
 
         Args:
-            expr (Any): 형 변환시킬 대상 객체.
+            expr (object): 형 변환시킬 대상 객체.
 
         Returns:
             Size2d: 형 변환된 Size2d 객체.
@@ -214,7 +216,7 @@ class Size2d:
         Returns:
             Size2d: Size2d 객체.
         """
-        parts: List[float] = [float(p) for p in expr.split("x")]
+        parts: list[float] = [float(p) for p in expr.split("x")]
         if len(parts) == 2:
             return Size2d(parts)
         raise ValueError(f"invalid Size2d string: {expr}")
@@ -608,7 +610,7 @@ class Box:
         area1, area2 = self.area(), box.area()
         return inter_area / (area1 + area2 - inter_area)
 
-    def overlap_ratios(self, other:Box) -> Tuple[float,float,float]:
+    def overlap_ratios(self, other:Box) -> tuple[float,float,float]:
         if self.is_valid() and other.is_valid():
             inter_area = self.intersection(other).area()
             r1 = inter_area / self.area()

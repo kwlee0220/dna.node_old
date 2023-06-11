@@ -1,18 +1,18 @@
 from __future__ import annotations
-from typing import Union, Any, Optional, List, Tuple, Iterable, Generator, Callable
 
+from typing import Union, Optional
+from collections.abc import Iterable, Generator, Callable
 import logging
-from dna.event.types import TrackDeleted, TrackletId
 
+from dna.event import TrackletId, EventProcessor
 from dna.support import iterables
-from dna.event import EventProcessor
 from .association import Association
 
 
 class ExactMatch:
-    def __init__(self, key:Union[Association,List[TrackletId]]):
+    def __init__(self, key:Union[Association,list[TrackletId]]):
         self.key = key.tracklets if isinstance(key, Association) else key
-    def __call__(self, assoc:Association) -> Any:
+    def __call__(self, assoc:Association) -> bool:
         return self.key == assoc.tracklets
 
 class PartialMatch:
@@ -25,19 +25,19 @@ class PartialMatch:
             self.key = [key]
         else:
             raise ValueError(f"invalid key: {key}")
-    def __call__(self, assoc:Association) -> Any:
+    def __call__(self, assoc:Association) -> bool:
         return self.key in assoc
     
 class MoreSpecificMatch:
     def __init__(self, key:Association):
         self.key = key
-    def __call__(self, assoc:Association) -> Any:
+    def __call__(self, assoc:Association) -> bool:
         return assoc.is_more_specific(self.key)
     
 class LessSpecificMatch:
     def __init__(self, key:Association):
         self.key = key
-    def __call__(self, assoc:Association) -> Any:
+    def __call__(self, assoc:Association) -> bool:
         return self.key.is_more_specific(assoc)
 
 
@@ -45,16 +45,16 @@ class AssociationCollection:
     def __init__(self, *,
                  keep_best_association_only:bool=False,
                  logger:Optional[logging.Logger]=None) -> None:
-        self.collection:List[Association] = []
+        self.collection:list[Association] = []
         self.keep_best_association_only = keep_best_association_only
         self.logger = logger
         
-    def get(self, key:List[TrackletId]) -> Optional[Association]:
+    def get(self, key:list[TrackletId]) -> Optional[Association]:
         """주어진 tracklet 들로 구성된 association을 검색한다.
         만일 해당 association이 없는 경우는 None을 반환한다.
 
         Args:
-            key (List[TrackletId]): 검색에 사용할 tracklet list.
+            key (list[TrackletId]): 검색에 사용할 tracklet list.
 
         Returns:
             Optional[Association]: 검색된 association 객체. 검색에 실패한 경우에는 None.
@@ -62,7 +62,7 @@ class AssociationCollection:
         _, assoc = self.get_indexed(key)
         return assoc
         
-    def get_indexed(self, key:List[TrackletId]) -> Tuple[int,Optional[Association]]:
+    def get_indexed(self, key:list[TrackletId]) -> tuple[int,Optional[Association]]:
         for idx, assoc in enumerate(self.collection):
             if assoc.tracklets == key:
                 return idx, assoc
@@ -70,7 +70,7 @@ class AssociationCollection:
     
     def query(self, condition:Callable[[Association],bool],
               *,
-              include_index:bool=False) -> Generator[Union[Association,Tuple[int, Association]], None, None]:
+              include_index:bool=False) -> Generator[Union[Association,tuple[int, Association]], None, None]:
         """주어진 condition을 만족하는 모든 association 객체들을 반환한다.
 
         Args:
@@ -78,7 +78,7 @@ class AssociationCollection:
             include_index (bool): 검색 결과에 검색된 association의 index 포함 여부.
 
         Returns:
-             Generator[Union[Association,Tuple[int, Association]]], None, None]: 조건을 만족하는 association을 반환하는 generator
+             Generator[Union[Association,tuple[int, Association]]], None, None]: 조건을 만족하는 association을 반환하는 generator
         """
         for idx, assoc in enumerate(self.collection):
             if condition(assoc):
@@ -89,7 +89,7 @@ class AssociationCollection:
                 
     def query_first(self, condition:Callable[[Association],bool],
                     *,
-                    include_index=False) -> Association|Tuple[int, Optional[Association]]:
+                    include_index=False) -> Association|tuple[int, Optional[Association]]:
         for idx, assoc in enumerate(self.collection):
             if condition(assoc):
                 return ((idx, assoc) if include_index else assoc)
@@ -196,7 +196,7 @@ class AssociationCollection:
         self.collection.append(assoc)
         return True
         
-    def remove(self, key:List[TrackletId]) -> Association:
+    def remove(self, key:list[TrackletId]) -> Association:
         idx, _ = self.get_indexed(key)
         if idx >= 0:
             return self.collection.pop(idx)
@@ -206,7 +206,7 @@ class AssociationCollection:
     def pop(self, index:int) -> Association:
         return self.collection.pop(index)
     
-    def remove_cond(self, cond:Callable[[Association],bool]) -> List[Association]:
+    def remove_cond(self, cond:Callable[[Association],bool]) -> list[Association]:
         length = len(self.collection)
         removeds = []
         for idx in range(length-1, -1, -1):

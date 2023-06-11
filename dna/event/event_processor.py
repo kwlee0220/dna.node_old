@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import List, Any
 from abc import ABCMeta, abstractmethod
 
 
 class EventListener(metaclass=ABCMeta):
     @abstractmethod
-    def handle_event(self, ev:Any) -> None:
+    def handle_event(self, ev:object) -> None:
         pass
 
     def close(self) -> None:
@@ -15,7 +14,7 @@ class EventListener(metaclass=ABCMeta):
 
 class EventQueue:
     def __init__(self) -> None:
-        self.listeners:List[EventListener] = []
+        self.listeners:list[EventListener] = []
 
     def close(self) -> None:
         for sub in self.listeners:

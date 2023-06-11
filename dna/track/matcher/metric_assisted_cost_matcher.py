@@ -1,6 +1,8 @@
 
 from __future__ import annotations
-from typing import Tuple, Iterable, List, Optional, Callable
+
+from typing import Optional
+from collections.abc import Iterable
 
 import logging
 import numpy as np
@@ -10,7 +12,7 @@ from ...track import utils
 
 
 class MetricAssistedCostMatcher(Matcher):
-    def __init__(self, tracks:List, cost_matrix:np.ndarray, threshold:float, metric_cost:np.ndarray,
+    def __init__(self, tracks:list, cost_matrix:np.ndarray, threshold:float, metric_cost:np.ndarray,
                 logger:Optional[logging.Logger]=None) -> None:
         self.tracks = tracks
         self.cost_matrix = cost_matrix
@@ -18,7 +20,7 @@ class MetricAssistedCostMatcher(Matcher):
         self.metric_cost = metric_cost
         self.logger = logger
         
-    def match(self, track_idxes:Iterable[int], det_idxes:Iterable[int]) -> List[Tuple[int,int]]:
+    def match(self, track_idxes:Iterable[int], det_idxes:Iterable[int]) -> list[tuple[int,int]]:
         unmatched_det_idxes = det_idxes.copy()
         
         matches = []

@@ -1,0 +1,48 @@
+id: etri:04
+
+camera:
+  uri: data/2022/etri_041.mp4
+  sync: False
+
+tracker:
+  draw: ["tracks"]
+  track_zones:
+    - [[1204, 397], [1183, 412], [1069, 935], [5, 894], [0, 730], [956, 373], [959, 360], [960, 323], [1205, 346]]
+  magnifying_zones:
+    - [600, 300, 1240, 940]
+  exit_zones:
+    - [875, 292, 978, 370]  # 12쪽 방향
+    - [1177, 323, 1255, 401]  # 7동쪽 방향
+    - [[432, 824], [218, 644], [3, 694], [4, 1076], [120, 1072]]
+
+publishing:
+  tick_interval: 1.0
+  refine_tracks:
+    buffer_size: 15
+    buffer_timeout: 2
+  min_path_length: 10
+  attach_world_coordinates:
+    camera_geometry: etri_testbed/etri_testbed.json
+    camera_index: 0
+  zone_pipeline:
+    zones:
+      A: [[973, 378], [1018, 372], [1031, 323], [973, 378]]
+      B: [[1159, 401], [1139, 394], [1119, 336], [1159, 401]]
+      C: [[1199, 409], [909, 374], [20, 645], [22, 1012], [1089, 1024], [1199, 409]]
+    motions:
+      'AB': 'AB'
+      'AC': 'AC'
+      'BA': 'BA'
+      'BC': 'BC'
+      'CA': 'CA'
+      'CB': 'CB'
+
+  plugins:
+    publish_tracks:
+      topic: 'track-events'
+    publish_motions:
+      topic: 'track-motions'
+    publish_features:
+      topic: 'track-features'
+      distinct_distance: 0.2
+      min_crop_size: 80x40

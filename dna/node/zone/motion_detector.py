@@ -1,17 +1,16 @@
 from __future__ import annotations
-from typing import Dict, Optional
+from typing import Optional
 
 import logging
 import itertools
 
 from dna import utils
-from dna.event import EventProcessor, TrackDeleted
-from ...event.tracklet_motion import TrackletMotion
+from dna.event import EventProcessor, TrackDeleted, TrackletMotion
 from .zone_sequence_collector import ZoneSequence
     
 
 class MotionDetector(EventProcessor):
-    def __init__(self, node_id:str, motion_definitons:Dict[str,str], *,
+    def __init__(self, node_id:str, motion_definitons:dict[str,str], *,
                  logger:Optional[logging.Logger]=None) -> None:
         super().__init__() 
         self.node_id = node_id
@@ -43,6 +42,7 @@ class MotionDetector(EventProcessor):
                                     enter_zone=enter_zone,
                                     exit_zone=exit_zone,
                                     motion=motion_id,
+                                    frame_index=ev.frame_index,
                                     ts=ev.ts)
             self._publish_event(motion)
         else:

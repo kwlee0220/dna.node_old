@@ -1,6 +1,6 @@
 from __future__ import annotations
-from typing import Tuple, List, Dict, Set, Optional, Any, Union
 
+from typing import Optional, Union
 import threading
 from dataclasses import replace
 
@@ -28,8 +28,8 @@ class ZonePipeline(EventListener):
         
         self.node_id = node_id
         self.event_source = EventQueue()
-        self.event_queues:Dict[str,EventQueue] = dict()
-        self.services:Dict[str,Any] = dict()
+        self.event_queues:dict[str,EventQueue] = dict()
+        self.services:dict[str,object] = dict()
         
         from .to_line_transform import ToLineTransform
         to_line = ToLineTransform(logger=ZonePipeline.LOGGER.getChild('line'))

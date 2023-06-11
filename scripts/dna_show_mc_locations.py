@@ -1,5 +1,6 @@
+from __future__ import annotations
 
-from typing import Tuple, List, Dict, Union, Optional, NamedTuple
+from typing import Union, Optional, NamedTuple
 from contextlib import closing
 from collections import defaultdict
 from dataclasses import dataclass
@@ -40,8 +41,8 @@ def parse_args():
     return parser.parse_known_args()
 
 
-def load_json(track_file:str, localizer:WorldCoordinateLocalizer) -> Tuple[str, Dict[int, List[Location]]]:
-    def parse_line(line:str) -> Tuple[str, str, int, TrackState, Location]:
+def load_json(track_file:str, localizer:WorldCoordinateLocalizer) -> tuple[str, dict[int, list[Location]]]:
+    def parse_line(line:str) -> tuple[str, str, int, TrackState, Location]:
         ev = TrackEvent.from_json(line)
 
         pt_m, dist = localizer.from_camera_box(ev.location.tlbr)
@@ -68,14 +69,14 @@ def load_json(track_file:str, localizer:WorldCoordinateLocalizer) -> Tuple[str, 
 
 
 class MCLocationDrawer:
-    def __init__(self, mc_locations: List[Tuple[str,Dict[int, List[Location]]]],
-                 world_image: Image, offsets:List[int]) -> None:
+    def __init__(self, mc_locations: list[tuple[str,dict[int, list[Location]]]],
+                 world_image: Image, offsets:list[int]) -> None:
         self.mc_locations = mc_locations
         self.world_image = world_image
         self.indexes = list(mc_locations[0][1].keys())
         self.offsets = offsets
 
-    def draw_frame_index(self, convas: Image, frame_indexes:List[int]) -> Image:
+    def draw_frame_index(self, convas: Image, frame_indexes:list[int]) -> Image:
         index_str = ', '.join([str(i) for i in frame_indexes])
         return cv2.putText(convas, f'frames={index_str}', (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color.RED, 2)
     
@@ -140,9 +141,10 @@ def main():
     else:
         offsets = [0] * len(args.video_uris)
 
-    mc_locations:List[Tuple[str,Dict[int, List[Location]]]] = []
+    mc_locations:list[tuple[str,dict[int, list[Location]]]] = []
     for i, track_file in enumerate(args.track_files):
-        localizer = WorldCoordinateLocalizer('regions/etri_testbed/etri_testbed.json', camera_index=i,
+        localizer = WorldCoordinateLocalizer('regions/etri_testbed/etri_testbed.json',
+                                             camera_index=i,
                                              contact_point=ContactPointType.Simulation)
         mc_locations.append(load_json(track_file, localizer))
     

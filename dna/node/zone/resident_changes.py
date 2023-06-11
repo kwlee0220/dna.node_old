@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Union, Set, Dict
+
+from typing import Union
 from dataclasses import dataclass, field
 
 from dna.event import EventProcessor, TrackDeleted
@@ -11,7 +12,7 @@ LOGGER = logging.getLogger('dna.node.zone.Residents')
 
 @dataclass
 class Residents:
-    track_ids: Set[str]
+    track_ids: set[str]
     frame_index: int
     ts: int
     
@@ -36,7 +37,7 @@ class ResidentChanges(EventProcessor):
     def __init__(self) -> None:
         EventProcessor.__init__(self)
         
-        self.residents:Dict[str,Residents] = dict()
+        self.residents:dict[str,Residents] = dict()
 
     def close(self) -> None:
         self.residents.clear()

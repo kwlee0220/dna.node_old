@@ -1,8 +1,8 @@
 
 from __future__ import annotations
+from typing import Tuple, Generator
 
 import sys
-from typing import List, Dict, Tuple, Generator
 from dataclasses import dataclass
 from collections import defaultdict
 import itertools
@@ -30,7 +30,7 @@ class Sample:
 @dataclass(frozen=True)    # slots=True
 class Trajectory:
     luid: int
-    samples: List[Sample]
+    samples: list[Sample]
     
     @property
     def length(self) -> int:
@@ -59,10 +59,10 @@ class Trajectory:
         dists = dists[n_outliers:]
         return sum(dists) / len(dists)
     
-    def split_by_continuity(self) -> List[Trajectory]:
-        samples:List[Sample] = self.samples
+    def split_by_continuity(self) -> list[Trajectory]:
+        samples:list[Sample] = self.samples
         split = [samples[0]]
-        splits:List[List[Sample]] = [split]
+        splits:list[list[Sample]] = [split]
         for idx in range(1, len(samples)-1):
             if samples[idx].frame_index - samples[idx-1].frame_index == 1:
                 split.append(samples[idx])
@@ -72,7 +72,7 @@ class Trajectory:
                 splits.append(split)
         return [Trajectory(self.luid, split) for split in splits]
     
-    def buffer(self, length:int) -> List[Trajectory]:
+    def buffer(self, length:int) -> list[Trajectory]:
         if self.last_frame < length:
             return []
         
@@ -84,7 +84,7 @@ class Trajectory:
                 f"len={self.length}]")
 
 
-def load_log_file(log_path:str, max_camera_dist:float) -> Dict[int,List[TrackEvent]]:
+def load_log_file(log_path:str, max_camera_dist:float) -> dict[int,list[TrackEvent]]:
     event_dict = defaultdict(list)
     with open(log_path, 'r') as fp:
         while True:
@@ -104,8 +104,8 @@ def load_log_file(log_path:str, max_camera_dist:float) -> Dict[int,List[TrackEve
                 event_dict[te.frame_index].append(te)
     return event_dict
 
-def find_isolated_trajectories(events_by_frame:Dict[int,List[TrackEvent]], sparse_dist:float) -> List[Trajectory]:
-    def is_isolated(target:TrackEvent, events:List[TrackEvent]):
+def find_isolated_trajectories(events_by_frame:dict[int,list[TrackEvent]], sparse_dist:float) -> list[Trajectory]:
+    def is_isolated(target:TrackEvent, events:list[TrackEvent]):
         # 같은 frame_index를 갖는 다른 track_event들과의 거리가 일정거리(sparse_dist) 이상인지를 판단함.
         for ev in events:
             if target.track_id != ev.track_id and target.world_coord.distance_to(ev.world_coord) < sparse_dist:
@@ -121,11 +121,11 @@ def find_isolated_trajectories(events_by_frame:Dict[int,List[TrackEvent]], spars
                 trajectories[te.track_id].append(Sample.from_event(te))
     return [Trajectory(luid, samples) for luid, samples in trajectories.items()]
     
-def generate_segments(trajs:List[Trajectory], length:int):
+def generate_segments(trajs:list[Trajectory], length:int):
     return iterables.flatten(traj.buffer(length) for traj in trajs)
 
 def load_sparse_trajectories(log_file_path:str, camera_dist:float, sparse_distance:float,
-                             min_traj_length:int) -> List[Trajectory]:
+                             min_traj_length:int) -> list[Trajectory]:
     events = load_log_file(log_file_path, camera_dist)
     trajs = (traj for traj in find_isolated_trajectories(events, sparse_distance) if traj.length >= min_traj_length)
     trajs = itertools.chain.from_iterable(traj.split_by_continuity() for traj in trajs)
@@ -135,7 +135,7 @@ def load_sparse_trajectories(log_file_path:str, camera_dist:float, sparse_distan
     
     return trajs
 
-def match(trajs1:List[Trajectory], trajs2:List[Trajectory], max_frame_delta:int, segment_length:int,
+def match(trajs1:list[Trajectory], trajs2:list[Trajectory], max_frame_delta:int, segment_length:int,
           traj_distance:float):
     matches = defaultdict(list)
     for s1 in generate_segments(trajs1, segment_length):
@@ -149,7 +149,7 @@ def match(trajs1:List[Trajectory], trajs2:List[Trajectory], max_frame_delta:int,
                     matches[frame_delta].append(dist)
     return matches
 
-def find_best_match(trajs1: List[Trajectory], trajs2: List[Trajectory], max_frame_delta: int, segment_length: int,
+def find_best_match(trajs1: list[Trajectory], trajs2: list[Trajectory], max_frame_delta: int, segment_length: int,
                     traj_distance:float):
     matches = matches(trajs1, trajs2, max_frame_delta, segment_length, traj_distance)
                 

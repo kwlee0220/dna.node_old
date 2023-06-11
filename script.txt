@@ -7,6 +7,26 @@ set DNA_NODE_SHOW=True
 set DNA_NODE_SHOW_PROGRESS=True
 python scripts/dna_node.py
 
+python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_041.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_051.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_061.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_071.mp4 --show_progress
+
+python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_042.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_052.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_062.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_072.mp4 --show_progress
+
+python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_043.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_053.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_063.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_073.mp4 --show_progress
+
+python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_044.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_054.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_064.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_074.mp4 --show_progress
+
 
 ======================================================================== Node =================================================================================================================
 python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_041.mp4 --output D:/Temp/dna_output/etri_041_event.json --output_video D:/Temp/dna_output/etri_041_track.mp4 --show_progress
@@ -30,9 +50,20 @@ python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2
 python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_074.mp4 --output D:/Temp/dna_output/etri_074_event.json --output_video D:/Temp/dna_output/etri_074_track.mp4 --show_progress
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
 ======================================================================== Export =================================================================================================================
 python scripts/dna_export_topics.py --topic track-events track-motions track-features -f
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+======================================================================== DownloadNSort =================================================================================================================
+python scripts/dna_download_n_sort.py --output output/sorted_0.pickle
+python scripts/dna_download_n_sort.py --output output/sorted_1.pickle
+python scripts/dna_download_n_sort.py --output output/sorted_2.pickle
+python scripts/dna_download_n_sort.py --output output/sorted_3.pickle
+
+python scripts/replay.py output/sorted_1.pickle
+python scripts/replay.py output/output/sorted_2.pickle --offsets 41 5843 584300
+python scripts/replay.py output/output/sorted_3.pickle --offsets 89 "9893 989300
+python scripts/replay.py output/output/sorted_4.pickle --offsets 145 15880 1588000
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 

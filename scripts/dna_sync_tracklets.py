@@ -1,6 +1,4 @@
 
-# from typing import Tuple, List, Dict, Union, Generator, Set, Iterable
-
 from omegaconf import OmegaConf
 from kafka import KafkaConsumer
 from datetime import timedelta
@@ -9,7 +7,7 @@ from dna import initialize_logger, config
 from dna.event.types import TrackDeleted, TrackletId
 from dna.node import EventListener
 from dna.event.track_event import TrackEvent
-from dna.node.utils import read_tracks_json
+from dna.event.utils import read_tracks_json
 from dna.assoc.associator_motion import NodeAssociationSchema, MotionBasedTrackletAssociator
 from dna.event.event_processors import PrintEvent
 from dna.assoc import Association, AssociationCollector, AssociationCollection

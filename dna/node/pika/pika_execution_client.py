@@ -1,4 +1,6 @@
-from typing import Any, Generator, Dict
+from __future__ import annotations
+
+from collections.abc import Generator
 
 import pika
 import uuid
@@ -32,7 +34,7 @@ class PikaExecutionClient:
         finally:
             self.conn = None
 
-    def start(self, request:Any) -> None:
+    def start(self, request:object) -> None:
         if self.conn is None:
             raise AssertionError(f"{__name__} is closed already")
         
@@ -56,7 +58,7 @@ class PikaExecutionClient:
         self.channel.basic_publish(exchange='', routing_key=self.control_qname, properties=props,
                                    body=self.serde.serialize(request))
         
-    def run(self, request:Any) -> Dict[str,Any]:
+    def run(self, request:object) -> dict[str,object]:
         self.start(request)
         
         *_, last_report = self.report_progress()
@@ -69,7 +71,7 @@ class PikaExecutionClient:
         else:
             raise AssertionError(f"unexpected status message: {last_report['state']}")
             
-    def report_progress(self) -> Generator[Dict,None,None]:
+    def report_progress(self) -> Generator[dict,None,None]:
         while True:
             self.conn.process_data_events(time_limit=None)
             state = self.response['state']
@@ -86,6 +88,6 @@ class PikaExecutionClient:
             else:
                 raise AssertionError(f'unexpected progress message: {self.response}')
 
-    def on_response(self, channel, method, props:pika.BasicProperties, body:Any):
+    def on_response(self, channel, method, props:pika.BasicProperties, body:object):
         if props.correlation_id in self.corr_id:
             self.response = self.serde.deserialize(body)

@@ -5,8 +5,8 @@ for /F "tokens=2 delims=:" %%i in ('"ipconfig | findstr IP | findstr 192."') do 
 set LOCAL_IP=%LOCAL_IP: =%
 
 docker run -it --rm ^
-						--name dna-tools ^
-						--network host ^
-						-e DISPLAY=%LOCAL_IP%:0.0 ^
+			--name dna-tools ^
+			--network host ^
+			-e DISPLAY=%LOCAL_IP%:0.0 ^
             -v .:/dna.tools ^
             kwlee0220/dna-tools %*

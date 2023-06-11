@@ -1,18 +1,18 @@
 from __future__ import annotations
-from typing import Union, List, Optional, Generator, Tuple, Set, Dict, Iterable
+from typing import Union, Optional, Set
+from collections.abc import Iterable, Generator
 
 import logging
 import math
 import numpy as np
 
 from dna.event import TrackEvent, TrackletId, NodeId, TrackId, EventProcessor
-from dna.support import iterables
 from dna.assoc import Association
             
             
 class AssociationClosure:
     def __init__(self) -> None:
-        self.mappings:Dict[NodeId,TrackId] = dict()
+        self.mappings:dict[NodeId,TrackId] = dict()
         
     def track_of(self, node_id:NodeId):
         return self.mappings.get(node_id)
@@ -35,7 +35,7 @@ class AssociationClosure:
 class AssociationAggregator(EventProcessor):
     def __init__(self) -> None:
         super().__init__()
-        self.global_associations:List[AssociationClosure] = []
+        self.global_associations:list[AssociationClosure] = []
         
     def close(self) -> None:
         super().close()
@@ -79,7 +79,7 @@ class BestAssociationAggregator(EventProcessor):
     def __init__(self) -> None:
         super().__init__()
         
-        self.associations:Dict[Tuple[TrackletId,TrackletId],float] = dict()
+        self.associations:dict[tuple[TrackletId,TrackletId],float] = dict()
         
     def close(self) -> None:
         for (t1, t2), dist in self.associations:
@@ -112,7 +112,7 @@ class BestAssociationAggregator(EventProcessor):
             self._publish_event(Association(t1, t2, score))
            
     @staticmethod 
-    def key_value(assoc:Association) -> Tuple[Tuple[TrackletId,TrackletId], float]:
+    def key_value(assoc:Association) -> tuple[tuple[TrackletId,TrackletId], float]:
         tracklet1, tracklet2, dist = assoc
         if tracklet1.node_id > tracklet2.node_id:
             tracklet1, tracklet2 = tracklet2, tracklet1

@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from typing import List, Dict, Set, Union, Optional
+from typing import Union, Optional
 import sys
 import logging
 from collections import defaultdict
 
-from dna.event import TimeElapsed, TrackEvent, TrackId
-from dna.track.track_state import TrackState
-from ..event.event_processor import EventProcessor
+from dna.event import TimeElapsed, TrackEvent, TrackId, EventProcessor
+from dna.track import TrackState
 
 
 class DropShortTrail(EventProcessor):
@@ -17,8 +16,8 @@ class DropShortTrail(EventProcessor):
         EventProcessor.__init__(self)
 
         self.min_trail_length = min_trail_length
-        self.long_trails: Set[TrackId] = set()  # 'long trail' 여부
-        self.pending_dict: Dict[TrackId, List[TrackEvent]] = defaultdict(list)
+        self.long_trails: set[TrackId] = set()  # 'long trail' 여부
+        self.pending_dict: dict[TrackId, list[TrackEvent]] = defaultdict(list)
         self.logger = logger
 
     def close(self) -> None:
@@ -59,6 +58,6 @@ class DropShortTrail(EventProcessor):
                 self.long_trails.add(ev.track_id)
                 self.pending_dict.pop(ev.track_id, None)
 
-    def __publish_pendings(self, pendings:List[TrackEvent]) -> None:
+    def __publish_pendings(self, pendings:list[TrackEvent]) -> None:
         for pev in pendings:
             self._publish_event(pev)

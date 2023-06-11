@@ -1,20 +1,20 @@
 from __future__ import annotations
-from typing import Union, List, Tuple, Dict, Set, Optional
 
+from typing import Union, Optional
 from dataclasses import dataclass, field, replace
 import itertools
-from dna.event.track_event import TrackEvent
 
-from dna.track.track_state import TrackState
+from dna.event import TrackEvent
+from dna.track import TrackState
 from dna.node import Tracklet
 
                 
-def match_tracklets(tracklets1:Dict[str,Tracklet], tracklets2:Dict[str,Tracklet],
-                    ignore_matches:Set[Tuple[str,str]], \
+def match_tracklets(tracklets1:dict[str,Tracklet], tracklets2:dict[str,Tracklet],
+                    ignore_matches:set[tuple[str,str]], \
                     min_overlap_length:int,
                     max_track_distance:float,
                     max_tracklet_distance:float) \
-    -> Tuple[Dict[Tuple[str,str],float], Set[Tuple[str,str]]]:
+    -> tuple[dict[tuple[str,str],float], set[tuple[str,str]]]:
     matches = dict()
     dismatches = set()
     for tid1, tid2 in itertools.product(tracklets1.keys(), tracklets2.keys(), repeat=1):
@@ -54,9 +54,9 @@ def match_tracklets(tracklets1:Dict[str,Tracklet], tracklets2:Dict[str,Tracklet]
 class Node:
     id: str
     offset: int = field(default=0)
-    tracklets: Dict[str,Tracklet]=field(default_factory=lambda: dict())
+    tracklets: dict[str,Tracklet]=field(default_factory=lambda: dict())
     
-    def track_ids(self) -> Set[str]:
+    def track_ids(self) -> set[str]:
         return self.tracklets.keys()
     
     def append(self, ev:TrackEvent) -> None:
@@ -79,7 +79,7 @@ class Node:
 
 class TrackletMatcher:
     def __init__(self,
-                 node_ids:Tuple[str,str],
+                 node_ids:tuple[str,str],
                  offset:int=0,
                  max_camera_distance:int=50,
                  sync_interval:int=30,
@@ -88,7 +88,7 @@ class TrackletMatcher:
                  max_tracklet_distance:float=7
                 ) -> None:
         self.node_ids = node_ids 
-        self.nodes:Dict[str, Node] = {
+        self.nodes:dict[str, Node] = {
             self.node_ids[0]: Node(self.node_ids[0]),
             self.node_ids[1]: Node(self.node_ids[1], offset=offset),
         }
@@ -98,8 +98,8 @@ class TrackletMatcher:
         self.max_tracklet_distance = max_tracklet_distance
         self.sync_interval = sync_interval
         self.batch_remains = sync_interval
-        self.matches:Dict[Tuple[str,str],float] = dict()
-        self.dismatches:Set[Tuple[str,str]] = set()
+        self.matches:dict[tuple[str,str],float] = dict()
+        self.dismatches:set[tuple[str,str]] = set()
             
     def handle_event(self, ev:TrackEvent) -> None:
         def is_valid_track(ev:TrackEvent) -> bool:
@@ -137,7 +137,7 @@ class TrackletMatcher:
                 node.purge_deleted_tracklet(frame_index, self.min_track_overlap)
         self.batch_remains = self.sync_interval
         
-    def replace_match(self, match:Tuple[str,str], dist:float) -> None:
+    def replace_match(self, match:tuple[str,str], dist:float) -> None:
         prev_match, prev_dist = next(((m, d) for m, d in self.matches.items() if m[0] == match[0]),  (None,-1))
         if prev_match:
             if prev_dist > dist:

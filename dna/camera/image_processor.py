@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Union, Optional, Tuple, List, Any
+
+from typing import Union, Optional
 from abc import ABCMeta, abstractmethod
 from contextlib import suppress
 
@@ -60,8 +61,8 @@ class ImageProcessor(AbstractExecution):
         super().__init__(context=context)
         
         self.capture = cap
-        self.frame_processors: List[FrameProcessor] = []
-        self.suffix_processors: List[FrameProcessor] = []
+        self.frame_processors: list[FrameProcessor] = []
+        self.suffix_processors: list[FrameProcessor] = []
         self.logger = logging.getLogger('dna.image_processor')
 
         self.show_processor:ShowFrame = None
@@ -178,12 +179,12 @@ class DrawFrameTitle(FrameProcessor):
 class ShowFrame(FrameProcessor):
     _PAUSE_MILLIS = int(timedelta(hours=1).total_seconds() * 1000)
 
-    def __init__(self, window_name:str, window_size:Optional[Tuple[int,int]],
+    def __init__(self, window_name:str, window_size:Optional[tuple[int,int]],
                  *, logger:Optional[logging.Logger]=None) -> None:
         super().__init__()
         self.window_name = window_name
-        self.window_size:Optional[Tuple[int,int]] = window_size if window_size != (0,0) else None
-        self.processors: List[FrameProcessor] = []
+        self.window_size:Optional[tuple[int,int]] = window_size if window_size != (0,0) else None
+        self.processors: list[FrameProcessor] = []
         self.logger = logger
         
     def add_processor(self, proc:FrameProcessor) -> None:

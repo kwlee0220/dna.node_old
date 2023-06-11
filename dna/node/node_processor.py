@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Tuple
+from typing import Optional
 
 from omegaconf import OmegaConf
 
@@ -14,7 +14,7 @@ from .zone.zone_sequences_display import ZoneSequenceDisplay
 def build_node_processor(image_processor:ImageProcessor, conf: OmegaConf,
                          *,
                          tracking_pipeline:Optional[TrackingPipeline]=None) \
-    -> Tuple[ImageProcessor, TrackingPipeline, TrackEventPipeline]:
+    -> tuple[ImageProcessor, TrackingPipeline, TrackEventPipeline]:
     # TrackingPipeline 생성하고 ImageProcessor에 등록함
     if not tracking_pipeline:
         tracker_conf = config.get_or_insert_empty(conf, 'tracker')

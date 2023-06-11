@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Callable, List, Union
+from typing import Union
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True, eq=True, repr=False)
 class Option:
-    value: Any
+    value: object
     president: bool = field(default=True)
 
     @staticmethod
@@ -14,26 +15,26 @@ class Option:
         return _EMPTY
 
     @staticmethod
-    def of(value: Any) -> Option:
+    def of(value: object) -> Option:
         return Option(value, True)
 
     @staticmethod
-    def ofNullable(value: Any) -> Option:
+    def ofNullable(value: object) -> Option:
         return Option(value, True) if value is not None else Option.empty()
 
-    def get(self) -> Any:
+    def get(self) -> object:
         if self.president:
             return self.value
         else:
             raise ValueError("NoSuchValue")
 
-    def getOrNone(self) -> Any:
+    def getOrNone(self) -> object:
         return self.value if self.president else None
 
-    def getOrElse(self, else_value) -> Any:
+    def getOrElse(self, else_value) -> object:
         return self.value if self.president else else_value
 
-    def getOrCall(self, else_value) -> Any:
+    def getOrCall(self, else_value) -> object:
         return self.value if self.president else else_value()
 
     def is_present(self) -> bool:
@@ -57,7 +58,7 @@ class Option:
     def map(self, mapper) -> Option:
         return Option.of(mapper(self.value)) if self.president else Option.empty()
 
-    def transform(self, target:Any, mapper:Callable[[Any, Any], Any]) -> Option:
+    def transform(self, target:object, mapper:Callable[[object, object], object]) -> Option:
         if self.is_present:
             return mapper(target, self.value)
         else:

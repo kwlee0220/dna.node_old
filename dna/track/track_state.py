@@ -1,10 +1,9 @@
 from __future__ import annotations
-from typing import Dict
 
 from enum import Enum
 
 
-_ABBR_TO_STATE:Dict[str,TrackState] = dict()
+_ABBR_TO_STATE:dict[str,TrackState] = dict()
 class TrackState(Enum):
     Null = (0, 'N')
     Tentative = (1, 'T')

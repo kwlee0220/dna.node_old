@@ -13,5 +13,6 @@ message TrackFeatureProto {
     	bytes bfeature = 3;
     }
     string zone_relation = 4;
-    int64 ts = 5;
+    int64 frame_index = 5;
+    int64 ts = 6;
 };

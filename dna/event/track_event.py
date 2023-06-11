@@ -1,12 +1,14 @@
 from __future__ import annotations
-from typing import ByteString, Iterable, List, Optional, Tuple
+
+from typing import Optional, Tuple
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
 
 import json
 
 import numpy as np
 
-from dna import Box, Point
+from dna import Box, Point, ByteString
 from .types import NodeId, TrackId, TrackletId, KafkaEvent
 from dna.support import sql_utils
 from dna.track.track_state import TrackState
@@ -100,7 +102,7 @@ class TrackEvent(KafkaEvent):
                             ts=json_obj['ts'])
 
     def to_json(self) -> str:
-        def box_to_json(box:Box) -> List[float]:
+        def box_to_json(box:Box) -> list[float]:
             return [round(v, 2) for v in box.tlbr.tolist()] if box else None
 
         serialized = {'node':self.node_id, 'track_id':self.track_id, 'state':self.state.name,

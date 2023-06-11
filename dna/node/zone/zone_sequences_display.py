@@ -1,27 +1,26 @@
 from __future__ import annotations
-from typing import Tuple, List, Dict, Optional, Union, Set
+
+from typing import Optional, Union
 from collections import defaultdict
+import heapq
 
 import cv2
-import heapq
 
 from dna import Frame, Box, color
 from dna.camera import FrameProcessor, ImageProcessor
-from ...event.tracklet_motion import TrackletMotion
-from dna.track.track_state import TrackState
-from ...event.track_event import TrackEvent
-from ...event.event_processor import EventQueue, EventListener
+from dna.track import TrackState
+from dna.event import TrackEvent, TrackletMotion, EventQueue, EventListener
 from .types import ResidentChanged
 from .resident_changes import ResidentChanges
 
 
 class ZoneSequenceDisplay(FrameProcessor,EventListener):
-    def __init__(self, motion_definitions:Dict[str,str], track_queue:EventQueue, motion_queue:EventQueue) -> None:
-        self.motion_counts:Dict[str,int] = defaultdict(int)
+    def __init__(self, motion_definitions:dict[str,str], track_queue:EventQueue, motion_queue:EventQueue) -> None:
+        self.motion_counts:dict[str,int] = defaultdict(int)
         for motion_id in motion_definitions.values():
             self.motion_counts[motion_id] = 0
-        self.track_locations:Dict[str,Box] = dict()
-        self.motion_tracks:Set[int] = set()
+        self.track_locations:dict[str,Box] = dict()
+        self.motion_tracks:set[int] = set()
         self.track_queue = track_queue
         self.motion_queue = motion_queue
 

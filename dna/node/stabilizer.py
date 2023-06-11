@@ -1,6 +1,5 @@
 from __future__ import annotations
-
-from typing import List, Dict, Optional, Union
+from typing import Optional, Union
 
 from omegaconf import OmegaConf
 import numpy as np
@@ -95,9 +94,9 @@ class Stabilizer(EventProcessor):
         self.smoothing_factor = conf.get("smoothing_factor", 1)
         self.current, self.upper = 0, 0
 
-        self.pending_events: List[TrackEvent] = []
-        self.pending_xs: List[float] = []
-        self.pending_ys: List[float] = []
+        self.pending_events: list[TrackEvent] = []
+        self.pending_xs: list[float] = []
+        self.pending_ys: list[float] = []
 
     def close(self) -> None:
         xs = stabilization_location(self.pending_xs, self.look_ahead)

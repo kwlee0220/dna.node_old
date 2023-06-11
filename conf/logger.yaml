@@ -43,6 +43,10 @@ loggers:
         level: INFO
         handlers: [console]
         propagate: no
+    dna.envs:
+        level: INFO
+        handlers: [console]
+        propagate: no
     dna.image_processor:
         level: INFO
         handlers: [console]

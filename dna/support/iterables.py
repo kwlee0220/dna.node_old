@@ -1,5 +1,7 @@
+from __future__ import annotations
 
-from typing import Union, List, Any, Tuple, TypeVar, Iterable, Generator, Optional, Callable, Dict
+from typing import Union, TypeVar, Optional
+from collections.abc import Iterable, Iterator, Callable, Generator
 
 import itertools
 from heapq import heappush
@@ -33,7 +35,7 @@ def find_cond(iterable:Iterable[T], cond:Callable[[T], bool]) -> Optional[T]:
             return elm
     return None
 
-def argfind(iterable:Iterable[T], key:K, *, keyer:Optional[Callable[[T],K]]=None) -> Tuple[int,Optional[T]]:
+def argfind(iterable:Iterable[T], key:K, *, keyer:Optional[Callable[[T],K]]=None) -> tuple[int,Optional[T]]:
     for idx, elm in enumerate(iterable):
         item = keyer(elm) if keyer else elm
         if key == item:
@@ -46,7 +48,7 @@ def flatmap(func, iterable):
 def flatten(iterable):
     return itertools.chain.from_iterable(iterable)
 
-def buffer(list:List[Any], count:int, skip:int=None, min_length:int=0) -> Generator[List[T], None, None]:
+def buffer(list:list[object], count:int, skip:int=None, min_length:int=0) -> Generator[list[T], None, None]:
     if skip and skip <= 0:
         raise ValueError(f"invalid skip: {skip}")
     if min_length > count:
@@ -62,7 +64,7 @@ def buffer(list:List[Any], count:int, skip:int=None, min_length:int=0) -> Genera
         yield list[idx:upper]
         idx += skip
 
-def buffer_iterable(list:Iterable[T], count:int, skip:int=None) -> Generator[List[T], None, None]:
+def buffer_iterable(list:Iterable[T], count:int, skip:int=None) -> Generator[list[T], None, None]:
     skip = count if skip is None else skip
     if skip <= 0:
         raise ValueError(f"invalid skip: {skip}")
@@ -79,17 +81,48 @@ def buffer_iterable(list:Iterable[T], count:int, skip:int=None) -> Generator[Lis
         if buffer:
             yield buffer
             
-def groupby(list:Iterable[T], key:Callable[[T],K], *, value:Callable[[T],V]=lambda t: t) -> Dict[K,List[Union[T,V]]]:
-    groups:Dict[K,List[T]] = dict()
+def groupby(list:Iterable[T], key_func:Callable[[T],K], *, value_func:Optional[Callable[[T],V]]=None) -> dict[K,list[Union[T,V]]]:
+    def default_get_value(value): return value
+    
+    if value_func is None:
+        value_func = default_get_value
+        
+    groups:dict[K,list[T]] = dict()
     for v in list:
-        grp_key = key(v)
+        grp_key = key_func(v)
         if grp_key not in groups:
             groups[grp_key] = []
-        groups[grp_key].append(value(v))
+        groups[grp_key].append(value_func(v))
     return groups
 
 def difference(left:Iterable[T], right:Iterable[T], *, key:Callable[[T],V]=lambda t:t) -> Generator[T, None, None]:
     return (v1 for v1 in left if find(right, key=key(v1), keyer=key) is None)
+
+
+class PeekableIterator(Iterator):
+    def __init__(self, iter:Iterator[T]) -> None:
+        self.head:T = None
+        self.iter = iter
+        self.peeked = False
+    
+    def peek(self) -> T:
+        if not self.peeked:
+            self.peeked = True
+            self.head = next(self.iter)
+        return self.head
+    
+    def __next__(self):
+        if self.peeked:
+            self.peeked = False
+            return self.head
+        else:
+            return next(self.iter)
+        
+def to_peekable(iter:Iterator[T]) -> PeekableIterator[T]:
+    if not isinstance(iter, PeekableIterator):
+        return PeekableIterator(iter)
+    else:
+        return iter
 
 if __name__ == '__main__':
     list = list(range(10))

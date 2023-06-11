@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import List, Tuple, Set, Union, Any, Optional
+
+from typing import Union, Optional
 from enum import Enum
 from dataclasses import dataclass, field
 
@@ -56,13 +57,13 @@ def load_size2d(conf:OmegaConf, key:str, def_value:Optional[Size2d]) -> Optional
     return Size2d.from_expr(value) if value else def_value    
 
 
-def parse_zones(conf:OmegaConf, key:str, default:Zone=EMPTY_ZONES) -> List[Zone]:
+def parse_zones(conf:OmegaConf, key:str, default:Zone=EMPTY_ZONES) -> list[Zone]:
     zones_expr = OmegaConf.select(conf, key, default=default)
     return [Zone.from_coords(zone) for zone in zones_expr]
     
 @dataclass(frozen=True, eq=True)    # slots=True
 class DNATrackParams:
-    detection_classes: Set[str]
+    detection_classes: set[str]
     detection_confidence: float
     detection_min_size: Size2d
     detection_max_size: Size2d
@@ -83,13 +84,13 @@ class DNATrackParams:
     match_overlap_score: float
     max_nms_score: float
     
-    track_zones: List[Zone]
-    magnifying_zones: List[Box]
-    blind_zones: List[Zone]
-    exit_zones: List[Zone]
-    stable_zones: List[Zone]
+    track_zones: list[Zone]
+    magnifying_zones: list[Box]
+    blind_zones: list[Zone]
+    exit_zones: list[Zone]
+    stable_zones: list[Zone]
     
-    draw: List[str]
+    draw: list[str]
 
     def is_strong_detection(self, det:Detection) -> bool:
         return det.score >= self.detection_confidence

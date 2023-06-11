@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Optional
+from typing import Optional
 from pathlib import Path
 from abc import ABCMeta, abstractmethod
 
@@ -11,7 +11,7 @@ from .detection import Detection
 
 class ObjectDetector(metaclass=ABCMeta):
     @abstractmethod
-    def detect(self, frame: Frame) -> List[Detection]:
+    def detect(self, frame: Frame) -> list[Detection]:
         """Detect objects from the image and returns their locations
 
         Args:
@@ -19,11 +19,11 @@ class ObjectDetector(metaclass=ABCMeta):
             frame_index (int, optional): frame index. Defaults to None.
 
         Returns:
-            List[Detection]: a list of Detection objects
+            list[Detection]: a list of Detection objects
         """
         pass
     
-    def detect_images(self, frames:List[Frame]) -> List[List[Detection]]:
+    def detect_images(self, frames:list[Frame]) -> list[list[Detection]]:
         return [self.detect(frame) for frame in frames]
 
 
@@ -36,31 +36,31 @@ class ScoreFilteredObjectDetector(ObjectDetector):
             raise ValueError(f'invalid score threshold: {min_score}')
         self.min_score = min_score
 
-    def detect(self, frame: Frame) -> List[Detection]:
+    def detect(self, frame: Frame) -> list[Detection]:
         return [det for det in self.detector.detect(frame)
                         if det.score < 0 or det.score >= self.min_score]
 
 
 class LabelFilteredObjectDetector(ObjectDetector):
-    def __init__(self, detector: ObjectDetector, accept_labels: List[str]) -> None:
+    def __init__(self, detector: ObjectDetector, accept_labels: list[str]) -> None:
         super().__init__()
 
         self.detector = detector
         self.labels = accept_labels
 
-    def detect(self, frame: Frame) -> List[Detection]:
+    def detect(self, frame: Frame) -> list[Detection]:
         return [det for det in self.detector.detect(frame)
                         if det.label in self.labels]
 
 
 class BlindZoneObjectDetector(ObjectDetector):
-    def __init__(self, detector: ObjectDetector, blind_zones: List[Box]) -> None:
+    def __init__(self, detector: ObjectDetector, blind_zones: list[Box]) -> None:
         super().__init__()
 
         self.detector = detector
         self.blind_zones = blind_zones
 
-    def detect(self, frame: Frame) -> List[Detection]:
+    def detect(self, frame: Frame) -> list[Detection]:
         return [det for det in self.detector.detect(frame)
                         if not any(zone.contains(det.bbox) for zone in self.blind_zones)]
 
@@ -79,7 +79,7 @@ class LogReadingDetector(ObjectDetector):
     def file(self) -> Path:
         return self.__file
 
-    def detect(self, frame: Frame) -> List[Detection]:
+    def detect(self, frame: Frame) -> list[Detection]:
         if not frame.index:
             return []
 
@@ -108,7 +108,7 @@ class LogReadingDetector(ObjectDetector):
 
         return detections
 
-    def _look_ahead(self) -> Optional[List[str]]:
+    def _look_ahead(self) -> Optional[list[str]]:
         line = self.__file.readline().rstrip()
         if line:
             return line.split(',')
@@ -116,7 +116,7 @@ class LogReadingDetector(ObjectDetector):
             self.__file.close()
             return None
 
-    def _parse_line(self, parts: List[str]) -> Detection:
+    def _parse_line(self, parts: list[str]) -> Detection:
         bbox = Box([float(v) for v in parts[2:6]])
         label: Optional[str] = parts[10] if len(parts) >= 11 else None
         score: float = float(parts[6])

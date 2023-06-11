@@ -1,9 +1,9 @@
-from typing import Any, ByteString
+from __future__ import annotations
 
 from omegaconf import OmegaConf
 import pika
 
-from dna import utils
+from dna import utils, ByteString
 from dna.execution import ExecutionContext, ExecutionState
 from .pika_rpc import JSON_SERDE
 
@@ -39,7 +39,7 @@ class PikaExecutionContext(ExecutionContext):
         self.ack()
         
 
-    def report_progress(self, progress:Any) -> None:
+    def report_progress(self, progress:object) -> None:
         progress = {
             'id': self.id,
             'state': ExecutionState.RUNNING.name,
@@ -48,7 +48,7 @@ class PikaExecutionContext(ExecutionContext):
         }
         self.reply(progress)
 
-    def completed(self, result:Any) -> None:
+    def completed(self, result:object) -> None:
         completed = {
             'id': self.id,
             'state': ExecutionState.COMPLETED.name,
@@ -83,7 +83,7 @@ class PikaExecutionContext(ExecutionContext):
             self.channel.basic_ack(delivery_tag=self.tag)
             self.acked = True
 
-    def reply(self, data:Any) -> None:
+    def reply(self, data:object) -> None:
         if self.reply_to is not None:
             self.channel.basic_publish(exchange='', routing_key=self.reply_to,
                                        properties=self.response_props,

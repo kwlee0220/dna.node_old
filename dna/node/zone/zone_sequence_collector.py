@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Tuple, List, Dict, Set, Optional, Union
+from typing import Tuple, List, Set, Optional, Union
 
 import logging
 from datetime import timedelta
@@ -14,7 +14,7 @@ class ZoneSequenceCollector(EventProcessor):
     def __init__(self) -> None:
         super().__init__()
         
-        self.sequences:Dict[str,ZoneSequence] = dict()
+        self.sequences:dict[str,ZoneSequence] = dict()
     
     def close(self) -> None:
         self.sequences.clear()
@@ -61,7 +61,7 @@ class FinalZoneSequenceFilter(EventProcessor):
     def __init__(self) -> None:
         super().__init__()
         
-        self.sequences:Dict[str,ZoneSequence] = dict()
+        self.sequences:dict[str,ZoneSequence] = dict()
     
     def close(self) -> None:
         self.sequences.clear()

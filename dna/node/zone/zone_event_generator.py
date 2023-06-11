@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Union, Tuple, Any, Optional
+from typing import Union, Optional
 
 import numbers
 import logging
@@ -21,14 +21,14 @@ class ZoneEventGenerator(EventProcessor):
         self.zones = {str(zid):Zone.from_coords(zone_expr, as_line_string=True) for zid, zone_expr in named_zones.items()}
         self.logger = logger
 
-    def handle_event(self, ev:Any) -> None:
+    def handle_event(self, ev:object) -> None:
         if isinstance(ev, LineTrack):
             self.handle_line_track(ev)
         else:
             self._publish_event(ev)
         
     def handle_line_track(self, line_track:LineTrack) -> None:
-        zone_events:List[ZoneEvent] = []
+        zone_events:list[ZoneEvent] = []
         # track의 첫번째 event인 경우는 point를 사용하고, 그렇지 않은 경우는 line을 사용하여 분석함.
         if line_track.is_point_track(): # point인 경우
             pt = line_track.end_point

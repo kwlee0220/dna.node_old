@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Tuple, List, Set, Union, Sequence
+from typing import Union
+from collections.abc import Sequence
 from enum import Enum
 from dataclasses import dataclass, replace
 
@@ -41,7 +42,7 @@ class LineTrack:
         return LineTrack(track_id=t1.track_id, line=to_line_string(p0, p1), frame_index=t1.frame_index, ts=t1.ts, source=t1)
     
     def __repr__(self) -> str:
-        def to_line_end_points(ls:geometry.LineString) -> Tuple[Point,Point]:
+        def to_line_end_points(ls:geometry.LineString) -> tuple[Point,Point]:
             return tuple(Point(xy) for xy in ls.coords[:2])
         
         if self.line:
@@ -60,7 +61,7 @@ class ZoneRelation(Enum):
     Deleted = 5
     
     @staticmethod
-    def parseRelationStr(rel_str:str) -> Tuple[ZoneRelation, str]:
+    def parseRelationStr(rel_str:str) -> tuple[ZoneRelation, str]:
         def parseZoneId(expr:str) -> str:
             return expr[2:-1]
             
@@ -131,7 +132,7 @@ class ZoneEvent:
 @dataclass(frozen=True)
 class LocationChanged:
     track_id: str
-    zone_ids: Set[str]
+    zone_ids: set[str]
     frame_index: int
     ts: float
 
@@ -139,7 +140,7 @@ class LocationChanged:
 @dataclass(frozen=True)
 class ResidentChanged:
     zone_id: str
-    residents: Set[int]
+    residents: set[int]
     frame_index: int
     ts: float
 
@@ -188,7 +189,7 @@ class ZoneVisit:
 class ZoneSequence:
     __slots__ = ( 'track_id', 'visits', '_first_frame_index', '_first_ts', '_frame_index', '_ts' )
 
-    def __init__(self, track_id:str, visits:List[ZoneVisit]) -> None:
+    def __init__(self, track_id:str, visits:list[ZoneVisit]) -> None:
         self.track_id = track_id
         self.visits = visits
         self._first_frame_index = visits[0].enter_frame_index if visits else -1
@@ -239,7 +240,7 @@ class ZoneSequence:
     def __iter__(self):
         return (visit for visit in self.visits)
         # class ZoneIter:
-        #     def __init__(self, visits:List[ZoneVisit]) -> None:
+        #     def __init__(self, visits:list[ZoneVisit]) -> None:
         #         self.visits = visits
         #         self.index = 0
                 

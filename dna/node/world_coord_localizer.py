@@ -1,4 +1,6 @@
-from typing import Tuple, Optional
+from __future__ import annotations
+
+from typing import Optional
 from enum import Enum
 from collections import namedtuple
 import json, pickle
@@ -44,11 +46,11 @@ class WorldCoordinateLocalizer:
             self.transformer = Transformer.from_crs(_BASE_EPSG, epsg_code)
         self.contact_point_type = contact_point
 
-    def from_camera_coord(self, pt:npt.ArrayLike) -> Tuple[np.ndarray,np.double]:
+    def from_camera_coord(self, pt:npt.ArrayLike) -> tuple[np.ndarray,np.double]:
         pt_m, dist = self.localize_point(np.array(pt))
         return (pt_m[:2], dist) if pt_m is not None else (None, dist)
 
-    def from_camera_box(self, tlbr:npt.ArrayLike) -> Tuple[np.ndarray,np.double]:
+    def from_camera_box(self, tlbr:npt.ArrayLike) -> tuple[np.ndarray,np.double]:
         pt = self.select_contact_point(tlbr)
         return self.from_camera_coord(pt)
     
@@ -64,7 +66,7 @@ class WorldCoordinateLocalizer:
     def to_image_coord(self, pt_m:npt.ArrayLike) -> np.ndarray:
         return conv_meter2pixel(pt_m, self.satellite['origin_pixel'], self.satellite['meter_per_pixel'])
         
-    def localize_point(self, pt) -> Tuple[Optional[np.ndarray], np.double]:
+    def localize_point(self, pt) -> tuple[Optional[np.ndarray], np.double]:
         '''Calculate 3D location (unit: [meter]) of the given point (unit: [pixel]) with the given camera configuration'''
         # Make a ray aligned to the world coordinate
         pt = pt.xy if isinstance(pt, Point) else pt

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional, Dict, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -21,11 +21,11 @@ class PublishReIDFeatures(FrameProcessor,EventProcessor):
         self.extractor = extractor
         self.distinct_distance = distinct_distance
         self.min_crop_size = min_crop_size
-        self.frame_buffer:List[Frame] = []
-        self.pending_reid_tracks:List[Tuple[int, List[TrackEvent]]] = []
-        self.representives:Dict[TrackId,np.ndarray] = dict()
+        self.frame_buffer:list[Frame] = []
+        self.pending_reid_tracks:list[tuple[int, list[TrackEvent]]] = []
+        self.representives:dict[TrackId,np.ndarray] = dict()
     
-    def handle_event(self, group:List[TrackEvent]) -> None:
+    def handle_event(self, group:list[TrackEvent]) -> None:
         # frame_buffer에 해당 frame 존재 여부와 무관하게 'delete'된 track 처리를 수행함.
         reid_tracks = []
         for track in group:
@@ -38,7 +38,7 @@ class PublishReIDFeatures(FrameProcessor,EventProcessor):
                 self.representives.pop(track.track_id, None)
                 # track이 종료됨을 알리기 위해 feature값이 None인 'TrackFeature' 객체를 publish한다.
                 self._publish_event(TrackFeature(node_id=track.node_id, track_id=track.track_id, feature=None,
-                                                 zone_relation=track.zone_relation, ts=track.ts))
+                                                 zone_relation=track.zone_relation, frame_index=track.frame_index, ts=track.ts))
         
         frame_index = group[0].frame_index
         self.pending_reid_tracks.append((frame_index, reid_tracks))
@@ -62,10 +62,10 @@ class PublishReIDFeatures(FrameProcessor,EventProcessor):
             self.frame_buffer.pop(0)
         return frame
             
-    def _publish_reid_features(self, reid_tracks:List[TrackEvent], frame:Frame) -> None:
+    def _publish_reid_features(self, reid_tracks:list[TrackEvent], frame:Frame) -> None:
         def to_feature(track:TrackEvent, feature:np.ndarray) -> TrackFeature:
             return TrackFeature(node_id=track.node_id, track_id=track.track_id, feature=feature,
-                                zone_relation=track.zone_relation, ts=track.ts)
+                                zone_relation=track.zone_relation, frame_index=track.frame_index, ts=track.ts)
             
         boxes = [track.detection_box for track in reid_tracks]
         for track, feature in zip(reid_tracks, self.extractor.extract_boxes(frame.image, boxes)):

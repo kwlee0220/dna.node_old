@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Tuple, Dict, Optional, Any
+from typing import Optional
 
 import logging
 
@@ -12,14 +12,14 @@ class ToLineTransform(EventProcessor):
     
     def __init__(self, *, logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
-        self.last_events:Dict[str,TrackEvent] = dict()
+        self.last_events:dict[str,TrackEvent] = dict()
         self.logger = logger
 
     def close(self) -> None:
         self.last_events.clear()
         super().close()
 
-    def handle_event(self, ev:Any) -> None:
+    def handle_event(self, ev:object) -> None:
         if isinstance(ev, TrackEvent):
             self.handle_track_event(ev)
         else:

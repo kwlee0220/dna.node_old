@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import List, Tuple
 
 import cv2
 import numpy as np
@@ -16,7 +15,7 @@ class RectangleDrawer:
         self.coords = [0, 0, 0, 0]
         # self.bx, self.by, self.ex, self.ey = 0, 0, 0, 0
 
-    def run(self) -> Tuple[np.ndarray, Box]:
+    def run(self) -> tuple[np.ndarray, Box]:
         cv2.namedWindow('image')
         cv2.setMouseCallback('image', self.draw)
 
@@ -46,14 +45,14 @@ class RectangleDrawer:
             # self.ex, self.ey = x, y
             cv2.rectangle(self.convas, tuple(self.coords[:2]), (x,y), (0,255,0), 2)
 
-    def is_on_corner(self, coord: List[float], radius=_RADIUS) -> int:
+    def is_on_corner(self, coord: list[float], radius=_RADIUS) -> int:
         pt = geometry.Point(coord).buffer(radius)
         for idx, coord in enumerate(self.coords):
             if geometry.Point(coord).intersects(pt):
                 return idx
         return -1
 
-    def is_on_the_line(self, coord: List[float], radius=_RADIUS) -> int:
+    def is_on_the_line(self, coord: list[float], radius=_RADIUS) -> int:
         if len(self.coords) > 1:
             pt = geometry.Point(coord).buffer(radius)
             extended = self.coords + [self.coords[0]]

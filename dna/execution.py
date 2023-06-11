@@ -1,6 +1,6 @@
 
 from datetime import time, timedelta
-from typing import Any, Optional
+from typing import Optional
 from abc import ABCMeta, abstractmethod
 
 from enum import Enum
@@ -24,11 +24,11 @@ class ExecutionState(Enum):
 
 class Execution(metaclass=ABCMeta):
     @abstractmethod
-    def run(self) -> Any:
+    def run(self) -> object:
         """본 실행을 수행시킨다.
 
         Returns:
-            Any: 실행 완료로 생성된 결과.
+            object: 실행 완료로 생성된 결과.
         """
         pass
 
@@ -41,21 +41,21 @@ class ExecutionContext(metaclass=ABCMeta):
         pass
     
     @abstractmethod
-    def report_progress(self, progress:Any) -> None:
+    def report_progress(self, progress:object) -> None:
         """실행 진행 상황을 알린다.
 
         Args:
-            progress (Any): 진행 상황 정보.
+            progress (object): 진행 상황 정보.
         """
         pass
 
     @abstractmethod
-    def completed(self, result:Any) -> None:
+    def completed(self, result:object) -> None:
         """실행이 완료됨을 알린다.
         '실행 완료'는 실행이 그 목적을 모두 달성하고 종료되는 것을 믜미한다.
 
         Args:
-            result (Any): 실행 완료로 생성된 결과 객체.
+            result (object): 실행 완료로 생성된 결과 객체.
         """
         pass
 
@@ -80,8 +80,8 @@ class ExecutionContext(metaclass=ABCMeta):
 
 class NoOpExecutionContext(ExecutionContext):
     def started(self) -> None: pass
-    def report_progress(self, progress:Any) -> None: pass
-    def completed(self, result:Any) -> None: pass
+    def report_progress(self, progress:object) -> None: pass
+    def completed(self, result:object) -> None: pass
     def stopped(self, details:str) -> None: pass
     def failed(self, cause:str) -> None: pass
 
@@ -148,12 +148,12 @@ class AbstractExecution(Execution):
         return self._ctx
         
     @abstractmethod
-    def run_work(self) -> Any:
+    def run_work(self) -> object:
         """본 실행이 수행해야 하는 작업을 수행한다.
         본 메소드는 ``run()`` 메소드가 호출되는 경우, 자동적으로 수행된다.
 
         Returns:
-            Any: 실행 결과.
+            object: 실행 결과.
         """
         pass
 
@@ -168,7 +168,7 @@ class AbstractExecution(Execution):
             if self.state == ExecutionState.STOPPING:
                 raise CancellationError(self.stop_details)
 
-    def run(self) -> Any:
+    def run(self) -> object:
         with self.lock:
             if self.state != ExecutionState.NOT_STARTED:
                 raise AssertionError(f'invalid execution state: {self.state.name}, ',

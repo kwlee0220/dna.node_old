@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Optional
 
-import pika
 import logging
 import threading
+
+import pika
 
 from dna import config, Frame
 from dna.camera import ImageProcessor, FrameProcessor
@@ -32,7 +33,7 @@ class PikaExecutionServer:
         self.channel.basic_consume(queue=self.req_qname, on_message_callback=self.on_request)
         self.channel.start_consuming()
 
-    def on_request(self, channel, method, props:pika.BasicProperties, body:Any) -> None:
+    def on_request(self, channel, method, props:pika.BasicProperties, body:object) -> None:
         pika_ctx = PikaExecutionContext(body, channel, method, props.reply_to, props)
         try:
             req = self.serde.deserialize(body)
@@ -60,7 +61,7 @@ class PikaExecutionServer:
             
             img_proc.run()
         except Exception as e:
-            self.logger.error(f'fails to create execution', e)
+            self.logger.error(f'fails to create execution: cause={e}')
             pika_ctx.failed(e)
 
 class ControlRequestHandler(AbstractExecution, FrameProcessor):

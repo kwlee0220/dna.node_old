@@ -1,4 +1,4 @@
-from typing import List
+from __future__ import annotations
 
 from omegaconf import OmegaConf
 from shapely.geometry import LineString
@@ -15,8 +15,8 @@ class Session:
         self.node_id = node_id
         self.luid = luid
 
-        self.points:List[Point] = []
-        self.world_coords:List[Point] = []
+        self.points:list[Point] = []
+        self.world_coords:list[Point] = []
         self.first_frame = -1
         self.last_frame = -1
 

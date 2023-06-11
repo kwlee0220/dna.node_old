@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Union, Optional, List, Tuple, Iterable, Generator
+from typing import Union, Optional
+from collections.abc import Iterable, Generator
 
 from datetime import timedelta
 import logging
@@ -61,11 +62,11 @@ class MotionBasedTrackletAssociator(EventProcessor):
     def __iter__(self) -> Iterable[Association]:
         return iter(self.collector)
         
-    def find(self, key:Tuple[TrackletId,TrackletId]) -> Optional[Association]:
+    def find(self, key:tuple[TrackletId,TrackletId]) -> Optional[Association]:
         closure = self.collector.find(key)
         return self.collector.find(key)
 
-    def get_score(self, trk_pair:Tuple[TrackletId, TrackletId], *, estimate:bool=False) -> Optional[float]:
+    def get_score(self, trk_pair:tuple[TrackletId, TrackletId], *, estimate:bool=False) -> Optional[float]:
         closure = self.collector.find(trk_pair[0])
         if closure is None:
             return None
@@ -87,7 +88,7 @@ class MotionBasedAssociator(EventProcessor):
     def close(self) -> None:
         super().close()
         
-    def handle_event(self, ev:Union[Tuple[Window,Optional[TrackletId]],TrackEvent]) -> None:
+    def handle_event(self, ev:Union[tuple[Window,Optional[TrackletId]],TrackEvent]) -> None:
         if isinstance(ev, TrackEvent):
             if ev.is_deleted():
                 self._publish_event(TrackDeleted(node_id=ev.node_id, track_id=ev.track_id, ts=ev.ts))
@@ -95,13 +96,13 @@ class MotionBasedAssociator(EventProcessor):
             for assoc in self.associate(ev[0].events, tracklet_id=ev[1]):
                 self._publish_event(assoc)
         
-    def associate(self, track_events:List[TrackEvent], *,
+    def associate(self, track_events:list[TrackEvent], *,
                   tracklet_id:Optional[TrackletId]=None) -> Generator[Association, None, None]: 
-        def calc_split_distance(events1:List[TrackEvent], events2:List[TrackEvent]) -> float:
+        def calc_split_distance(events1:list[TrackEvent], events2:list[TrackEvent]) -> float:
             dist = np.mean([te1.world_coord.distance_to(te2.world_coord)
                             for te1, te2 in zip(events1, events2)])
             return dist
-        def calc_distance(ev_list1:List[TrackEvent], ev_list2:List[TrackEvent]) -> Association:
+        def calc_distance(ev_list1:list[TrackEvent], ev_list2:list[TrackEvent]) -> Association:
             if len(ev_list1) >= len(ev_list2):
                 splits = iterables.buffer_iterable(ev_list1, len(ev_list2), skip=1)
                 base = ev_list2
@@ -111,7 +112,7 @@ class MotionBasedAssociator(EventProcessor):
             return min(calc_split_distance(base, split) for split in splits)
         
         # 주어진 TrackEvent들을 tracklet별로 그룹핑한다.
-        tracklets = iterables.groupby(track_events, key=lambda v: v.tracklet_id)
+        tracklets = iterables.groupby(track_events, key_func=lambda v: v.tracklet_id)
         
         if tracklet_id and tracklet_id not in tracklets:
             return

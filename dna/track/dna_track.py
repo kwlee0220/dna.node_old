@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, List
+from typing import Union
 
 import logging
 import numpy as np
@@ -41,8 +41,8 @@ class DNATrackState:
     hits: int
     time_since_update: int
     stable_zone: int
-    detections: List[Detection]
-    features: List[np.ndarray]
+    detections: list[Detection]
+    features: list[np.ndarray]
     frame_index: int
     timestamp: float
 
@@ -190,7 +190,7 @@ class DNATrack(ObjectTrack):
         return (f'{self.id}({self.state.abbr})[{len(self.detections)}{interval_str}]({self.time_since_update}), '
                 f'nfeats={len(self.features)}, frame={self.frame_index}')
 
-    def take_over(self, victim_track:DNATrack, kf:KalmanFilter, frame:Frame, track_events:List[TrackEvent]) -> None:
+    def take_over(self, victim_track:DNATrack, kf:KalmanFilter, frame:Frame, track_events:list[TrackEvent]) -> None:
         archived_state = self.archived_state
         
         if self.logger.isEnabledFor(logging.INFO):

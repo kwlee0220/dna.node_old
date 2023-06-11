@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Tuple, Set, Dict
+from typing import Tuple, Set
 from abc import ABCMeta, abstractmethod
 
 import shapely.geometry as geometry
@@ -65,11 +65,11 @@ class ObjectTrack:
 
 class ObjectTracker(metaclass=ABCMeta):
     @abstractmethod
-    def track(self, frame: Frame) -> List[ObjectTrack]: pass
+    def track(self, frame: Frame) -> list[ObjectTrack]: pass
 
     @property
     @abstractmethod
-    def tracks(self) -> List[ObjectTrack]: pass
+    def tracks(self) -> list[ObjectTrack]: pass
 
 
 class TrackProcessor(metaclass=ABCMeta):
@@ -80,13 +80,13 @@ class TrackProcessor(metaclass=ABCMeta):
     def track_stopped(self, tracker:ObjectTracker) -> None: pass
 
     @abstractmethod
-    def process_tracks(self, tracker:ObjectTracker, frame:Frame, tracks:List[ObjectTrack]) -> None: pass
+    def process_tracks(self, tracker:ObjectTracker, frame:Frame, tracks:list[ObjectTrack]) -> None: pass
     
 
 import numpy as np
 class MetricExtractor(metaclass=ABCMeta):
     @abstractmethod
-    def extract_crops(self, crops:List[Image]) -> np.ndarray:
+    def extract_crops(self, crops:list[Image]) -> np.ndarray:
         pass
     
     @abstractmethod

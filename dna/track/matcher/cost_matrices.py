@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from typing import List, Tuple, Set
+from typing import Set
 
 import numpy as np
 import numpy.typing as npt
@@ -12,7 +12,7 @@ from ...track.kalman_filter import KalmanFilter
 from .base import INVALID_DIST_DISTANCE, INVALID_IOU_DISTANCE, INVALID_METRIC_DISTANCE
 
 
-def build_dist_cost(kf:KalmanFilter, tracks:List[ObjectTrack], detections:List[Detection]) -> np.ndarray:
+def build_dist_cost(kf:KalmanFilter, tracks:list[ObjectTrack], detections:list[Detection]) -> np.ndarray:
     dist_matrix = np.ones((len(tracks), len(detections)))
     if tracks and detections:
         measurements = np.asarray([det.bbox.xyah for det in detections])
@@ -25,7 +25,7 @@ def build_dist_cost(kf:KalmanFilter, tracks:List[ObjectTrack], detections:List[D
     return dist_matrix
 
 
-def build_iou_cost(tracks:List[ObjectTrack], detections:List[Detection]) -> np.ndarray:
+def build_iou_cost(tracks:list[ObjectTrack], detections:list[Detection]) -> np.ndarray:
     matrix = np.ones((len(tracks), len(detections)))
     if tracks and detections:
         for t_idx, track in enumerate(tracks):
@@ -36,7 +36,7 @@ def build_iou_cost(tracks:List[ObjectTrack], detections:List[Detection]) -> np.n
 
 
 def gate_dist_iou_cost(dist_cost:np.ndarray, iou_cost:np.ndarray, \
-                        tracks:List[ObjectTrack], detections:List[Detection]) -> Tuple[np.ndarray, np.ndarray]:
+                        tracks:list[ObjectTrack], detections:list[Detection]) -> tuple[np.ndarray, np.ndarray]:
     # track과 detection 사이 matching 과정에서 이 둘 사이의 크기에 많은 차이가 발생하는 경우
     # match되지 않도록 cost matrix의 해당 cell 값을 최대값으로 설정한다.
     # 'iou' zone 도입이후로 이 기능의 활용도가 떨어지는 것 같아서 나중에 없이질 수도 있음.
@@ -48,7 +48,7 @@ def gate_dist_iou_cost(dist_cost:np.ndarray, iou_cost:np.ndarray, \
 
 _AREA_RATIO_LIMITS = (0.3, 2.8)     # 크기가 일반적인 track의 location 대비 detection과의 크기 비율
 _LARGE_AREA_RATIO_LIMITS = (0.5, 2) # 일정 크기 이상의 track의 location 대비 detection과의 크기 비율
-def build_task_det_ratio_mask(tracks:List[ObjectTrack], detections:List[Detection],
+def build_task_det_ratio_mask(tracks:list[ObjectTrack], detections:list[Detection],
                                 area_ratio_limits:npt.ArrayLike=_AREA_RATIO_LIMITS):
     det_areas = np.array([det.bbox.area() for det in detections])
     
@@ -65,9 +65,9 @@ def build_task_det_ratio_mask(tracks:List[ObjectTrack], detections:List[Detectio
     return mask
 
 
-def build_metric_cost(tracks:List[ObjectTrack], detections:List[Detection],
-                        track_idxes:List[int], det_idxes:List[int]) -> np.ndarray:
-    def build_matrix(tracks:List[ObjectTrack], detections:List[Detection]) -> np.ndarray:
+def build_metric_cost(tracks:list[ObjectTrack], detections:list[Detection],
+                        track_idxes:list[int], det_idxes:list[int]) -> np.ndarray:
+    def build_matrix(tracks:list[ObjectTrack], detections:list[Detection]) -> np.ndarray:
         cost_matrix = np.ones((len(tracks), len(detections)))
         if tracks and detections:
             det_features = [det.feature for det in detections]
@@ -92,7 +92,7 @@ def gate_metric_cost(metric_costs:np.ndarray, dist_costs:np.ndarray,
     return np.where(dist_costs > gate_threshold, INVALID_METRIC_DISTANCE, metric_costs)
 
 
-def print_cost_matrix(tracks:List[ObjectTrack], cost, trim_overflow=None):
+def print_cost_matrix(tracks:list[ObjectTrack], cost, trim_overflow=None):
     if trim_overflow:
         cost = cost.copy()
         cost[cost > trim_overflow] = trim_overflow

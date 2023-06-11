@@ -21,18 +21,6 @@ tracker:
     - [1177, 323, 1255, 401]  # 7동쪽 방향
     - [[432, 824], [218, 644], [3, 694], [4, 1076], [120, 1072]]
 
-sql_connection: &postgresql_connection
-  host: localhost
-  port: 5432
-  dbname: dna
-  user: dna
-  password: urc2004
-
-local_kafka_connection: &local_kafka_connection
-  bootstrap_servers: [localhost:9092]
-dna_kafka_connection: &dna_kafka_connection
-  bootstrap_servers: [kafka01:9092, kafka02:9092, kafka03:9092]
-
 publishing:
   tick_interval: 1.0
   refine_tracks:
@@ -57,13 +45,10 @@ publishing:
 
   plugins:
     publish_tracks:
-      <<: *local_kafka_connection
       topic: 'track-events'
     publish_motions:
-      <<: *local_kafka_connection
       topic: 'track-motions'
     publish_features:
+      topic: 'track-features'
       distinct_distance: 0.2
       min_crop_size: 80x40
-      <<: *local_kafka_connection
-      topic: 'track-features'

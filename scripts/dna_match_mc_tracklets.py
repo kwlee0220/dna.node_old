@@ -1,8 +1,9 @@
 
 from __future__ import annotations
 
+from typing import Set
 import sys
-from typing import List, Dict, Tuple, Generator, Set
+from collections.abc import Generator
 from dataclasses import replace
 import itertools
 from contextlib import closing
@@ -12,13 +13,13 @@ from dna.event.track_event import TrackEvent
 from dna.track.track_state import TrackState
 from dna.node import Tracklet
 from dna.node.tracklet_matcher import match_tracklets
-from dna.node.utils import read_tracks_json
+from dna.event.utils import read_tracks_json
 from dna.support.text_line_writer import TextLineWriter
 
 import logging
 LOGGER = logging.getLogger('dna.node.sync_frames')
 
-def load_tracklets(track_file:str, offset:int, max_camera_dist:float) -> Tuple[str, Dict[str,Tracklet]]:
+def load_tracklets(track_file:str, offset:int, max_camera_dist:float) -> tuple[str, dict[str,Tracklet]]:
     def is_valid_track(ev:TrackEvent) -> bool:
         if ev.is_deleted():
             return True
@@ -27,7 +28,7 @@ def load_tracklets(track_file:str, offset:int, max_camera_dist:float) -> Tuple[s
         return ev.distance and ev.distance <= max_camera_dist and ev.world_coord
 
     node_id = ''
-    tracklets:Dict[str,Tracklet] = dict()
+    tracklets:dict[str,Tracklet] = dict()
     for te in read_tracks_json(track_file):
         # 일부 TrackEvent의 "world_coord"와 "distance" 필드가 None 값을 갖기 때문에
         # 해당 event는 제외시킨다. 또한 대상 물체와 카메라와의 거리 (distance)가

@@ -1,9 +1,9 @@
 # vim: expandtab:ts=4:sw=4
 from __future__ import absolute_import
-from typing import List, Tuple, Set, Dict
 
-from collections import defaultdict
+from collections import defaultdict 
 import logging
+
 import numpy as np
 import numpy.typing as npt
 from numpy.linalg import det
@@ -31,11 +31,11 @@ class Tracker:
     def __init__(self, params:DNATrackParams, logger:logging.Logger):
         self.params = params
         self.kf = KalmanFilter()
-        self.tracks:List[DNATrack] = []
+        self.tracks:list[DNATrack] = []
         self._next_id = 1
         self.logger = logger
 
-    def track(self, frame:Frame, detections: List[Detection]) -> Tuple[MatchingSession, List[DNATrack], List[TrackEvent]]:
+    def track(self, frame:Frame, detections: list[Detection]) -> tuple[MatchingSession, list[DNATrack], list[TrackEvent]]:
         # Estimate the next state for each tracks using Kalman filter
         for track in self.tracks:
             track.predict(self.kf, frame.index, frame.ts)
@@ -92,7 +92,7 @@ class Tracker:
 
         return (session, deleted_tracks, track_event_list)
 
-    def match(self, detections:List[Detection]) -> MatchingSession:
+    def match(self, detections:list[Detection]) -> MatchingSession:
         session = MatchingSession(self.tracks, detections, self.params)
         if not(detections and self.tracks):
             # Detection 작업에서 아무런 객체를 검출하지 못한 경우.
@@ -111,7 +111,7 @@ class Tracker:
         ###  이미 matching된 detection과 score를 기준으로 비교하여 더 높은 score를 갖는 detection으로 재 matching 시킴.
         ###########################################################################################################
         if session.unmatched_strong_det_idxes:
-            def select_overlaps(box:Box, candidates:List[int]):
+            def select_overlaps(box:Box, candidates:list[int]):
                 return [idx for idx in candidates if box.iou(d_boxes[idx]) >= self.params.match_overlap_score]
 
             d_boxes = [det.bbox for det in detections]
@@ -164,7 +164,7 @@ class Tracker:
                 self.logger.debug(f"(motion) hot+tent, all: {matches_str(self.tracks, matches0)}")
             session.update(matches0)
 
-    def match_by_metric(self, session:MatchingSession, detections:List[Detection], dist_cost:np.array) -> None:
+    def match_by_metric(self, session:MatchingSession, detections:list[Detection], dist_cost:np.array) -> None:
         unmatched_track_idxes = session.unmatched_track_idxes
         unmatched_metric_det_idxes = session.unmatched_metric_det_idxes
         if unmatched_track_idxes and unmatched_metric_det_idxes:
@@ -239,7 +239,7 @@ class Tracker:
                 if self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f"rematch yielding tracks, {matcher}: {matches_str(self.tracks, matches1)}")
     
-    def merge_fragment(self, session:MatchingSession, frame:Frame, track_events:List[TrackEvent]) -> Set[DNATrack]:
+    def merge_fragment(self, session:MatchingSession, frame:Frame, track_events:list[TrackEvent]) -> set[DNATrack]:
         merged_tracks = set()
         
         # Stable zone에서 시작된 track들을 검색한다.
@@ -275,11 +275,11 @@ class Tracker:
                                             f'count={len(stable_home_track.detections)} stable_zone[{zid}]')
         return merged_tracks
         
-    def _find_tlost_stable_tracks(self, zid:int, session:MatchingSession) -> List[DNATrack]:
+    def _find_tlost_stable_tracks(self, zid:int, session:MatchingSession) -> list[DNATrack]:
         return [track for track in utils.get_items(self.tracks, session.unmatched_tlost_track_idxes) \
                             if track.archived_state.stable_zone == zid]
 
-    def _collect_stable_zone_birth_tracks(self) -> Dict[int,List[DNATrack]]:
+    def _collect_stable_zone_birth_tracks(self) -> dict[int,list[DNATrack]]:
         # Stable zone에서 시작된 track들을 검색한다.
         # 검색된 track들은 해당 stable zone에서 lost 중인 track 때문에 생성된 것일 수 있음.
         stable_zone_birth_tracks = defaultdict(list)
@@ -290,7 +290,7 @@ class Tracker:
                     stable_zone_birth_tracks[zid].append(track)
         return stable_zone_birth_tracks
 
-    def build_metric_cost(self, tl_tracks:List[DNATrack], sh_tracks:List[DNATrack]) -> np.ndarray:
+    def build_metric_cost(self, tl_tracks:list[DNATrack], sh_tracks:list[DNATrack]) -> np.ndarray:
         cost_matrix = np.ones((len(tl_tracks), len(sh_tracks)))
         for i, tl_track in enumerate(tl_tracks):
             start_index = tl_track.archived_state.frame_index
@@ -303,7 +303,7 @@ class Tracker:
                         cost_matrix[i, j] = distances.min(axis=0)
         return cost_matrix
 
-    def draw_matched_detections(self, title:str, convas:Image, matches:List[Tuple[int,int]], detections:List[Detection]):
+    def draw_matched_detections(self, title:str, convas:Image, matches:list[tuple[int,int]], detections:list[Detection]):
         # for zone in self.tracker.params.blind_zones:
         #     convas = zone.draw(convas, list(zone.exterior.coords), color.YELLOW, 1)
         for zone in self.params.exit_zones:

@@ -33,6 +33,8 @@ local_kafka_connection: &local_kafka_connection
   bootstrap_servers: [localhost:9092]
 dna_kafka_connection: &dna_kafka_connection
   bootstrap_servers: [kafka01:9092, kafka02:9092, kafka03:9092]
+docker_kafka_connection: &docker_kafka_connection
+  bootstrap_servers: [kafka01:19091, kafka02:19092, kafka03:19093]
 
 publishing:
   # tick_interval: 1.0

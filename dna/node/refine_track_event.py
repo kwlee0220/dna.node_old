@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Union, List, Dict, Optional
+from typing import Union, Optional
 import sys
 from dataclasses import dataclass, field
 
@@ -16,7 +16,7 @@ class Session:
     '''본 세션에 해당하는 track id.'''
     state: TrackState = field(hash=False, compare=False)
     '''본 track session의 상태.'''
-    pendings: List[TrackEvent] = field(hash=False, compare=False)
+    pendings: list[TrackEvent] = field(hash=False, compare=False)
     '''TrackEvent refinement를 위해 track별로 보류되고 있는 TrackEvent 리스트.'''
     
     @property
@@ -56,7 +56,7 @@ class RefineTrackEvent(EventProcessor):
                  *, logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
 
-        self.sessions: Dict[str, Session] = {}
+        self.sessions: dict[str, Session] = {}
         self.buffer_size = buffer_size
         self.timeout = buffer_timeout
         self.timeout_millis = round(buffer_timeout * 1000)

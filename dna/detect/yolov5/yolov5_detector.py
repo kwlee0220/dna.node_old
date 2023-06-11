@@ -1,4 +1,6 @@
-from typing import List, Optional, Any, Union
+from __future__ import annotations
+
+from typing import Optional, Union
 from pathlib import Path
 from urllib.parse import parse_qs
 
@@ -56,10 +58,10 @@ class Yolov5Detector(ObjectDetector):
         self.model.conf = score
             
     @property
-    def classes(self) -> List[str]:
+    def classes(self) -> list[str]:
         return [self.names[cls_idx] for cls_idx in self.model.classes]
     @classes.setter
-    def classes(self, classes:List[str]) -> None:
+    def classes(self, classes:list[str]) -> None:
         class_idxes = [self.names.index(cls) if isinstance(cls, str) else int(cls) for cls in classes.split(',')]
         self.model.classes = [idx for idx in class_idxes if idx >= 0 and idx < len(self.names)]
             
@@ -81,7 +83,7 @@ class Yolov5Detector(ObjectDetector):
         self.model.to(device)
 
     @torch.no_grad()
-    def detect(self, frame: Frame) -> List[Detection]:
+    def detect(self, frame: Frame) -> list[Detection]:
         batch = [self._preprocess(frame.image)]
 
         # inference
@@ -90,7 +92,7 @@ class Yolov5Detector(ObjectDetector):
         return self._to_detections(result.xyxy[0])
 
     # @torch.no_grad()
-    # def detect_images(self, frames:List[Frame]) -> List[List[Detection]]:
+    # def detect_images(self, frames:list[Frame]) -> list[list[Detection]]:
     #     batch = [self._preprocess(frame.image) for frame in frames]
 
     #     # inference
@@ -103,10 +105,10 @@ class Yolov5Detector(ObjectDetector):
         # img = image.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         # return np.ascontiguousarray(img)
 
-    def _to_detections(self, xyxy) -> List[Detection]:
+    def _to_detections(self, xyxy) -> list[Detection]:
         return [self._to_detection(pred) for pred in xyxy.cpu().numpy()]
 
-    def _to_detection(self, pred) -> List[Detection]:
+    def _to_detection(self, pred) -> list[Detection]:
         box = Box(pred[:4])
         name = self.names[int(pred[5])]
         confi = pred[4]

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 import cv2
 import torch
@@ -42,12 +42,12 @@ class Rcnn50FpnV2Detector(ObjectDetector):
 
         self.transform = transforms.ToTensor()
 
-    def detect(self, frame:Frame) -> List[Detection]:
+    def detect(self, frame:Frame) -> list[Detection]:
         batch = [self._to_tensor(frame.image)]
         predictions = self.model(batch)
         return self._to_detections(predictions[0])
 
-    def detect_images(self, frames:List[Frame]) -> List[List[Detection]]:
+    def detect_images(self, frames:list[Frame]) -> list[list[Detection]]:
         batch = [self._to_tensor(frame.image) for frame in frames]
         return [self._to_detections(pred) for pred in self.model(batch)]
 
@@ -56,7 +56,7 @@ class Rcnn50FpnV2Detector(ObjectDetector):
         img = self.transform(img).to(self.device)
         return self.preprocess(img)
 
-    def _to_detections(self, prediction) -> List[Detection]:
+    def _to_detections(self, prediction) -> list[Detection]:
         labels = [self.class_names[i] for i in prediction["labels"]]
         boxes = prediction["boxes"].cpu().detach().numpy()
         scores = prediction["scores"].cpu().detach().numpy()

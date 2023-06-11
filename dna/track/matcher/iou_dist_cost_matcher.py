@@ -1,7 +1,8 @@
 from __future__ import annotations
-from typing import Tuple, Iterable, List, Optional
-
+from typing import Optional
+from collections.abc import Iterable
 import logging
+
 import numpy as np
 import numpy.typing as npt
 
@@ -17,7 +18,7 @@ from .reciprocal_cost_matcher import ReciprocalCostMatcher
 
 
 class IoUDistanceCostMatcher(Matcher):
-    def __init__(self, tracks:List[ObjectTrack], detections:List[Detection],
+    def __init__(self, tracks:list[ObjectTrack], detections:list[Detection],
                  params:DNATrackParams, dist_cost:np.ndarray, iou_cost:np.ndarray,
                  logger:Optional[logging.Logger]=None) -> None:
         self.tracks = tracks
@@ -29,7 +30,7 @@ class IoUDistanceCostMatcher(Matcher):
         self.tight_matcher = self._create_chain(dist_cost, iou_cost, tight_thresholds)  
         self.matcher = self._create_chain(dist_cost, iou_cost, params.iou_dist_threshold)
 
-    def match(self, track_idxes:List[int], det_idxes:List[int]) -> List[Tuple[int,int]]:
+    def match(self, track_idxes:list[int], det_idxes:list[int]) -> list[tuple[int,int]]:
         session = MatchingSession(self.tracks, self.detections, self.params, track_idxes, det_idxes)
         
         #   

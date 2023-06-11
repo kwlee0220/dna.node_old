@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import List, Optional
+from typing import Optional
+
 import collections
 from pathlib import Path
 
@@ -36,7 +37,7 @@ class TrackCsvWriter(TrackProcessor):
 
         super().track_stopped(tracker)
 
-    def process_tracks(self, tracker:ObjectTracker, frame:Frame, tracks:List[ObjectTrack]) -> None:
+    def process_tracks(self, tracker:ObjectTracker, frame:Frame, tracks:list[ObjectTrack]) -> None:
         for track in tracks:
             self.out_handle.write(track.to_csv() + '\n')
 
@@ -47,7 +48,7 @@ class Trail:
         self.__tracks = []
 
     @property
-    def tracks(self) -> List[ObjectTrack]:
+    def tracks(self) -> list[ObjectTrack]:
         return self.__tracks
 
     def append(self, track:ObjectTrack) -> None:
@@ -55,7 +56,7 @@ class Trail:
 
     def draw(self, convas:np.ndarray, color:color.BGR, line_thickness=2) -> np.ndarray:
         # track의 중점 값들을 선으로 이어서 출력함
-        track_centers:List[Point] = [t.location.center() for t in self.tracks[-11:]]
+        track_centers:list[Point] = [t.location.center() for t in self.tracks[-11:]]
         return plot_utils.draw_line_string(convas, track_centers, color, line_thickness)
     
 
@@ -72,7 +73,7 @@ class TrailCollector(TrackProcessor):
     def track_started(self, tracker:ObjectTracker) -> None: pass
     def track_stopped(self, tracker:ObjectTracker) -> None: pass
 
-    def process_tracks(self, tracker:ObjectTracker, frame:Frame, tracks:List[ObjectTrack]) -> None:      
+    def process_tracks(self, tracker:ObjectTracker, frame:Frame, tracks:list[ObjectTrack]) -> None:      
         for track in tracks:
             if track.state == TrackState.Confirmed  \
                 or track.state == TrackState.TemporarilyLost    \
@@ -86,12 +87,12 @@ from dna.camera import FrameProcessor
 class TrackingPipeline(FrameProcessor):
     __slots__ = ( 'tracker', '_trail_collector', '_track_processors', 'draw')
 
-    def __init__(self, tracker:ObjectTracker, draw:List[str]=[]) -> None:
+    def __init__(self, tracker:ObjectTracker, draw:list[str]=[]) -> None:
         super().__init__()
 
         self.tracker = tracker
         self._trail_collector = TrailCollector()
-        self._track_processors:List[TrackProcessor] = [self._trail_collector]
+        self._track_processors:list[TrackProcessor] = [self._trail_collector]
         self.draw = draw
 
     @staticmethod

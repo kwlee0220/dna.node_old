@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import List, Optional, Tuple, Sequence, Iterable, Generator, TypeVar, Union
+
+from typing import Optional, Tuple, TypeVar, Union
+from collections.abc import Sequence, Iterable, Generator
 from pathlib import Path
 
 import numpy as np
@@ -14,22 +16,22 @@ from .types import ObjectTrack, ObjectTracker
 
 T = TypeVar("T")
 
-def subtract(list1:Iterable, list2:List) -> List:
+def subtract(list1:Iterable, list2:list) -> list:
     return [v for v in list1 if v not in list2]
 
-def intersection(list1:Iterable, list2:List) -> List:
+def intersection(list1:Iterable, list2:list) -> list:
     return [v for v in list1 if v in list2]
 
 def all_indices(values:Sequence):
     return list(range(len(values)))
 
-def project(tuples: Iterable[Tuple], elm_idx: int) -> List:
+def project(tuples: Iterable[Tuple], elm_idx: int) -> list:
     return [t[elm_idx] for t in tuples]
 
-def get_items(values:Iterable[T], idxes:Iterable[int]) -> List[T]:
+def get_items(values:Iterable[T], idxes:Iterable[int]) -> list[T]:
     return [values[idx] for idx in idxes]
 
-def get_indexed_items(values:Iterable[T], idxes:Iterable[int]) -> List[T]:
+def get_indexed_items(values:Iterable[T], idxes:Iterable[int]) -> list[T]:
     return [(idx, values[idx]) for idx in idxes]
     
 def cosine_distance(a:npt.ArrayLike, b:npt.ArrayLike, data_is_normalized=False):
@@ -61,13 +63,13 @@ class LogFileBasedObjectTracker(ObjectTracker):
     def __init__(self, track_file: Path) -> None:
         self.__file = open(track_file, 'r')
         self.look_ahead = self._look_ahead()
-        self._tracks:List[ObjectTrack] = []
+        self._tracks:list[ObjectTrack] = []
 
     @property
     def file(self) -> Path:
         return self.__file
 
-    def track(self, frame: Frame) -> List[ObjectTrack]:
+    def track(self, frame: Frame) -> list[ObjectTrack]:
         self._tracks = []
 
         if not self.look_ahead:
@@ -91,7 +93,7 @@ class LogFileBasedObjectTracker(ObjectTracker):
         return self._tracks
 
     @property
-    def tracks(self) -> List[ObjectTrack]:
+    def tracks(self) -> list[ObjectTrack]:
         return self._tracks
         
     def _look_ahead(self) -> ObjectTrack:

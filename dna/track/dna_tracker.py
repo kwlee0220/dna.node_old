@@ -1,5 +1,7 @@
+from __future__ import annotations
 
-from typing import List, Union, Tuple, Any, Optional
+from typing import Union, Optional
+
 from pathlib import Path
 import sys
 from enum import Enum
@@ -74,10 +76,10 @@ class DNATracker(ObjectTracker):
             self.roi_shifts.append(Size2d(roi.tl))
 
     @property
-    def tracks(self) -> List[DNATrack]:
+    def tracks(self) -> list[DNATrack]:
         return self.tracker.tracks
 
-    def track(self, frame: Frame) -> Tuple[List[DNATrack], List[TrackEvent]]:
+    def track(self, frame: Frame) -> tuple[list[DNATrack], list[TrackEvent]]:
         dna.DEBUG_FRAME_INDEX = frame.index
         self.last_event_tracks = []
 
@@ -114,7 +116,7 @@ class DNATracker(ObjectTracker):
             detections = [det for det in detections if not is_close_to_border(det)]
             
         # Detection끼리 너무 많이 겹치는 경우 low-score detection을 제거한다.
-        def supress_overlaps(detections:List[Detection]) -> List[Detection]:
+        def supress_overlaps(detections:list[Detection]) -> list[Detection]:
             remains = sorted(detections.copy(), key=lambda d: d.score, reverse=True)
             survivors = []
             while remains:
@@ -146,10 +148,10 @@ class DNATracker(ObjectTracker):
         
         return self.tracker.tracks + deleted_tracks
 
-    def crop_rois(self, frame:Frame) -> List[Frame]:
+    def crop_rois(self, frame:Frame) -> list[Frame]:
         return [Frame(roi.crop(frame.image), frame.index, frame.ts) for roi in self.params.magnifying_zones]
 
-    def merge(self, detections_list:List[Detection]) -> List[Detection]:
+    def merge(self, detections_list:list[Detection]) -> list[Detection]:
         mergeds = []
 
         cropped_detections_list = detections_list[1:]
@@ -165,7 +167,7 @@ class DNATracker(ObjectTracker):
 
         return mergeds
 
-    def draw_detections(self, convas:Image, title:str, detections:List[Detection], line_thickness=1):
+    def draw_detections(self, convas:Image, title:str, detections:list[Detection], line_thickness=1):
         if self.params.draw:
             if 'track_zones' in self.params.draw:
                 for zone in self.params.track_zones:

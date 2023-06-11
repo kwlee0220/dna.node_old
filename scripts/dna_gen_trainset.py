@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing import List, Dict, Generator, Any, Tuple, Optional
 
+from typing import Optional
+from collections.abc import Generator
 from contextlib import closing
 from datetime import timedelta
 from pathlib import Path
@@ -23,7 +24,7 @@ from dna.track.track_state import TrackState
 from dna.event import EventProcessor, TrackId
 from dna.node import TrackEventPipeline
 from dna.node.zone import ZoneEvent, ZonePipeline
-from dna.node.utils import read_tracks_json
+from dna.event.utils import read_tracks_json
 from dna.zone import Zone
 
 
@@ -99,8 +100,8 @@ def parse_args():
     return parser.parse_known_args()
 
 
-def load_tracklets_by_frame(tracklet_gen:Generator[TrackEvent, None, None]) -> Dict[int,List[TrackEvent]]:
-    tracklets:Dict[int,List[TrackEvent]] = dict()
+def load_tracklets_by_frame(tracklet_gen:Generator[TrackEvent, None, None]) -> dict[int,list[TrackEvent]]:
+    tracklets:dict[int,list[TrackEvent]] = dict()
     for track in tracklet_gen:
         tracks = tracklets.get(track.frame_index)
         if tracks is None:
@@ -116,10 +117,10 @@ def to_crop_file(dir:Path, track_id:str, ts:int) -> Path:
 
 
 class TrackletCropWriter(FrameProcessor):
-    def __init__(self, tracks_per_frame_index:Dict[int, List[TrackEvent]],
-                 zone_events:Dict[TrackId,List[ZoneEvent]],
-                 motions: Dict[TrackId,Tuple[str,str]],
-                 global_tracklet_mappings: Dict[TrackId,Tuple[str,str,str]],
+    def __init__(self, tracks_per_frame_index:dict[int, list[TrackEvent]],
+                 zone_events:dict[TrackId,list[ZoneEvent]],
+                 motions: dict[TrackId,tuple[str,str]],
+                 global_tracklet_mappings: dict[TrackId,tuple[str,str,str]],
                  output_dir:str,
                  margin:int=5,
                  min_size:Size2d=Size2d([20, 20])) -> None:
@@ -214,15 +215,15 @@ class TrackletCropWriter(FrameProcessor):
         else:
             return None
 
-def load_motions(motion_file:str) -> Dict[TrackId,Tuple[str,str]]:
+def load_motions(motion_file:str) -> dict[TrackId,tuple[str,str]]:
     with open(motion_file, 'r') as fp:
         csv_lines = (tuple(line.rstrip().split(',')) for line in fp.readlines())
         return {track_id:(entry, exit) for track_id, entry, exit in csv_lines}
 
-def load_tracklet_matches(file:str, start_index:int=0) -> Dict[(str, TrackId),str]:
+def load_tracklet_matches(file:str, start_index:int=0) -> dict[(str, TrackId),str]:
     import csv
 
-    global_tracklet_mappings:Dict[(str, TrackId),str] = dict()
+    global_tracklet_mappings:dict[(str, TrackId),str] = dict()
     with open(file, 'r') as fp:
         csv_reader = csv.DictReader(fp)
         for idx, fields in enumerate(csv_reader, start=start_index):
@@ -230,8 +231,8 @@ def load_tracklet_matches(file:str, start_index:int=0) -> Dict[(str, TrackId),st
                 if track_id != 'X':
                     global_tracklet_mappings[(node, track_id)] = f'g{idx:05}'
     return global_tracklet_mappings
-# def load_tracklet_matches(file:str, start_index:int=0) -> Dict[(str, TrackId),str]:
-#     global_tracklet_mappings:Dict[(str, TrackId),str] = dict()
+# def load_tracklet_matches(file:str, start_index:int=0) -> dict[(str, TrackId),str]:
+#     global_tracklet_mappings:dict[(str, TrackId),str] = dict()
 #     with open(file, 'r') as fp:
 #         for idx, line in enumerate(fp.readlines(), start=start_index):
 #             gid, t1, t2, t3, t4 = tuple([f'g{idx:05d}'] + line.rstrip().split(','))
@@ -249,13 +250,13 @@ def load_tracklet_matches(file:str, start_index:int=0) -> Dict[(str, TrackId),st
 class CollectZoneInfo(EventProcessor):
     def __init__(self) -> None:
         super().__init__()
-        self.zone_events:Dict[TrackId,List[ZoneEvent]] = dict()
+        self.zone_events:dict[TrackId,list[ZoneEvent]] = dict()
 
-    def handle_event(self, ev:Any) -> None:
+    def handle_event(self, ev:object) -> None:
         if isinstance(ev, ZoneEvent):
             zone_events = self.zone_events.get(ev.track_id)
             if not zone_events:
-                zone_events:List[ZoneEvent] = []
+                zone_events:list[ZoneEvent] = []
                 self.zone_events[ev.track_id] = zone_events
             zone_events.append(ev)
 

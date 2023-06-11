@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional, Any
+from typing import Optional
 from dataclasses import dataclass, field
 
+from argparse import Namespace
 from omegaconf import OmegaConf
 import pika
 from pathlib import Path
@@ -23,25 +24,41 @@ class PikaConnector:
     user_id:str = field(default='dna')
     
     def blocking_connection(self) -> pika.BlockingConnection:
-        credentials = pika.PlainCredentials(username=self.user_id, password=self.password)
-        conn_params = pika.ConnectionParameters(host=self.host, port=self.port, credentials=credentials)
-        return pika.BlockingConnection(conn_params)
+        try:
+            credentials = pika.PlainCredentials(username=self.user_id, password=self.password)
+            conn_params = pika.ConnectionParameters(host=self.host, port=self.port, credentials=credentials)
+            return pika.BlockingConnection(conn_params)
+        except pika.exceptions.AMQPConnectionError as e:
+            import sys
+            print(f"fails to connect RabbitMQ broker: host={self.host}, port={self.port}, "
+                  f"username={self.user_id}, password={self.password}", file=sys.stderr)
+            raise e
 
 
 class PikaExecutionFactory:
-    def __init__(self, config_root:str, *, show:bool=False) -> None:
+    def __init__(self, args:Namespace) -> None:
         super().__init__()
-        self.config_root = Path(config_root)
-        self.show = show
+        self.args = args
 
     def create(self, pika_ctx:PikaExecutionContext) -> ImageProcessor:
         from dna.node.node_processor import build_node_processor
 
         request = OmegaConf.create(pika_ctx.request)
-        
         if config.exists(request, 'node'):
-            path = self.config_root / (request.node.replace(":", "_") + '.yaml')
-            conf = config.load(path)
+            conf_root = Path(self.args.conf_root)
+            node_conf_fname = request.node.replace(":", "_") + '.yaml'
+            path = conf_root / node_conf_fname
+            try:
+                conf = config.load(path)
+            except Exception as e:
+                LOGGER.error(f"fails to load node configuration file: conf_root={self.args.conf_root}, node={request.node}, path='{path}'")
+                raise e
+                
+        # args에 포함된 ImageProcess 설정 정보를 추가한다.
+        config.update_values(conf, self.args, 'show', 'show_progress')
+        if self.args.kafka_brokers:
+            # 'kafka_brokers'가 설정된 경우 publishing 작업에서 이 broker로 접속하도록 설정한다.
+            config.update(conf, 'publishing.plugins.kafka_brokers', self.args.kafka_brokers)
         config.update_values(conf, request, "show")
             
         config.update(conf, "camera", request.camera)

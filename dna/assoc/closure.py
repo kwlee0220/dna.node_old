@@ -1,7 +1,8 @@
 from __future__ import annotations
-from typing import Tuple, List, Set, Optional, Iterator, Iterable
 
-import logging
+from typing import Optional
+from collections.abc import Iterator, Iterable
+import logging 
 from bisect import bisect_left, insort
 import itertools
 import functools
@@ -20,8 +21,8 @@ class AssociationClosure(Association):
     def __init__(self) -> None:
         super().__init__()
         
-        self._tracklets:Set[TrackletId] = set()
-        self._associations:List[BinaryAssociation] = []
+        self._tracklets:set[TrackletId] = set()
+        self._associations:list[BinaryAssociation] = []
         
     def validate(self) -> None:
         if len(self._tracklets) != len(self.nodes):
@@ -34,7 +35,7 @@ class AssociationClosure(Association):
         return all(assoc.is_closed() for assoc in self._associations)
     
     @property
-    def tracklets(self) -> Set[TrackletId]:
+    def tracklets(self) -> set[TrackletId]:
         return self._tracklets
         
     @property
@@ -49,7 +50,7 @@ class AssociationClosure(Association):
             return 0
         
     @property
-    def source_associations(self) -> List[Association]:
+    def source_associations(self) -> list[Association]:
         return self._associations
     
     def min_ts(self) -> int:
@@ -144,7 +145,7 @@ class AssociationClosure(Association):
         dupl._associations = self._associations.copy()
         return dupl
         
-    def _find(self, key:List[TrackletId]) -> Tuple[int,Optional[Association]]:
+    def _find(self, key:list[TrackletId]) -> tuple[[int,Optional[Association]]:
         for idx, assoc in enumerate(self.association):
             if assoc.tracklets == key:
                 return idx, assoc

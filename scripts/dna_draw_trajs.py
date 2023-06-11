@@ -1,17 +1,17 @@
 
-from typing import Tuple, List, Dict, Union, Optional
+from typing import Union
 from contextlib import closing
 from collections import defaultdict
 
-import numpy as np
 import cv2
 from omegaconf import OmegaConf
 
 from dna import Box, Image, BGR, color, Frame, Point
-from dna.camera import create_opencv_camera_from_conf
+from dna.camera import create_opencv_camera
+from dna.event import TrackEvent, read_event_file
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
-from dna.node import stabilizer
-from dna.node.utils import read_tracks_json, read_tracks_csv
+from dna.node.running_stabilizer import RunningStabilizer
+from dna.node.trajectory_drawer import TrajectoryDrawer
 
 
 _contact_point_choices = [t.name.lower() for t in ContactPointType]
@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument("track_file")
     parser.add_argument("--video", metavar="uri", help="video uri for background image")
     parser.add_argument("--frame", metavar="number", default=1, type=int, help="video frame number")
+    parser.add_argument("--node", metavar="id", type=str, default=None, help="node id")
     parser.add_argument("--camera_index", metavar="index", type=int, default=0, help="camera index")
     parser.add_argument("--contact_point", metavar="contact-point type", 
                         choices=_contact_point_choices, type=str.lower, default='simulation',
@@ -37,216 +38,38 @@ def parse_args():
     return parser.parse_known_args()
 
 def load_video_image(video_file:str, frame_no:int) -> Image:
-    camera_conf = OmegaConf.create()
-    camera_conf.uri = video_file
-    camera_conf.begin_frame = frame_no
-    camera = create_opencv_camera_from_conf(camera_conf)
+    camera = create_opencv_camera(uri=video_file, begin_frame=frame_no)
     with closing(camera.open()) as cap:
         frame:Frame = cap()
         return frame.image if frame is not None else None
 
-def load_trajectories_json(track_file:str) -> Dict[str,List[Box]]:
-    t_boxes = defaultdict(list)
-    for track in read_tracks_json(track_file):
-        if not track.is_deleted():
-            t_boxes[track.track_id].append(track.location)
-    return t_boxes
+def load_track_events(track_file:str, node_id:str) -> defaultdict[str,list[Box]]:
+    import functools
+    def append(t_boxes, ev):
+        t_boxes[ev.track_id].append(ev.location)
+        return t_boxes
+    def filter_cond(ev):
+        return (not node_id or ev.node_id == node_id) and not ev.is_deleted()
+        
+    events = read_event_file(track_file, event_type=TrackEvent)
+    events = filter(filter_cond, events)
+    return functools.reduce(append, events, defaultdict(list))
 
-def to_point_sequence(trajs: Dict[str,List[Box]]) -> Dict[str,List[Point]]:
-    def tbox_to_tpoint(tbox:List[Box]):
+def to_point_sequence(trajs: dict[str,list[Box]]) -> dict[str,list[Point]]:
+    def tbox_to_tpoint(tbox:list[Box]):
         return [box.center() for box in tbox]
     return {luid:tbox_to_tpoint(tbox) for luid, tbox in trajs.items()}
 
-def to_contact_points(trajs: Dict[str,List[Box]], localizer:WorldCoordinateLocalizer):
-    def tbox_to_tpoint(tbox:List[Box]):
+def to_contact_points(trajs: dict[str,list[Box]], localizer:WorldCoordinateLocalizer):
+    def tbox_to_tpoint(tbox:list[Box]):
         return [Point(localizer.select_contact_point(box.tlbr)) for box in tbox]
     return {luid:tbox_to_tpoint(tbox) for luid, tbox in trajs.items()}
-            
-def _x(pt):
-    return pt.x if isinstance(pt, Point) else pt[0]
-def _y(pt):
-    return pt.y if isinstance(pt, Point) else pt[1]
-def _xy(pt):
-    return pt.xy if isinstance(pt, Point) else pt
-
-_LOOK_AHEAD = 7
-class RunningStabilizer:
-    def __init__(self, look_ahead:int, smoothing_factor:float=1) -> None:
-        self.look_ahead = look_ahead
-        self.smoothing_factor = smoothing_factor
-        self.current, self.upper = 0, 0
-        self.pending_xs: List[float] = []
-        self.pending_ys: List[float] = []
-
-    def transform(self, pt:Point) -> Optional[Point]:
-        self.pending_xs.append(_x(pt))
-        self.pending_ys.append(_y(pt))
-        self.upper += 1
-
-        if self.upper - self.current > self.look_ahead:
-            xs = stabilizer.stabilization_location(self.pending_xs, self.look_ahead, self.smoothing_factor)
-            ys = stabilizer.stabilization_location(self.pending_ys, self.look_ahead, self.smoothing_factor)
-            xy = [xs[self.current], ys[self.current]]
-            stabilized = Point(xy)
-
-            self.current += 1
-            if self.current > self.look_ahead:
-                self.pending_xs.pop(0)
-                self.pending_ys.pop(0)
-                self.current -= 1
-                self.upper -= 1
-            return stabilized
-        else:
-            return None
-    
-    def get_tail(self) -> List[Point]:
-        xs = stabilizer.stabilization_location(self.pending_xs, self.look_ahead, self.smoothing_factor)
-        ys = stabilizer.stabilization_location(self.pending_ys, self.look_ahead, self.smoothing_factor)
-        return [Point([x,y]) for x, y in zip(xs[self.current:], ys[self.current:])]
-
-    def reset(self) -> None:
-        self.current, self.upper = 0, 0
-        self.pending_xs: List[float] = []
-        self.pending_ys: List[float] = []
-
-
-class TrajectoryDrawer:
-    def __init__(self, box_trajs: Dict[str,List[Box]], camera_image: Image, world_image: Image=None,
-                localizer:WorldCoordinateLocalizer=None, stabilizer:RunningStabilizer=None, traj_color:color=color.RED) -> None:
-        self.box_trajs = box_trajs
-        self.localizer = localizer
-        self.stabilizer = stabilizer
-        self.camera_image = camera_image
-        self.world_image = world_image
-        self.traj_color = traj_color
-        self.thickness = 2
-
-        self.show_world_coords = False
-        self.show_stabilized = False
-
-    def draw_to_file(self, outfile:str) -> None:
-        convas = self.draw(pause=False)
-        cv2.imwrite(outfile, convas)
-
-    def _put_text(self, convas:Image, luid:int=None):
-        id_str = f'luid={luid}, ' if luid is not None else ''
-        view = "world" if self.show_world_coords else "camera"
-        contact = self.localizer.contact_point_type.name if self.localizer else ContactPointType.Centroid.name
-        stabilized_flag = f', stabilized({self.stabilizer.smoothing_factor})' if self.show_stabilized else ''
-        return cv2.putText(convas, f'{id_str}view={view}, contact={contact}{stabilized_flag}',
-                            (10, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, self.traj_color, 2)
-
-    def draw(self, title='trajectories', pause:bool=True, capture_file='output/capture.png') -> Image:
-        bg_image = self.world_image if self.world_image is not None and self.show_world_coords else self.camera_image
-        convas = bg_image.copy()
-        convas = self._put_text(convas)
-        for traj in self.box_trajs.values():
-            convas = self._draw_trajectory(convas, traj)
-        
-        if pause:
-            while True:
-                cv2.imshow(title, convas)
-                key = cv2.waitKey(1) & 0xFF
-                if key == ord('q'):
-                    break
-                elif key != 0xFF:
-                    if key == ord('c') and self.localizer is not None:
-                        cp_value = self.localizer.contact_point_type.value + 1
-                        contact_point_type = ContactPointType(cp_value % len(ContactPointType))
-                        self.localizer.contact_point_type = contact_point_type
-                    elif key == ord('w') and self.localizer is not None:
-                        self.show_world_coords = not self.show_world_coords
-                    elif key == ord('t'):
-                        self.show_stabilized = not self.show_stabilized
-
-                    bg_image = self.world_image if self.world_image is not None and self.show_world_coords else self.camera_image
-                    convas = bg_image.copy()
-                    convas = self._put_text(convas)
-                    for traj in self.box_trajs.values():
-                        convas = self._draw_trajectory(convas, traj)
-                        
-                if key == ord('s'):
-                        out_file = capture_file if capture_file else 'output.png'
-                        cv2.imwrite(out_file, convas)
-            cv2.destroyWindow(title)
-        return convas
-
-    def draw_interactively(self, title='trajectories', capture_file='capture.png'):
-        id_list = sorted(self.box_trajs)
-        try:
-            idx = 0
-            while True:
-                luid = id_list[idx]
-                bg_img = self.world_image if self.world_image is not None and self.show_world_coords else self.camera_image
-                convas = bg_img.copy()
-                convas = self._put_text(convas, luid)
-                convas = self._draw_trajectory(convas, self.box_trajs[luid])
-
-                while True:
-                    cv2.imshow(title, convas)
-                    key = cv2.waitKey(1) & 0xFF
-                    if key == ord('q'):
-                        return
-                    elif key == ord('n'):
-                        idx = min(idx+1, len(id_list)-1)
-                        break
-                    elif key == ord('p'):
-                        idx = max(idx-1, 0)
-                        break
-                    elif key == ord('c') and self.localizer is not None:
-                        cp_value = self.localizer.contact_point_type.value + 1
-                        contact_point_type = ContactPointType(cp_value % len(ContactPointType))
-                        self.localizer.contact_point_type = contact_point_type
-                        break
-                    elif key == ord('w') and self.localizer is not None:
-                        self.show_world_coords = not self.show_world_coords
-                        break
-                    elif key == ord('t'):
-                        self.show_stabilized = not self.show_stabilized
-                        break
-                    elif key == ord('s'):
-                        out_file = capture_file if capture_file else 'output.png'
-                        cv2.imwrite(out_file, convas)
-        finally:
-            cv2.destroyWindow(title)
-
-    def _draw_trajectory(self, convas:Image, traj: List[Box]) -> Image:
-        pts = None
-        if self.localizer is not None:
-            pts = [self.localizer.select_contact_point(box.tlbr) for box in traj]
-        else:
-            pts = [box.center() for box in traj]
-            
-        if self.show_world_coords:
-            def camera_to_image(pt):
-                pt, _ = self.localizer.from_camera_coord(pt)
-                return self.localizer.to_image_coord(pt)
-            
-            pts = [camera_to_image(pt_c) for pt_c in pts]
-            
-        if self.show_stabilized:
-            pts = self.stabilize(pts)
-            
-        pts = [_xy(pt) for pt in pts]
-        pts = np.rint(np.array(pts)).astype('int32')
-        return cv2.polylines(convas, [pts], False, self.traj_color, self.thickness)
-            
-    def stabilize(self, traj:List[Point]) -> List[Point]:
-        pts_s = []
-        for pt in traj:
-            pt_s = self.stabilizer.transform(pt)
-            if pt_s is not None:
-                pts_s.append(pt_s)
-        pts_s.extend(self.stabilizer.get_tail())
-        self.stabilizer.reset()
-
-        return pts_s
-
+     
 
 def main():
     args, _ = parse_args()
 
-    box_trajs = load_trajectories_json(args.track_file)
+    box_trajs = load_track_events(args.track_file, args.node)
 
     bg_img = load_video_image(args.video, args.frame)
     contact_point = ContactPointType(_contact_point_choices.index(args.contact_point))

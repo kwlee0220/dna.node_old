@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict
-
 from argparse import Namespace
 from omegaconf import OmegaConf
 
 from dna import config
 
 
-def load_camera_conf(args:Dict[str,Any]|Namespace) -> OmegaConf:
+def load_camera_conf(args:dict[str,object]|Namespace) -> OmegaConf:
     if isinstance(args, Namespace):
         args = vars(args)
     
@@ -41,38 +39,46 @@ def parse_true_false_string(truth:str):
 
 def update_namespace_with_environ(args:Namespace) -> Namespace:
     import os
+    import logging
+    from typing import Optional
+    from collections.abc import Callable
+    
+    def set_from_environ(args:Namespace, env_name:str, key:str, *, handler:Optional[Callable[[str],object]]=None) -> None:
+        if value := os.environ.get(env_name):
+            if handler:
+                value = handler(value)
+            args[key] = value
+            if logger.isEnabledFor(logging.INFO):
+                logger.info(f"use environment: name='{env_name}', value='{value}'")
+    
+    logger = logging.getLogger('dna.envs')
 
     args = vars(args)
-    if v := os.environ.get('DNA_NODE_CONF'):
-        args['conf'] = v
-    if v := os.environ.get('DNA_NODE_CAMERA'):
-        args['camera'] = v
-    if v := os.environ.get('DNA_NODE_SYNC'):
-        args['sync'] = parse_true_false_string(v)
-    if v := os.environ.get('DNA_NODE_BEGIN_FRAME'):
-        args['begin_frame'] = v
-    if v := os.environ.get('DNA_NODE_END_FRAME'):
-        args['end_frame'] = v
-    if v := os.environ.get('DNA_NODE_OUTPUT'):
-        args['output'] = v
-    if v := os.environ.get('DNA_NODE_OUTPUT_VIDEO'):
-        args['output_video'] = v
-    if v := os.environ.get('DNA_NODE_SHOW_PROGRESS'):
-        args['show_progress'] = parse_true_false_string(v)
-    if v := os.environ.get('DNA_NODE_SHOW'):
-        truth = parse_true_false_string(v)
+    set_from_environ(args, 'DNA_NODE_CONF', 'conf')
+    set_from_environ(args, 'DNA_NODE_CAMERA', 'camera')
+    set_from_environ(args, 'DNA_NODE_SYNC', 'sync', handler=parse_true_false_string)
+    set_from_environ(args, 'DNA_NODE_BEGIN_FRAME', 'begin_frame', handler=lambda s:int(s))
+    set_from_environ(args, 'DNA_NODE_END_FRAME', 'end_frame', handler=lambda s:int(s))
+    set_from_environ(args, 'DNA_NODE_OUTPUT', 'output')
+    set_from_environ(args, 'DNA_NODE_OUTPUT_VIDEO', 'output_video')
+    set_from_environ(args, 'DNA_NODE_SHOW_PROGRESS', 'show_progress', handler=parse_true_false_string)
+    
+    def parse_size(size_str:str) -> Optional[str]:
+        truth = parse_true_false_string(size_str)
         if truth is None:
-            args['show'] = v
+            return v
         elif truth is True:
-            args['show'] = '0x0'
+            return '0x0'
         else:
-            args['show'] = None
-    if v := os.environ.get('DNA_NODE_KAFKA_BROKERS'):
-        brokers = v.split(',')
-        args['bootstrap_servers'] = brokers
-    if v := os.environ.get('DNA_NODE_LOGGER'):
-        args['logger'] = v
-    if v := os.environ.get('DNA_NODE_FFMPEG_PATH'):
-        args['ffmpeg_path'] = v
+            return None
+    set_from_environ(args, 'DNA_NODE_SHOW', 'show', handler=parse_size)
+            
+    set_from_environ(args, 'DNA_NODE_KAFKA_BROKERS', 'kafka_brokers', handler=lambda s:s.split(','))
+    set_from_environ(args, 'DNA_NODE_LOGGER', 'logger')
+    set_from_environ(args, 'DNA_NODE_FFMPEG_PATH', 'ffmpeg_path')
+    set_from_environ(args, 'DNA_NODE_CONF_ROOT', 'conf_root')
+    set_from_environ(args, 'DNA_NODE_RABBITMQ_HOST', 'rabbitmq_host')
+    set_from_environ(args, 'DNA_NODE_RABBITMQ_USER', 'rabbitmq_user')
+    set_from_environ(args, 'DNA_NODE_RABBITMQ_PASSWORD', 'rabbitmq_password')
         
     return Namespace(**args)

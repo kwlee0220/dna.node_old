@@ -1,10 +1,13 @@
 from __future__ import annotations
-from typing import Any, NewType
+
+from typing import NewType, TypeAlias
+from collections.abc import Callable
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
 
 import time
 
+from dna import ByteString
 from dna.track.track_state import TrackState
 
 
@@ -29,7 +32,10 @@ class KafkaEvent(metaclass=ABCMeta):
     def key(self) -> str: pass
     
     @abstractmethod
-    def serialize(self) -> Any: pass
+    def serialize(self) -> object: pass
+
+KafkaEventDeserializer:TypeAlias = Callable[[ByteString], KafkaEvent]
+KafkaEventSerializer:TypeAlias = Callable[[KafkaEvent], ByteString]
 
 
 @dataclass(frozen=True, eq=True)    # slots=True
@@ -38,7 +44,7 @@ class TrackDeleted:
     track_id: TrackId   # tracking object id
     frame_index: int = field(hash=False)
     ts: int = field(hash=False)
-    source:Any = field(default=None)
+    source:object = field(default=None)
 
     def key(self) -> str:
         return self.node_id

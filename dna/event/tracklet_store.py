@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import List, Tuple, Generator, Iterable, Optional
+from typing import Optional
+from collections.abc import Iterable, Generator
 
 from contextlib import closing
 
@@ -27,7 +28,7 @@ _CREATE_INDEX_ON_TRACK_EVENTS = """
     CREATE INDEX track_events_idx ON track_events(node_id, track_id)
     """
 
-_CREATE_TRACKET_ROUTES = """
+_CREATE_TRACKET_MOTIONS = """
     CREATE TABLE IF NOT EXISTS tracklet_motions
     (
         node_id character varying NOT NULL,
@@ -36,6 +37,7 @@ _CREATE_TRACKET_ROUTES = """
         enter_zone character varying,
         exit_zone character varying,
         motion character varying,
+        frame_index integer NOT NULL,
         ts bigint NOT NULL,
         PRIMARY KEY (node_id, track_id)
     );
@@ -47,13 +49,14 @@ _CREATE_INDEX_ON_TRACKLET_EXITS = """
     CREATE INDEX tracklet_exit_idx ON tracklet_motions(node_id, exit_zone ASC NULLS LAST)
 """
 
-_CREATE_TRACKLET_FEATURES = """
+_CREATE_TRACK_FEATURES = """
     CREATE TABLE IF NOT EXISTS track_features
     (
         node_id character varying NOT NULL,
         track_id character varying NOT NULL,
         feature bytea,
         zone_relation character varying,
+        frame_index integer NOT NULL,
         ts bigint NOT NULL,
         PRIMARY KEY (node_id, track_id, ts)
     );
@@ -94,10 +97,10 @@ class TrackletStore:
             
             cursor.execute(_CREATE_TRACK_EVENTS)                # track_events
             cursor.execute(_CREATE_INDEX_ON_TRACK_EVENTS)       # track_events_idx
-            cursor.execute(_CREATE_TRACKET_ROUTES)              # tracklet_motions
+            cursor.execute(_CREATE_TRACKET_MOTIONS)              # tracklet_motions
             cursor.execute(_CREATE_INDEX_ON_TRACKLET_ENTERS)    # tracklet_enter_idx
             cursor.execute(_CREATE_INDEX_ON_TRACKLET_EXITS)     # tracklet_exit_idx
-            cursor.execute(_CREATE_TRACKLET_FEATURES)           # track_features
+            cursor.execute(_CREATE_TRACK_FEATURES)              # track_features
             cursor.execute(_CREATE_TRAJECTORIES)                # trajectories
             cursor.execute(_CREATE_INDEX_ON_TRAJECTORIES)       # trajectories_idx
             cursor.execute(_CREATE_SEQUENCE_TRAJECTORY)         # trajectory_seq
@@ -138,7 +141,7 @@ class TrackletStore:
             events = [TrackEvent.from_row(row) for row in cursor.fetchall()]
             return Tracklet(track_id, events)
         
-    def list_tracklets_in_range(self, node_id:NodeId, begin_ts:int, end_ts:int) -> List[TrackletId]:
+    def list_tracklets_in_range(self, node_id:NodeId, begin_ts:int, end_ts:int) -> list[TrackletId]:
         """주어진 node에서 주어진 기간동안 TrackEvent를 발생시킨 모든 track들의 식별자를 반환한다.
         TrackEvent 발생이 주어진 시간 구간을 포함하는 모든 track들의 식별자를 반환한다.
 
@@ -148,7 +151,7 @@ class TrackletStore:
             end_ts (int): 검색 종료 시각
 
         Returns:
-            List[str]: TrackEvent 발생이 주어진 시간 구간을 포함하는 모든 track들의 식별자 리스트.
+            list[str]: TrackEvent 발생이 주어진 시간 구간을 포함하는 모든 track들의 식별자 리스트.
         """
         sql = 'select distinct node_id, track_id from track_events where node_id=%s and ts >= %s and ts <= %s'
         with closing(self.connector.connect()) as conn:
@@ -168,7 +171,7 @@ class TrackletStore:
         cursor = conn.cursor()
         for bulk in iterables.buffer_iterable(features, count=batch_size):
             values = [feature.to_row() for feature in bulk]
-            cursor.executemany('INSERT INTO track_features VALUES(%s,%s,%s,%s,%s)', values)
+            cursor.executemany('INSERT INTO track_features VALUES(%s,%s,%s,%s,%s,%s)', values)
             count += len(values)
         conn.commit()
         return count
@@ -177,7 +180,7 @@ class TrackletStore:
                                *,
                                begin_ts:Optional[int]=None,
                                end_ts:Optional[int]=None,
-                               skip_eot:bool=True) -> List[TrackFeature]:
+                               skip_eot:bool=True) -> list[TrackFeature]:
         """주어진 track에 의해 생성된 feature 레코드를 검색한다.
 
         Args:
@@ -189,7 +192,7 @@ class TrackletStore:
             skip_eot (Optional[bool]): End-of-Track feature 레코드 무시 여부.
 
         Returns:
-            List[TrackFeature]: 검색된 Track record 리스트.
+            list[TrackFeature]: 검색된 Track record 리스트.
         """
         params = list(tracklet_id)
         sql = 'select * from track_features where node_id=%s and track_id=%s'
@@ -217,13 +220,13 @@ class TrackletStore:
         cursor = conn.cursor()
         for bulk in iterables.buffer_iterable(motions, count=batch_size):
             rows = [motion.to_row() for motion in bulk]
-            cursor.executemany('INSERT INTO tracklet_motions VALUES(%s,%s,%s,%s,%s,%s,%s)', rows)
+            cursor.executemany('INSERT INTO tracklet_motions VALUES(%s,%s,%s,%s,%s,%s,%s,%s)', rows)
             count += len(rows)
         conn.commit()
         return count
     
     def list_tracklet_motions(self, node_id:str, *,
-                              enter_zone:Optional[str]=None, exit_zone:Optional[str]=None) -> List[TrackletMotion]:
+                              enter_zone:Optional[str]=None, exit_zone:Optional[str]=None) -> list[TrackletMotion]:
         enter_zone_pred = f" and enter_zone = '{enter_zone}'" if enter_zone else ''
         exit_zone_pred = f" and exit_zone = '{exit_zone}'" if exit_zone else ''
         sql = f"select * from tracklet_motions where node_id = '{node_id}'{enter_zone_pred}{exit_zone_pred}"
@@ -248,7 +251,7 @@ class TrackletStore:
             for row in cursor.fetchall():
                 yield TrackEvent.from_row(row)
         
-    def read_first_and_last_track(self, node_id:NodeId, track_id:TrackId) -> Tuple[TrackEvent,TrackEvent]:
+    def read_first_and_last_track(self, node_id:NodeId, track_id:TrackId) -> tuple[TrackEvent,TrackEvent]:
         sql_first = 'select * from track_events where node_id=%s and track_id=%s order by ts,row_no limit 1'
         sql_last = 'select * from track_events where node_id=%s and track_id=%s order by ts desc,row_no desc limit 1'
         with closing(self.connector.connect()) as conn:

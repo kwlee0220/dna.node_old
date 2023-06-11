@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import List, Union, Optional, Any
+
+from typing import Union, Optional
 import dataclasses
 import threading
 
@@ -71,7 +72,7 @@ class LogTrackEventPipeline(EventQueue):
         self.plugins[id] = plugin
         
     def run(self) -> None:
-        from dna.node.utils import read_tracks_json
+        from dna.event.utils import read_tracks_json
         for track in read_tracks_json(self.track_file):
             self._publish_event(track)
         self.close()
@@ -79,8 +80,8 @@ class LogTrackEventPipeline(EventQueue):
 
 class MinFrameIndexComposer:
     def __init__(self) -> None:
-        self.processors:List[EventProcessor] = []
-        self.min_indexes:List[int] = []
+        self.processors:list[EventProcessor] = []
+        self.min_indexes:list[int] = []
         self.min_holder = -1
         
     def append(self, proc:EventProcessor) -> None:
@@ -215,7 +216,7 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
     def track_stopped(self, tracker) -> None:
         self.close()
         
-    def process_tracks(self, tracker:DNATracker, frame:Frame, tracks:List[ObjectTrack]) -> None:
+    def process_tracks(self, tracker:DNATracker, frame:Frame, tracks:list[ObjectTrack]) -> None:
         for ev in tracker.last_event_tracks:
             ev = dataclasses.replace(ev, node_id=self.node_id)
             # self._publish_event(ev)
@@ -252,9 +253,13 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
         pipeline.add_listener(plugin)
         pipeline.plugins['local_path'] = plugin
         
+    kafka_brokers = config.get(plugins_conf, 'kafka_brokers')
+        
     publish_tracks_conf = config.get(plugins_conf, 'publish_tracks')
     if publish_tracks_conf:
         from dna.event import KafkaEventPublisher
+        
+        config.update(publish_tracks_conf, 'kafka_brokers', kafka_brokers, ignore_if_exists=True)
         plugin = KafkaEventPublisher.from_conf(publish_tracks_conf, logger=logger.getChild('kafka.tracks'))
         pipeline.add_listener(plugin)
         pipeline.plugins['publish_tracks'] = plugin
@@ -272,6 +277,7 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
         pipeline.group_event_queue.add_listener(publish)
         image_processor.add_frame_processor(publish)
         
+        config.update(publish_features_conf, 'kafka_brokers', kafka_brokers, ignore_if_exists=True)
         plugin = KafkaEventPublisher.from_conf(publish_features_conf, logger=logger.getChild('kafka.features'))
         publish.add_listener(plugin)
         pipeline.plugins['publish_features'] = plugin
@@ -283,6 +289,7 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
             from ..event.kafka_event_publisher import KafkaEventPublisher
             motions = zone_pipeline.event_queues.get('motions')
             if motions:
+                config.update(publish_motions_conf, 'kafka_brokers', kafka_brokers, ignore_if_exists=True)
                 plugin = KafkaEventPublisher.from_conf(publish_motions_conf, logger=logger.getChild('kafka.motions'))
                 motions.add_listener(plugin)
                 pipeline.plugins['publish_motions'] = plugin

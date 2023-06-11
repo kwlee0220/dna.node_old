@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import Tuple, Iterable, List, Optional
+
+from typing import Optional
+from collections.abc import Iterable
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -15,16 +17,16 @@ class HungarianMatcher(Matcher):
         self.invalid_value = invalid_value
         
     def match(self, row_idxes:Optional[Iterable[int]]=None, column_idxes:Optional[Iterable[int]]=None) \
-         -> List[Tuple[int,int]]:
+         -> list[tuple[int,int]]:
         return self.matching_by_hungarian(self.threshold, row_idxes, column_idxes)
         
     def match_threshold(self, threshold:float, row_idxes:Optional[Iterable[int]]=None,
                         column_idxes:Optional[Iterable[int]]=None) \
-        -> List[Tuple[int,int]]:
+        -> list[tuple[int,int]]:
         return self.matching_by_hungarian(threshold, row_idxes, column_idxes)
 
     def matching_by_hungarian(self, threshold:float, row_idxes:Optional[Iterable[int]], col_idxes:Optional[Iterable[int]]) \
-        -> List[Tuple[int,int]]:
+        -> list[tuple[int,int]]:
         row_idxes = list(range(self.matrix.shape[0])) if row_idxes is None else row_idxes.copy()
         col_idxes = list(range(self.matrix.shape[1])) if col_idxes is None else col_idxes.copy()
         

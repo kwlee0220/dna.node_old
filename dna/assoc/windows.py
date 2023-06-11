@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Union, Optional, List, Tuple, Set, Dict, Iterable, Generator
+from typing import Union, Optional, Tuple, Set
+from collections.abc import Iterable, Generator
 
 import sys
 import logging
@@ -18,7 +19,7 @@ class Window:
     def __init__(self, begin_millis:int, end_millis:int) -> None:
         self.begin_millis = begin_millis
         self.end_millis = end_millis
-        self.events:List[TrackEvent] = []
+        self.events:list[TrackEvent] = []
         
     def range_contains(self, ev:TrackEvent) -> bool:
         return ev.ts >= self.begin_millis and ev.ts < self.end_millis
@@ -57,9 +58,9 @@ class TumblingWindowAssigner(EventProcessor):
                  logger:Optional[logging.Logger]=None) -> None:
         super().__init__()
         
-        self.max_ts:Dict[NodeId,int] = {node_id:0 for node_id in nodes}
+        self.max_ts:dict[NodeId,int] = {node_id:0 for node_id in nodes}
         self.window_interval_ms = window_interval_ms
-        self.windows:List[Window] = []
+        self.windows:list[Window] = []
         self.dirty = True
         self.logger = logger
         

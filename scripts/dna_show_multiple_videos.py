@@ -1,14 +1,13 @@
-from typing import Tuple, List
-from contextlib import closing, contextmanager, ExitStack
 
+import argparse
 import cv2
 import numpy as np
 
 from dna import initialize_logger, Size2d, color, Frame, Image, Box
 from dna.camera import Camera, ImageCapture, create_opencv_camera
+from dna.camera.utils import multi_camera_context
 
 
-import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description="Show multiple videos")
     parser.add_argument("video_uris", nargs='+', help="video uris to display")
@@ -17,19 +16,14 @@ def parse_args():
 
     return parser.parse_known_args()
 
-@contextmanager
-def multi_camera_context(camera_list):
-    with ExitStack() as stack:
-        yield [stack.enter_context(closing(camera.open())) for camera in camera_list]
- 
 class MultipleCameraConvas:
-    def __init__(self, captures:List[ImageCapture]) -> None:
+    def __init__(self, captures:list[ImageCapture]) -> None:
         self.captures = captures
 
         size:Size2d = captures[0].size
         self.convas:Image = np.zeros((size.height*2, size.width*2, 3), np.uint8)
         self.blank_image:Image = np.zeros((size.height, size.width, 3), np.uint8)
-        self.last_frames:List[Frame] = [None] * len(self.captures)
+        self.last_frames:list[Frame] = [None] * len(self.captures)
         self.offset:int = 0
 
         roi:Box = Box.from_size(size)
@@ -37,7 +31,7 @@ class MultipleCameraConvas:
                      roi.translate(Size2d([size.width, 0])),
                      roi.translate(Size2d([0, size.height])),
                      roi.translate(size)]
-        size
+
     @property
     def size(self) -> int:
         return len(self.captures)
@@ -54,7 +48,7 @@ class MultipleCameraConvas:
         self.last_frames[idx] = self.captures[idx]()
         return self.draw(idx)
 
-    def update_all(self) -> List[bool]:
+    def update_all(self) -> list[bool]:
         return [self.update(idx) for idx in range(len(self.captures))]
         
     def draw(self, idx:int) -> bool:
@@ -71,6 +65,7 @@ class MultipleCameraConvas:
     def draw_frame_index(self, idx:int, image: Image) -> Image:
         index = self.last_frames[idx].index - self.offset
         return cv2.putText(image, f'{idx}: frames={index}', (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color.RED, 2)
+
 
 def loop_in_still_images(display:MultipleCameraConvas, title:str) -> int:
     while True:
@@ -91,6 +86,7 @@ def loop_in_still_images(display:MultipleCameraConvas, title:str) -> int:
             display.reset_offset()
             display.show(title)
 
+
 def main():
     args, _ = parse_args()
 
@@ -102,7 +98,7 @@ def main():
         begin_frames = [0] * len(args.video_uris)
 
     size:Size2d = None
-    camera_list:List[Camera] = []
+    camera_list:list[Camera] = []
     for idx, uri in enumerate(args.video_uris):
         camera = create_opencv_camera(uri, begin_frame=begin_frames[idx])
         if idx == 0:

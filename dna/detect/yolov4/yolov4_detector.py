@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from re import L
-from typing import List, Optional, Any
+from typing import Optional
 from pathlib import Path
 from urllib.parse import parse_qs
 
@@ -37,9 +39,9 @@ LOGGER = logging.getLogger('dna.detector.yolov4')
 
 @dataclass(frozen=True, eq=True)
 class YoloV4ModelDesc:
-    class_names: List[str]
+    class_names: list[str]
     cfg_file_path: str
-    weights_file_path: Any
+    weights_file_path: str
 
 def _download_model_descriptor(model_id: str, top_dir: Path) -> YoloV4ModelDesc:
     class_names_file = (top_dir / 'coco.names').as_posix()
@@ -104,7 +106,7 @@ class Yolov4TorchDetector(ObjectDetector):
         if self.use_cuda:
             self.model.cuda()
 
-    def detect(self, frame: Frame) -> List[Detection]:
+    def detect(self, frame: Frame) -> list[Detection]:
         sized = cv2.resize(frame.image, (self.model.width, self.model.height))
         sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 

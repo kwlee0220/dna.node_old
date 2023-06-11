@@ -33,6 +33,8 @@ def parse_args():
     parser.add_argument("--show_progress", help="display progress bar.", action='store_true')
     parser.add_argument("--show", "-s", nargs='?', const='0x0', default=None)
     parser.add_argument("--loop", action='store_true')
+    
+    parser.add_argument("--kafka_brokers", nargs='+', metavar="hosts", help="Kafka broker hosts list", default=None)
 
     parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
     return parser.parse_known_args()
@@ -40,9 +42,8 @@ def parse_args():
 
 def main():
     args, _ = parse_args()
-    args = update_namespace_with_environ(args)
-
     dna.initialize_logger(args.logger)
+    args = update_namespace_with_environ(args)
     
     # argument에 기술된 conf를 사용하여 configuration 파일을 읽는다.
     conf = config.load(args.conf) if args.conf else OmegaConf.create()
@@ -53,9 +54,12 @@ def main():
 
     # args에 포함된 ImageProcess 설정 정보를 추가한다.
     config.update_values(conf, args, 'show', 'output_video', 'show_progress')
+    if args.kafka_brokers:
+        # 'kafka_brokers'가 설정된 경우 publishing 작업에서 이 broker로 접속하도록 설정한다.
+        config.update(conf, 'publishing.plugins.kafka_brokers', args.kafka_brokers)
     if args.output:
         # 'output'이 설정되어 있으면, track 결과를 frame 단위로 출력할 수 있도록 설정을 수정함.
-        OmegaConf.update(conf, "publishing.plugins.output", args.output, merge=True)
+        config.update(conf, "publishing.plugins.output", args.output)
 
     while True:
         options = config.to_dict(config.filter(conf, 'show', 'output_video', 'show_progress'))

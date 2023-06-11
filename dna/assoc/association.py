@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import Any, Union, Optional, List, Tuple, Dict, Set, Iterator, Iterable, Generator, NewType, Callable
+
+from typing import Union, Optional, NewType
+from collections.abc import Iterator, Iterable
 from abc import ABCMeta, abstractmethod
 
 import functools
@@ -10,18 +12,17 @@ from dna.event import TrackDeleted, TrackletId, NodeId, TrackId, EventProcessor
 from dna.support import iterables
 
 
-       
 def _GET_NODE(tracklet:TrackletId):
     return tracklet.node_id
 
 class Association(metaclass=ABCMeta):
     @property
     @abstractmethod
-    def tracklets(self) -> Set[TrackletId]:
+    def tracklets(self) -> set[TrackletId]:
         pass
     
     @property
-    def nodes(self) -> Set[NodeId]:
+    def nodes(self) -> set[NodeId]:
         return {trk.node_id for trk in self.tracklets}
     
     @property
@@ -152,11 +153,11 @@ class Association(metaclass=ABCMeta):
         else:
             return self.is_more_specific(other)
     
-    def intersect_nodes(self, other:Union[Association,Iterable[NodeId]]) -> List[NodeId]:
+    def intersect_nodes(self, other:Union[Association,Iterable[NodeId]]) -> list[NodeId]:
         other_nodes = other.nodes if isinstance(other, Association) else set(other)
         return self.nodes.intersection(other_nodes)
     
-    def intersect_tracklets(self, other:Union[Association,Iterable[TrackletId]]) -> List[TrackletId]:
+    def intersect_tracklets(self, other:Union[Association,Iterable[TrackletId]]) -> list[TrackletId]:
         other_tracklets = other.tracklets if isinstance(other, Association) else set(other)
         return self.tracklets.intersection(other_tracklets)
     
@@ -203,10 +204,10 @@ class BinaryAssociation(Association):
         self._tracklets = {tracklet1, tracklet2}
         self._score = score
         self._ts = ts
-        self._closeds:Set[NodeId] = set()
+        self._closeds:set[NodeId] = set()
     
     @property
-    def tracklets(self) -> Set[TrackletId]:
+    def tracklets(self) -> set[TrackletId]:
         return self._tracklets
     
     @property
@@ -247,7 +248,7 @@ class BinaryAssociation(Association):
         tracklet2 = TrackletId(args[2], args[3])
         return BinaryAssociation(tracklet1, tracklet2, score=args[4], ts=args[5])
     
-    def to_row(self) -> Tuple[str,str,str,str,float,int]:
+    def to_row(self) -> tuple[str,str,str,str,float,int]:
         trk1, trk2 = tuple(sorted(self._tracklets))
         return (trk1.node_id, trk1.track_id,
                 trk2.node_id, trk2.track_id,

@@ -1,17 +1,20 @@
 from __future__ import annotations
-from typing import Union, List, Tuple, Generator, Dict, ByteString
+
+from typing import Union
+from collections.abc import Generator
 
 from dataclasses import dataclass, field
 from ..event.track_event import TrackEvent
 
+from dna import ByteString
 from dna.track.track_state import TrackState
 from dna.event import TrackId
 
 
 class Tracklet:
-    def __init__(self, track_id:TrackId, tracks:List[TrackEvent], offset:int=0) -> None:
+    def __init__(self, track_id:TrackId, tracks:list[TrackEvent], offset:int=0) -> None:
         self.track_id = track_id
-        self.tracks:List[TrackEvent] = tracks
+        self.tracks:list[TrackEvent] = tracks
 
     def is_closed(self) -> bool:
         return len(self.tracks) > 0 and self.tracks[-1].state == TrackState.Deleted
@@ -39,7 +42,7 @@ class Tracklet:
         self.tracks.append(track)
 
     @staticmethod
-    def from_tracks(tracks:List[TrackEvent]) -> Tracklet:
+    def from_tracks(tracks:list[TrackEvent]) -> Tracklet:
         if len(tracks) > 0:
             raise ValueError(f'empty track events')
         return Tracklet(tracks[0].track_id, tracks)
@@ -53,7 +56,7 @@ class Tracklet:
         return overlap1, overlap2
     
     @staticmethod
-    def sync(tracklet1:Tracklet, tracklet2:Tracklet) -> Generator[Tuple[TrackEvent,TrackEvent], None, None]:
+    def sync(tracklet1:Tracklet, tracklet2:Tracklet) -> Generator[tuple[TrackEvent,TrackEvent], None, None]:
         try:
             iter1, iter2 = iter(tracklet1), iter(tracklet2)
             track1, track2 = next(iter1), next(iter2)
@@ -79,8 +82,8 @@ class Tracklet:
         return f'{self.track_id}{state_str}:{len(self.tracks)}[{seq_str}]'
     
 
-def read_tracklets(tracklet_gen:Generator[TrackEvent, None, None]) -> Dict[TrackId, Tracklet]:
-    tracklets:Dict[TrackId, Tracklet] = dict()
+def read_tracklets(tracklet_gen:Generator[TrackEvent, None, None]) -> dict[TrackId, Tracklet]:
+    tracklets:dict[TrackId, Tracklet] = dict()
     for track in tracklet_gen:
         tracklet = tracklets.get(track.track_id)
         if not tracklet:

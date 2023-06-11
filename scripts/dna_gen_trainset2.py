@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing import List, Dict, Generator, Any, Tuple, Optional
 
+from typing import Optional
+from collections.abc import Generator
 from contextlib import closing
 from datetime import timedelta
 from pathlib import Path
@@ -25,7 +26,7 @@ from dna.track.track_state import TrackState
 from dna.event import EventProcessor, TrackId
 from dna.node import TrackEventPipeline
 from dna.node.zone import ZoneEvent, ZonePipeline
-from dna.node.utils import read_tracks_json
+from dna.event.utils import read_tracks_json
 from dna.zone import Zone
 
 
@@ -45,8 +46,8 @@ def parse_args():
     return parser.parse_known_args()
 
 
-def load_tracklets_by_frame(tracklet_gen:Generator[TrackEvent, None, None]) -> Dict[int,List[TrackEvent]]:
-    tracklets:Dict[int,List[TrackEvent]] = dict()
+def load_tracklets_by_frame(tracklet_gen:Generator[TrackEvent, None, None]) -> dict[int,list[TrackEvent]]:
+    tracklets:dict[int,list[TrackEvent]] = dict()
     for track in tracklet_gen:
         tracks = tracklets.get(track.frame_index)
         if tracks is None:
@@ -58,8 +59,8 @@ def load_tracklets_by_frame(tracklet_gen:Generator[TrackEvent, None, None]) -> D
 
 
 class TrackletCropWriter(FrameProcessor):
-    def __init__(self, tracks_per_frame_index:Dict[int, List[TrackEvent]],
-                 global_tracklet_mappings: Dict[TrackId,Tuple[str,str,str]],
+    def __init__(self, tracks_per_frame_index:dict[int, list[TrackEvent]],
+                 global_tracklet_mappings: dict[TrackId,tuple[str,str,str]],
                  output_dir:str,
                  margin:int=5,
                  min_size:Size2d=Size2d([80, 80])) -> None:
@@ -115,10 +116,10 @@ class TrackletCropWriter(FrameProcessor):
         return self.output_dir / f'{gid}' / f'{node_id}_{seqno:05}.png'
 
 
-def load_tracklet_matches(file:str, start_index:int=0) -> Dict[(str, TrackId),str]:
+def load_tracklet_matches(file:str, start_index:int=0) -> dict[(str, TrackId),str]:
     import csv
 
-    global_tracklet_mappings:Dict[(str, TrackId),str] = dict()
+    global_tracklet_mappings:dict[(str, TrackId),str] = dict()
     with open(file, 'r') as fp:
         csv_reader = csv.DictReader(fp)
         for idx, fields in enumerate(csv_reader, start=start_index):

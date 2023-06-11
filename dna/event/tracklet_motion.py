@@ -1,9 +1,10 @@
 from __future__ import annotations
-from typing import Any, ByteString, Tuple
+
 from dataclasses import dataclass, field
 
 import json
 
+from dna import ByteString
 from dna.event import KafkaEvent, TrackletId
 
 
@@ -15,6 +16,7 @@ class TrackletMotion(KafkaEvent):
     enter_zone: str = field(compare=False)
     exit_zone: str = field(compare=False)
     motion: str = field(compare=False)
+    frame_index: int
     ts: int
 
     def key(self) -> str:
@@ -33,6 +35,7 @@ class TrackletMotion(KafkaEvent):
                               enter_zone=json_obj['enter_zone'],
                               exit_zone=json_obj['exit_zone'],
                               motion=json_obj['motion'],
+                              frame_index=json_obj['frame_index'],
                               ts=json_obj['ts'])
 
     def to_json(self) -> str:
@@ -42,10 +45,11 @@ class TrackletMotion(KafkaEvent):
                       'enter_zone':self.enter_zone,
                       'exit_zone':self.exit_zone,
                       'motion':self.motion,
+                      'frame_index':self.frame_index,
                       'ts':self.ts}
         return json.dumps(serialized, separators=(',', ':'))
 
-    def serialize(self) -> Any:
+    def serialize(self) -> object:
         return self.to_json().encode('utf-8')
 
     @staticmethod
@@ -61,12 +65,13 @@ class TrackletMotion(KafkaEvent):
                               enter_zone=row[3],
                               exit_zone=row[4],
                               motion=row[5],
-                              ts=row[6])
+                              frame_index=row[5],
+                              ts=row[7])
 
     def to_row(self) -> Tuple:
         return (self.node_id, self.track_id, self.zone_sequence,
-                self.enter_zone, self.exit_zone, self.motion, self.ts)
+                self.enter_zone, self.exit_zone, self.motion, self.frame_index, self.ts)
 
     def __repr__(self) -> str:
         # dt = utc2datetime(self.ts)
-        return f'{self.__class__.__name__}[id={self.node_id}[{self.track_id}], motion={self.motion}, ts={self.ts}]'
+        return f'{self.__class__.__name__}[id={self.node_id}[{self.track_id}], motion={self.motion}, frame={self.frame_index}, ts={self.ts}]'

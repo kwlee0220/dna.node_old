@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from pathlib import Path
 import logging
@@ -34,7 +34,7 @@ class DeepSORTMetricExtractor(MetricExtractor):
             
         return 1. - np.dot(metric1, metric2.T)
     
-    def extract_crops(self, crops:List[Image]) -> np.ndarray:
+    def extract_crops(self, crops:list[Image]) -> np.ndarray:
         processed_crops = [self.transforms(crop) for crop in crops]
         processed_crops = torch.stack(processed_crops)
         processed_crops = processed_crops.cuda()
@@ -48,7 +48,7 @@ class DeepSORTMetricExtractor(MetricExtractor):
             features = features / np.linalg.norm(features, axis=1, keepdims=True)
         return features
         
-    def extract_boxes(self, image:Image, boxes:List[Box]) -> np.ndarray:
+    def extract_boxes(self, image:Image, boxes:list[Box]) -> np.ndarray:
         tlwh_list = [box.tlwh for box in boxes]
         processed_crops = self.pre_process(image, tlwh_list).cuda()
         processed_crops = self.gaussian_mask * processed_crops
@@ -61,7 +61,7 @@ class DeepSORTMetricExtractor(MetricExtractor):
             features = features / np.linalg.norm(features, axis=1, keepdims=True)
         return features
 
-    def extract_dets(self, image:Image, detections:List[Detection]):
+    def extract_dets(self, image:Image, detections:list[Detection]):
         if detections:
             tlwh_list = [det.bbox.tlwh for det in detections]
             processed_crops = self.pre_process(image, tlwh_list).cuda()

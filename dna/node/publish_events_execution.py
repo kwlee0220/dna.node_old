@@ -1,5 +1,4 @@
-
-from typing import List
+from __future__ import annotations
 import heapq
 import time
 
@@ -13,7 +12,7 @@ from dna.event.track_event import TrackEvent
 
 
 class TrackEventPublishingExecution(AbstractExecution):
-    def __init__(self, context: ExecutionContext, topic:str, bootstrap_servers:List[str], sync:bool=True) -> None:
+    def __init__(self, context: ExecutionContext, topic:str, bootstrap_servers:list[str], sync:bool=True) -> None:
         super().__init__()
 
         self.ctx = context
@@ -66,7 +65,7 @@ class TrackEventPublishingExecution(AbstractExecution):
 
 from omegaconf import OmegaConf
 class PikaEventPublisherFactory(PikaExecutionFactory):
-    def __init__(self, topic:str, bootstrap_servers:List[str], sync:bool=True) -> None:
+    def __init__(self, topic:str, bootstrap_servers:list[str], sync:bool=True) -> None:
         super().__init__()
 
         self.topic = topic

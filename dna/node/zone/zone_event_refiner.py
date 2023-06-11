@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import Tuple, List, Dict, Any, Optional, Set, Union, Iterable
+
+from typing import Optional, Union
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 import logging
@@ -29,7 +31,7 @@ class ZoneEventRefiner(EventProcessor):
     def __init__(self, *, logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
 
-        self.locations:Dict[str,TrackLocations]=dict()
+        self.locations:dict[str,TrackLocations]=dict()
         self.location_event_queue = EventQueue()
         self.logger = logger
 

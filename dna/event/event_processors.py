@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 import sys
-from typing import List, Dict, Any, Union, Optional, Tuple, Callable
+from typing import Union, Optional
+from collections.abc import Callable
 
 import logging
 import threading
@@ -21,7 +23,7 @@ class PrintEvent(EventListener):
         self.header = header
         
     def close(self) -> None: pass
-    def handle_event(self, ev: Any) -> None:
+    def handle_event(self, ev: object) -> None:
         print(f"{self.header}{ev}")           
 
 class EventRelay(EventListener):
@@ -31,7 +33,7 @@ class EventRelay(EventListener):
     def close(self) -> None:
         pass
     
-    def handle_event(self, ev:Any) -> None:
+    def handle_event(self, ev:object) -> None:
         self.target._publish_event(ev)
 
 
@@ -57,7 +59,7 @@ class GroupByFrameIndex(EventProcessor):
     def __init__(self, min_frame_index_func:Callable[[],int], *, logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
 
-        self.groups:Dict[int,List[TrackEvent]] = defaultdict(list)  # frame index별로 TrackEvent들의 groupp
+        self.groups:dict[int,list[TrackEvent]] = defaultdict(list)  # frame index별로 TrackEvent들의 groupp
         self.min_frame_index_func = min_frame_index_func
         self.max_published_index = 0
         self.logger = logger
