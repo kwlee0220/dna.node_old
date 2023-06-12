@@ -1,6 +1,5 @@
 
-from typing import List, Optional
-
+from typing import Optional
 from contextlib import closing
 
 from kafka import KafkaConsumer
