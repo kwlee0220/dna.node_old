@@ -1,7 +1,7 @@
 
 from __future__ import annotations
-from typing import Tuple, Generator
 
+from collections.abc import Generator
 import sys
 from dataclasses import dataclass
 from collections import defaultdict
@@ -9,7 +9,7 @@ import itertools
 
 import time
 from dna import Point, initialize_logger
-from dna.event.track_event import TrackEvent
+from dna.event import TrackEvent
 from dna.support import iterables
 
 import logging

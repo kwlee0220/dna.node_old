@@ -1,19 +1,17 @@
 from __future__ import annotations
 
 from typing import Optional
-from collections.abc import ByteString
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 
 import numpy as np
 
+from dna import ByteString
 from .types import NodeId, TrackId, TrackletId, KafkaEvent
 from .proto.reid_feature_pb2 import TrackFeatureProto
 
 
 @dataclass(frozen=True, eq=True, order=False, repr=False)   # slots=True
 class TrackFeature(KafkaEvent):
-    # __slots__ = ('node_id', 'track_id', '_bfeature', '_feature', 'zone_relation', 'frame_index', 'ts')
-
     node_id: NodeId     # node id
     track_id: TrackId   # tracking object id
     frame_index: int
@@ -23,28 +21,18 @@ class TrackFeature(KafkaEvent):
 
     def key(self) -> str:
         return self.node_id
-    
-    # @staticmethod
-    # def __init__(self, **kwargs) -> None:
-    #     self.node_id:str = kwargs['node_id']
-    #     self.track_id:str = kwargs['track_id']
-    #     self._bfeature:Optional[ByteString] = kwargs.get('bfeature')
-    #     self._feature:Optional[np.ndarray] = kwargs.get('feature')
-    #     self.zone_relation:str = kwargs.get('zone_relation')
-    #     self.frame_index:int = kwargs['frame_index']
-    #     self.ts:int = kwargs['ts']
 
     @property
     def tracklet_id(self) -> TrackletId:
         return TrackletId(self.node_id, self.track_id)
 
     @staticmethod
-    def from_row(args) -> TrackFeature:
-        feature = np.frombuffer(args[2], dtype=np.float32) if args[2] is not None else None
-        return TrackFeature(node_id=args[0], track_id=args[1], feature=feature,
-                            zone_relation=args[3], frame_index=args[4], ts=args[5])
+    def from_row(row:tuple[NodeId,TrackId,ByteString,str,int,int]) -> TrackFeature:
+        feature = np.frombuffer(row[2], dtype=np.float32) if row[2] is not None else None
+        return TrackFeature(node_id=row[0], track_id=row[1], feature=feature,
+                            zone_relation=row[3], frame_index=row[4], ts=row[5])
 
-    def to_row(self) -> tuple[str,str,ByteString,int]:
+    def to_row(self) -> tuple[NodeId,TrackId,ByteString,str,int,int]:
         bfeature = self.feature.tobytes() if self.feature is not None else None
         return (self.node_id, self.track_id, bfeature, self.zone_relation, self.frame_index, self.ts)
 

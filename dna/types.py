@@ -518,17 +518,17 @@ class Box:
         return self.wh[1]
     
     @property
-    def coords(self) -> List:
+    def coords(self) -> list[tuple[float,float]]:
         """Returns a list of four corners of this box object.
         The order of corners are top-left, top-right, bottom-right, bottom-left.
 
         Returns:
-            List: a list of corner coordinates.
+            list[tuple[float,float]]: a list of corner coordinates.
         """
-        return [[self.tlbr[0], self.tlbr[1]],
-                [self.tlbr[2], self.tlbr[1]],
-                [self.tlbr[2], self.tlbr[3]],
-                [self.tlbr[0], self.tlbr[3]]]
+        return [(self.tlbr[0], self.tlbr[1]),
+                (self.tlbr[2], self.tlbr[1]),
+                (self.tlbr[2], self.tlbr[3]),
+                (self.tlbr[0], self.tlbr[3])]
 
     def top_left(self) -> Point:
         '''Returns the ``Point`` object of top-left corner of this box object.'''

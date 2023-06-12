@@ -1,7 +1,5 @@
 from __future__ import annotations
 import sys
-from typing import List
-from io import TextIOWrapper
 
 from contextlib import suppress
 from collections import defaultdict

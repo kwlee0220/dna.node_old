@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple, TypeVar, Union
+from typing import Optional, TypeVar, Union
 from collections.abc import Sequence, Iterable, Generator
 from pathlib import Path
 
@@ -25,7 +25,7 @@ def intersection(list1:Iterable, list2:list) -> list:
 def all_indices(values:Sequence):
     return list(range(len(values)))
 
-def project(tuples: Iterable[Tuple], elm_idx: int) -> list:
+def project(tuples: Iterable[tuple], elm_idx: int) -> list:
     return [t[elm_idx] for t in tuples]
 
 def get_items(values:Iterable[T], idxes:Iterable[int]) -> list[T]:

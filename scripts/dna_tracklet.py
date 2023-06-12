@@ -10,11 +10,10 @@ import itertools
 
 from dna import initialize_logger
 from dna import config
-from dna.event.track_event import TrackEvent
-from dna.assoc.tracklet_store import TrackletStore
+from dna.event import TrackEvent
+from dna.event.tracklet_store import TrackletStore
 from dna.event.utils import read_tracks_json
-from dna.support import iterables
-from dna.support import sql_utils
+from dna.support import iterables, sql_utils
 
 
 import argparse

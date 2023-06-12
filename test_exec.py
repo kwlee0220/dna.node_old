@@ -1,6 +1,5 @@
 
 import threading
-from typing import Tuple
 from contextlib import closing
 import json
 import logging

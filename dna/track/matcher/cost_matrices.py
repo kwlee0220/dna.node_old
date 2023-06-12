@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from typing import Set
 
 import numpy as np
 import numpy.typing as npt

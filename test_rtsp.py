@@ -1,6 +1,5 @@
 
 from time import sleep
-from typing import Tuple
 from contextlib import closing
 
 import cv2

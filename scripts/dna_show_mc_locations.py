@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Union, Optional, NamedTuple
+from typing import Union, Optional
 from contextlib import closing
 from collections import defaultdict
 from dataclasses import dataclass
@@ -12,7 +12,7 @@ import json
 
 from dna import Box, Image, BGR, color, Frame, Point
 from dna.camera import Camera
-from dna.event.track_event import TrackEvent
+from dna.event import TrackEvent
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
 from dna.node import stabilizer
 from dna.support import plot_utils

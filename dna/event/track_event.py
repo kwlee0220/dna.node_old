@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple
+from typing import Optional
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
 
@@ -9,9 +9,9 @@ import json
 import numpy as np
 
 from dna import Box, Point, ByteString
-from .types import NodeId, TrackId, TrackletId, KafkaEvent
+from dna.track import TrackState
 from dna.support import sql_utils
-from dna.track.track_state import TrackState
+from .types import NodeId, TrackId, TrackletId, KafkaEvent
 
 
 _WGS84_PRECISION = 7
@@ -59,7 +59,7 @@ class TrackEvent(KafkaEvent):
             return False
 
     @staticmethod
-    def from_row(row:Tuple) -> TrackEvent:
+    def from_row(row:tuple[str,str,TrackState,Box,Point,float,str,int,int]) -> TrackEvent:
         return TrackEvent(node_id=row[1],
                             track_id=row[2],
                             state=TrackState.from_abbr(row[3]),
@@ -70,7 +70,7 @@ class TrackEvent(KafkaEvent):
                             frame_index=row[8],
                             ts=row[9])
 
-    def to_row(self) -> Tuple:
+    def to_row(self) -> tuple[str,str,str,str,str,float,str,int,int]:
         return (self.node_id, self.track_id, self.state.abbr,
                 sql_utils.to_sql_box(self.location.to_rint()),
                 sql_utils.to_sql_point(self.world_coord),
@@ -125,7 +125,7 @@ class TrackEvent(KafkaEvent):
     def deserialize(serialized:ByteString) -> TrackEvent:
         return TrackEvent.from_json(serialized.decode('utf-8'))
 
-    def updated(self, **kwargs) -> TrackEvent:
+    def updated(self, **kwargs:object) -> TrackEvent:
         fields = asdict(self)
         for key, value in kwargs.items():
             fields[key] = value
@@ -143,7 +143,7 @@ class TrackEvent(KafkaEvent):
         return ','.join([str(v) for v in vlist])
 
     @staticmethod
-    def from_csv(csv: str):
+    def from_csv(csv: str) -> TrackEvent:
         parts = csv.split(',')
 
         node_id = parts[0]
@@ -166,7 +166,3 @@ class TrackEvent(KafkaEvent):
     def __repr__(self) -> str:
         return (f"TrackEvent[id={self.node_id}[{self.track_id}]({self.state.abbr}), "
                 f"frame={self.frame_index}, loc={self.location}, ts={self.ts}]")
-    
-
-EOT:TrackEvent = TrackEvent(node_id=None, track_id=None, state=None, location=None,
-                            world_coord=None, distance=None, frame_index=-1, ts=-1)

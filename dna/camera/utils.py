@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, NamedTuple
+from typing import Optional
 
 from contextlib import ExitStack, closing, contextmanager
         

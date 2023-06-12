@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 import json
 
 from dna import ByteString
-from dna.event import KafkaEvent, TrackletId
+from dna.event import KafkaEvent, NodeId, TrackId, TrackletId
 
 
 @dataclass(frozen=True, eq=True)
@@ -58,7 +58,7 @@ class TrackletMotion(KafkaEvent):
         return TrackletMotion.from_json(json_str)
 
     @staticmethod
-    def from_row(row:Tuple) -> TrackletMotion:
+    def from_row(row:tuple[str,str,str,str,str,str,int,int]) -> TrackletMotion:
         return TrackletMotion(node_id=row[0],
                               track_id=row[1],
                               zone_sequence=row[2],
@@ -68,7 +68,7 @@ class TrackletMotion(KafkaEvent):
                               frame_index=row[5],
                               ts=row[7])
 
-    def to_row(self) -> Tuple:
+    def to_row(self) -> tuple[NodeId,TrackId,str,str,str,str,int,int]:
         return (self.node_id, self.track_id, self.zone_sequence,
                 self.enter_zone, self.exit_zone, self.motion, self.frame_index, self.ts)
 

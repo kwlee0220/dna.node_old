@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, Tuple
+from typing import Union
 
 import numbers
 import numpy.typing as npt
@@ -42,7 +42,7 @@ class Zone:
     def covers(self, geom:BaseGeometry) -> bool:
         return self.geom.covers(geom)
 
-    def covers_point(self, pt:Union[Point,Tuple,npt.ArrayLike]) -> bool:
+    def covers_point(self, pt:Union[Point,tuple[float,float],npt.ArrayLike]) -> bool:
         xy = tuple(pt.xy) if isinstance(pt, Point) else tuple(pt)
         return self.geom.covers(geometry.Point(xy))
     

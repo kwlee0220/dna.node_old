@@ -9,13 +9,13 @@ import shapely.geometry as geometry
 import numpy as np
 
 from dna import Point
-from dna.event import TrackEvent
+from dna.event import TrackEvent, TrackId
 from dna.utils import utc2datetime
 
 
 @dataclass(frozen=True)
 class LineTrack:
-    track_id: str
+    track_id: TrackId
     line: geometry.LineString
     frame_index: int
     ts: float
@@ -25,11 +25,11 @@ class LineTrack:
         return self.line.coords[0] == self.line.coords[1]
     
     @property
-    def begin_point(self) -> Tuple:
+    def begin_point(self) -> tuple[float,float]:
         return self.line.coords[0]
     
     @property
-    def end_point(self) -> Tuple:
+    def end_point(self) -> tuple[float,float]:
         return self.line.coords[1]
         
     @staticmethod

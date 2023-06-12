@@ -6,9 +6,9 @@ import pika
 from kafka import KafkaProducer
 
 import dna
+from dna.event import TrackEvent
 from dna.execution import AbstractExecution, Execution, ExecutionContext, ExecutionFactory
 from dna.pika_execution import PikaExecutionContext, PikaExecutionFactory, PikaExecutionContext
-from dna.event.track_event import TrackEvent
 
 
 class TrackEventPublishingExecution(AbstractExecution):

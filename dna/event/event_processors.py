@@ -107,7 +107,7 @@ class GroupByFrameIndex(EventProcessor):
         return f"{self.__class__.__name__}[max_published={self.max_published_index}, range={range_str}]"
 
 class DropEventByType(EventProcessor):
-    def __init__(self, event_types:List) -> None:
+    def __init__(self, event_types:list[type]) -> None:
         super().__init__()
         self.drop_list = event_types
 
@@ -117,7 +117,7 @@ class DropEventByType(EventProcessor):
 
 
 class FilterEventByType(EventProcessor):
-    def __init__(self, event_types:List) -> None:
+    def __init__(self, event_types:list[type]) -> None:
         super().__init__()
         self.keep_list = event_types
 

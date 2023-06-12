@@ -4,9 +4,7 @@ from kafka import KafkaConsumer
 from datetime import timedelta
 
 from dna import initialize_logger, config
-from dna.event.types import TrackDeleted, TrackletId
-from dna.node import EventListener
-from dna.event.track_event import TrackEvent
+from dna.event import EventListener, TrackEvent, TrackDeleted, TrackletId
 from dna.event.utils import read_tracks_json
 from dna.assoc.associator_motion import NodeAssociationSchema, MotionBasedTrackletAssociator
 from dna.event.event_processors import PrintEvent

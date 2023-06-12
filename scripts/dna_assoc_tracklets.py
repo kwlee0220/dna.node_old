@@ -1,5 +1,4 @@
 
-# from typing import Tuple, List, Dict, Union, Generator, Set, Iterable
 from contextlib import closing
 from datetime import timedelta
 
@@ -7,10 +6,9 @@ from omegaconf import OmegaConf
 from kafka import KafkaConsumer
 
 from dna import initialize_logger, config
-from dna.event.track_feature import TrackFeature
-from dna.event.track_event import TrackEvent
+from dna.event import TrackEvent, TrackFeature
 from dna.event.event_processors import PrintEvent
-from dna.assoc.tracklet_store import TrackletStore
+from dna.event.tracklet_store import TrackletStore
 from dna.support.sql_utils import SQLConnector
 from dna.assoc.associator_feature import FeatureBasedTrackletAssociator
 from dna.assoc.utils import FixedIntervalCollector, AssociationCloser, FixedIntervalClosureBuilder, ClosedTrackletCollector

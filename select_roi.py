@@ -1,4 +1,3 @@
-from typing import Tuple, List
 from contextlib import closing
 
 import cv2

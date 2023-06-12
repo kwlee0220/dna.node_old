@@ -13,7 +13,7 @@ import cv2
 import warnings
 from torch.serialization import SourceChangeWarning
 
-from dna.event.track_event import TrackEvent
+from dna.event import TrackEvent
 warnings.filterwarnings("ignore", category=SourceChangeWarning)
 
 import dna
