@@ -38,7 +38,6 @@ class KafkaEventPublisher(EventListener):
             with suppress(BaseException): super().close()
             with suppress(BaseException): self.producer.close(1)
             self.closed = True
-            self.token = hash(self)
 
     def handle_event(self, ev:object) -> None:
         if isinstance(ev, KafkaEvent):
