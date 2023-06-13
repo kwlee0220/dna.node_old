@@ -14,10 +14,7 @@
             "args": [
                 "--conf_root", "conf/etri_testbed",
                 "--kafka_brokers", "localhost:9092",
-                // "--rabbitmq_host", "localhost:5672",
-                // "--rabbitmq_user", "dna",
-                // "--rabbitmq_password", "urc2004",
-                // "--request_qname", "track_requests",
+                "--rabbitmq_url", "rabbitmq://admin:admin@localhost:5672/track_requests",
                 // "--show",   // -s
             ],
             "justMyCode": true
@@ -319,11 +316,9 @@
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_node_processor_client.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [ 
-                // "data/on-demand-requests/req01_etri_07.json",
-                // "data/event_publisher/test_etri_041.json",
-                "data/event_publisher/test_etri_051.json",
-                // "data/event_publisher/test_etri_051_2.json",
+            "args": [
+                "data/event_publisher/test_data.json",
+                // "data/event_publisher/test_data2.json",
             ],
             "justMyCode": true
         },
