@@ -45,6 +45,8 @@ class MotionDetector(EventProcessor):
                                     frame_index=ev.frame_index,
                                     ts=ev.ts)
             self._publish_event(motion)
+        elif isinstance(ev, TrackDeleted):
+            pass
         else:
             self._publish_event(ev)
     
