@@ -21,7 +21,7 @@ def parse_args():
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS, description="Tracklet and tracks commands")
     
     parser.add_argument("files", nargs='+', help="event pickle files")
-    parser.add_argument("--bootstrap_servers", default=['localhost:9092'], help="kafka server")
+    parser.add_argument("--kafka_brokerss", default=['localhost:9092'], help="kafka server")
     parser.add_argument("--logger", metavar="file path", default=None, help="logger configuration file path")
 
     return parser.parse_known_args()
@@ -45,7 +45,7 @@ def main():
     initialize_logger(args.logger)
     
     try:
-        producer = KafkaProducer(bootstrap_servers=args.bootstrap_servers)
+        producer = KafkaProducer(bootstrap_servers=args.kafka_brokerss)
         for file in args.files:
             with open(file, 'rb') as fp:
                 try:
@@ -59,7 +59,7 @@ def main():
         producer.close()
     except NoBrokersAvailable as e:
         import sys
-        print(f'fails to connect to Kafka: server={args.bootstrap_servers}', file=sys.stderr)
+        print(f'fails to connect to Kafka: server={args.kafka_brokerss}', file=sys.stderr)
 
 if __name__ == '__main__':
     main()

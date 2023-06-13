@@ -66,9 +66,9 @@ def main():
     intvl_collector.add_listener(closure_builder)
     # associator.start()
     
-    bootstrap_servers = config.get(conf, 'bootstrap_servers', default=['localhost:9092'])
+    kafka_brokerss = config.get(conf, 'kafka_brokerss', default=['localhost:9092'])
     offset = config.get(conf, 'auto_offset_reset', default='earliest')
-    consumer = KafkaConsumer(bootstrap_servers=bootstrap_servers,
+    consumer = KafkaConsumer(bootstrap_servers=kafka_brokerss,
                              auto_offset_reset=offset,
                              key_deserializer=lambda k: k.decode('utf-8'))
     consumer.subscribe(['track-events'])

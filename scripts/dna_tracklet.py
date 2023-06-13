@@ -67,14 +67,14 @@ def update_tracklet(conf:OmegaConf, store:TrackletStore) -> None:
     store.insert_or_update_tracklet(conf.node_id, conf.track_id)
     
     
-def listen(store:TrackletStore, bootstrap_servers:list[str], topic:str, *,
+def listen(store:TrackletStore, kafka_brokerss:list[str], topic:str, *,
            auto_offset_reset:Optional[str]='earliest') -> None:
     from kafka import KafkaConsumer
     from dna.event.track_feature import TrackFeature
     from dna.node.zone import Motion
     
     # consumer = KafkaConsumer(['track-events', 'track-motions'],
-    consumer = KafkaConsumer(bootstrap_servers=bootstrap_servers,
+    consumer = KafkaConsumer(bootstrap_servers=kafka_brokerss,
                              auto_offset_reset=auto_offset_reset,
                              key_deserializer=lambda k: k.decode('utf-8'))
     consumer.subscribe(topic)

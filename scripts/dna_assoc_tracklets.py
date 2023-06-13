@@ -67,9 +67,9 @@ def main():
     interval_collector.add_listener(closuer_builder)
     
     
-    bootstrap_servers = config.get(conf, 'bootstrap_servers', default=['localhost:9092'])
+    kafka_brokers = config.get(conf, 'kafka_brokers', default=['localhost:9092'])
     offset = config.get(conf, 'auto_offset_reset', default='earliest')
-    feature_consumer = KafkaConsumer(bootstrap_servers=bootstrap_servers,
+    feature_consumer = KafkaConsumer(bootstrap_servers=kafka_brokers,
                                      auto_offset_reset=offset,
                                      key_deserializer=lambda k: k.decode('utf-8'))
     feature_consumer.subscribe(['track-features'])

@@ -12,13 +12,13 @@ from dna.pika_execution import PikaExecutionContext, PikaExecutionFactory, PikaE
 
 
 class TrackEventPublishingExecution(AbstractExecution):
-    def __init__(self, context: ExecutionContext, topic:str, bootstrap_servers:list[str], sync:bool=True) -> None:
+    def __init__(self, context: ExecutionContext, topic:str, kafka_brokers:list[str], sync:bool=True) -> None:
         super().__init__()
 
         self.ctx = context
         self.log_path = context.request.rtsp_uri
         self.topic = topic
-        self.bootstrap_servers = bootstrap_servers
+        self.kafka_brokers = kafka_brokers
         self.sync = sync
         
     def run_work(self) -> object:
@@ -28,7 +28,7 @@ class TrackEventPublishingExecution(AbstractExecution):
         started = time.time()
         next_report_time = started + interval
         
-        producer = KafkaProducer(bootstrap_servers=self.bootstrap_servers)
+        producer = KafkaProducer(bootstrap_servers=self.kafka_brokers)
         try:
             heap = []
             heapq.heapify(heap)
@@ -65,15 +65,15 @@ class TrackEventPublishingExecution(AbstractExecution):
 
 from omegaconf import OmegaConf
 class PikaEventPublisherFactory(PikaExecutionFactory):
-    def __init__(self, topic:str, bootstrap_servers:list[str], sync:bool=True) -> None:
+    def __init__(self, topic:str, kafka_brokers:list[str], sync:bool=True) -> None:
         super().__init__()
 
         self.topic = topic
-        self.bootstrap_servers = bootstrap_servers
+        self.kafka_brokers = kafka_brokers
         self.sync = sync
 
     def create(self, pika_ctx: PikaExecutionContext) -> TrackEventPublishingExecution:
         conf = OmegaConf.create(pika_ctx.request)
         
         return TrackEventPublishingExecution(context=pika_ctx, topic=self.topic,
-                                             bootstrap_servers=self.bootstrap_servers, sync=self.sync)
+                                             kafka_brokers=self.kafka_brokers, sync=self.sync)

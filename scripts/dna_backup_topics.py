@@ -25,7 +25,7 @@ TOPIC_FEATURES = 'track-features'
 def parse_args():
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS, description="Tracklet and tracks commands")
     
-    parser.add_argument("--bootstrap_servers", default=['localhost:9092'], help="kafka server")
+    parser.add_argument("--kafka_brokerss", default=['localhost:9092'], help="kafka server")
     parser.add_argument("--kafka_offset", default='earliest', choices=['latest', 'earliest', 'none'],
                         help="A policy for resetting offsets: 'latest', 'earliest', 'none'")
     parser.add_argument("--logger", metavar="file path", default=None, help="logger configuration file path")
@@ -62,7 +62,7 @@ def main():
     initialize_logger(args.logger)
     
     try:
-        consumer = KafkaConsumer(bootstrap_servers=args.bootstrap_servers,
+        consumer = KafkaConsumer(bootstrap_servers=args.kafka_brokerss,
                                 auto_offset_reset=args.kafka_offset,
                                 key_deserializer=lambda k: k.decode('utf-8'))
         with suppress(EOFError): backup(consumer, TOPIC_TRACK_EVENTS, f"output/{TOPIC_TRACK_EVENTS}.pickle", TrackEvent.deserialize)
@@ -72,7 +72,7 @@ def main():
         pass
     except NoBrokersAvailable as e:
         import sys
-        print(f'fails to connect to Kafka: server={args.bootstrap_servers}', file=sys.stderr)
+        print(f'fails to connect to Kafka: server={args.kafka_brokerss}', file=sys.stderr)
         raise e
 
 if __name__ == '__main__':
