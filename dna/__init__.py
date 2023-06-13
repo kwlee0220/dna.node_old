@@ -1,4 +1,4 @@
-from .types import Box, Size2d, Point, Image, Frame, ByteString
+from .types import Box, Size2d, Point, Image, Frame, ByteString, InvalidStateError
 from .color import BGR
 from .utils import initialize_logger
 
