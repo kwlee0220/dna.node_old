@@ -66,7 +66,7 @@ def update_namespace_with_environ(args:Namespace) -> Namespace:
     def parse_size(size_str:str) -> Optional[str]:
         truth = parse_true_false_string(size_str)
         if truth is None:
-            return v
+            return truth
         elif truth is True:
             return '0x0'
         else:
@@ -75,10 +75,8 @@ def update_namespace_with_environ(args:Namespace) -> Namespace:
             
     set_from_environ(args, 'DNA_NODE_KAFKA_BROKERS', 'kafka_brokers', handler=lambda s:s.split(','))
     set_from_environ(args, 'DNA_NODE_LOGGER', 'logger')
-    set_from_environ(args, 'DNA_NODE_FFMPEG_PATH', 'ffmpeg_path')
     set_from_environ(args, 'DNA_NODE_CONF_ROOT', 'conf_root')
-    set_from_environ(args, 'DNA_NODE_RABBITMQ_HOST', 'rabbitmq_host')
-    set_from_environ(args, 'DNA_NODE_RABBITMQ_USER', 'rabbitmq_user')
-    set_from_environ(args, 'DNA_NODE_RABBITMQ_PASSWORD', 'rabbitmq_password')
+    set_from_environ(args, 'DNA_NODE_FFMPEG_PATH', 'ffmpeg_path')
+    set_from_environ(args, 'DNA_NODE_RABBITMQ_URL', 'rabbitmq_url')
         
     return Namespace(**args)
