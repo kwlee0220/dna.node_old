@@ -44,11 +44,7 @@ class KafkaEventPublisher(EventListener):
             if self.closed:
                 raise InvalidStateError("KafkaEventPublisher has been closed already: {self}")
             
-            try:
-                self.producer.send(self.topic, value=ev.serialize(), key=ev.key().encode('utf-8'))
-            except BaseException as e:
-                print(e)
-                raise e
+            self.producer.send(self.topic, value=ev.serialize(), key=ev.key().encode('utf-8'))
         else:
             if self.logger and self.logger.isEnabledFor(logging.WARN):
                 self.logger.warn(f"cannot publish non-Kafka event: {ev}")
