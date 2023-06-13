@@ -16,6 +16,11 @@ Image = NewType('Image', np.ndarray)
 ByteString: TypeAlias = Union[bytes, bytearray, memoryview]
 
 
+class InvalidStateError(ValueError):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
 class Point:
     """A point coordinate in 2d plane.
 
