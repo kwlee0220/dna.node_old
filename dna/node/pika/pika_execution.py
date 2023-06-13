@@ -16,12 +16,18 @@ from .pika_execution_context import PikaExecutionContext
 LOGGER = logging.getLogger('dna.node.pika')
 
 
+_DEFAULT_RABBITMQ_HOST = 'localhost'
+_DEFAULT_RABBITMQ_PORT = 5672
+_DEFAULT_RABBITMQ_USER = 'admin'
+_DEFAULT_RABBITMQ_PASSWORD = 'admin'
+_DEFAULT_RABBITMQ_QNAME = '/track_requests'
+
 @dataclass(frozen=True) # slots=True
 class PikaConnector:
+    host:str
+    port:int
+    user_id:str
     password:str
-    host:str = field(default='localhost')
-    port:int = field(default=5672)
-    user_id:str = field(default='dna')
     
     def blocking_connection(self) -> pika.BlockingConnection:
         try:
@@ -33,6 +39,24 @@ class PikaConnector:
             print(f"fails to connect RabbitMQ broker: host={self.host}, port={self.port}, "
                   f"username={self.user_id}, password={self.password}", file=sys.stderr)
             raise e
+        
+    @classmethod
+    def parse_url(cls, url:str) -> tuple[PikaConnector,str]:
+        import urllib
+        
+        result = urllib.parse.urlparse(url)
+        if result.scheme != 'rabbitmq':
+            import sys
+            raise ValueError(f"invalid RabbitMQ URL: {url}")
+            
+        connector = cls(host=result.hostname if result.hostname else _DEFAULT_RABBITMQ_HOST,
+                        port=result.port if result.port else _DEFAULT_RABBITMQ_PORT,
+                        user_id=result.username if result.username else _DEFAULT_RABBITMQ_USER,
+                        password=result.password if result.password else _DEFAULT_RABBITMQ_PASSWORD)
+        request_qname = result.path if result.path else _DEFAULT_RABBITMQ_QNAME
+        request_qname = request_qname[1:]
+        
+        return connector, request_qname
 
 
 class PikaExecutionFactory:
@@ -51,7 +75,8 @@ class PikaExecutionFactory:
             try:
                 conf = config.load(path)
             except Exception as e:
-                LOGGER.error(f"fails to load node configuration file: conf_root={self.args.conf_root}, node={request.node}, path='{path}'")
+                LOGGER.error(f"fails to load node configuration file: "
+                             f"conf_root={self.args.conf_root}, node={request.node}, path='{path}'")
                 raise e
                 
         # args에 포함된 ImageProcess 설정 정보를 추가한다.

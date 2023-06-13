@@ -33,6 +33,11 @@ class PikaExecutionClient:
             self.conn.close()
         finally:
             self.conn = None
+            
+    @classmethod
+    def from_url(cls, url:str) -> PikaExecutionClient:
+        connector, request_qname = PikaConnector.parse_url(url)
+        return cls(connector, request_qname)
 
     def start(self, request:object) -> None:
         if self.conn is None:
