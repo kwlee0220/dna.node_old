@@ -22,8 +22,6 @@ _DEFAULT_BUFFER_SIZE = 30
 _DEFAULT_BUFFER_TIMEOUT = 5.0
 # _DEFAULT_MIN_PATH_LENGTH=10
 
-_DROP_TIME_ELAPSED = DropEventByType([TimeElapsed])
-
 
 class TimeElapsedGenerator(threading.Thread):
     def __init__(self, interval:timedelta, publishing_queue:EventQueue):
@@ -117,6 +115,7 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
         EventQueue.__init__(self)
         TrackProcessor.__init__(self)
 
+        self.hash = hash(self)
         self.node_id = node_id
         self.plugins = dict()
         self._tick_gen = None
@@ -160,7 +159,7 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
             stabilizer = Stabilizer(publishing_conf.stabilization)
             self._append_processor(stabilizer)
             self.min_frame_indexers.append(stabilizer)
-        self._append_processor(_DROP_TIME_ELAPSED)
+        self._append_processor(DropEventByType([TimeElapsed]))
         
         # generate zone-based events
         zone_pipeline_conf = config.get(publishing_conf, 'zone_pipeline')
@@ -253,14 +252,15 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
         pipeline.add_listener(plugin)
         pipeline.plugins['local_path'] = plugin
         
-    kafka_brokers = config.get(plugins_conf, 'kafka_brokers')
+    default_kafka_brokers = config.get(plugins_conf, 'kafka_brokers')
         
     publish_tracks_conf = config.get(plugins_conf, 'publish_tracks')
     if publish_tracks_conf:
         from dna.event import KafkaEventPublisher
         
-        config.update(publish_tracks_conf, 'kafka_brokers', kafka_brokers, ignore_if_exists=True)
-        plugin = KafkaEventPublisher.from_conf(publish_tracks_conf, logger=logger.getChild('kafka.tracks'))
+        kafka_brokers = config.get(publish_tracks_conf, 'kafka_brokers', default=default_kafka_brokers)
+        topic = config.get(publish_tracks_conf, 'topic', default='track-events')
+        plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=logger.getChild('kafka.tracks'))
         pipeline.add_listener(plugin)
         pipeline.plugins['publish_tracks'] = plugin
             
@@ -269,6 +269,7 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
     if publish_features_conf and image_processor:
         from dna.track.dna_tracker import load_feature_extractor
         from .reid_features import PublishReIDFeatures
+        
         distinct_distance = publish_features_conf.get('distinct_distance', 0.0)
         min_crop_size = Size2d.from_expr(publish_features_conf.get('min_crop_size', '80x80'))
         publish = PublishReIDFeatures(extractor=load_feature_extractor(normalize=True),
@@ -277,8 +278,9 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
         pipeline.group_event_queue.add_listener(publish)
         image_processor.add_frame_processor(publish)
         
-        config.update(publish_features_conf, 'kafka_brokers', kafka_brokers, ignore_if_exists=True)
-        plugin = KafkaEventPublisher.from_conf(publish_features_conf, logger=logger.getChild('kafka.features'))
+        kafka_brokers = config.get(publish_features_conf, 'kafka_brokers', default=default_kafka_brokers)
+        topic = config.get(publish_features_conf, 'topic', default='track-features')
+        plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=logger.getChild('kafka.features'))
         publish.add_listener(plugin)
         pipeline.plugins['publish_features'] = plugin
         
@@ -289,8 +291,9 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
             from ..event.kafka_event_publisher import KafkaEventPublisher
             motions = zone_pipeline.event_queues.get('motions')
             if motions:
-                config.update(publish_motions_conf, 'kafka_brokers', kafka_brokers, ignore_if_exists=True)
-                plugin = KafkaEventPublisher.from_conf(publish_motions_conf, logger=logger.getChild('kafka.motions'))
+                kafka_brokers = config.get(publish_motions_conf, 'kafka_brokers', default=default_kafka_brokers)
+                topic = config.get(publish_motions_conf, 'topic', default='track-motions')
+                plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=logger.getChild('kafka.motions'))
                 motions.add_listener(plugin)
                 pipeline.plugins['publish_motions'] = plugin
     
