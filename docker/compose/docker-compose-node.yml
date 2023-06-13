@@ -1,0 +1,54 @@
+version: '3.1'
+name: dna-node
+
+services:
+
+###########################################################################
+############################### RTSP-SERVER ###############################
+###########################################################################
+  rtsp-server:
+    container_name: 'rtsp-server'
+    image: aler9/rtsp-simple-server
+    # ports:
+    #   - "8554:8554"
+    #   - "1935:1935"
+    #   - "8888:8888"
+    environment:
+      RTSP_PROTOCOLS: "tcp"
+
+###########################################################################
+################################ DNA_NODE #################################
+###########################################################################
+  dna-node:
+    container_name: 'dna-node'
+    image: kwlee0220/dna-node
+    volumes:
+      - ./dna.node:/dna.node
+      - ./torch_hub:/root/.cache/torch/hub
+    environment:
+      DNA_NODE_KAFKA_BROKERS: "kafka01:19091,kafka02:19092,kafka03:19093"
+      # DNA_NODE_CAMERA: "rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/3/media.smp"
+      DNA_NODE_SYNC: "True"
+      DNA_NODE_SHOW: "True"
+      DNA_NODE_RTSP_RELAY: "rtsp-server:8554"
+      DNA_NODE_FFMPEG_PATH: "/opt/conda/bin/ffmpeg"
+      # DNA_NODE_SHOW_PROGRESS: "True"
+      DISPLAY: "${DISPLAY}"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: dna_node --conf conf/dna.node.yaml
+    networks:
+      - default
+      - dna_server_net
+    depends_on:
+      - rtsp-server
+
+networks:
+  dna_server_net:
+    external: true
+    internal: true
