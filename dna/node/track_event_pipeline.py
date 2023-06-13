@@ -115,7 +115,6 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
         EventQueue.__init__(self)
         TrackProcessor.__init__(self)
 
-        self.hash = hash(self)
         self.node_id = node_id
         self.plugins = dict()
         self._tick_gen = None
