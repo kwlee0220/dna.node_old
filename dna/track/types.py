@@ -1,11 +1,10 @@
 from __future__ import annotations
+
 from abc import ABCMeta, abstractmethod
 
-import shapely.geometry as geometry
 import cv2
 
-from dna import Box, Point, Size2d, Image, Frame, BGR
-from dna.detect import Detection
+from dna import Box, Point, Image, Frame, BGR
 from dna.support import plot_utils
 from dna.track import TrackState
 
