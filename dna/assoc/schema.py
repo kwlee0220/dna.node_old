@@ -4,7 +4,7 @@ from typing import Optional
 from collections.abc import Generator, Iterable
 import logging
 
-from dna.node import NodeId
+from dna import NodeId
 from .association import Association
 
 

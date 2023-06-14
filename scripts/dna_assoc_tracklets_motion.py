@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import argparse
 
 from kafka import KafkaConsumer
 
@@ -15,12 +16,12 @@ from scripts import *
 
 LOGGER = logging.getLogger('dna.script.sync_tracklets')
 
-import argparse
+
 def parse_args():
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS, description="Associate tracklets by motion")
     
     parser.add_argument("node_pairs", nargs='+', help="target node ids")
-    parser.add_argument("--boostrap_servers", default=['localhost:9092'], help="kafka server")
+    parser.add_argument("--kafka_brokers", nargs='+', metavar="hosts", default=['localhost:9092'], help="Kafka broker hosts list")
     parser.add_argument("--max_distance_to_camera", type=float, metavar="meter", default=55,
                         help="max. distance from camera (default: 55)")
     parser.add_argument("--max_track_distance", type=float, metavar="meter", default=5,
@@ -31,7 +32,7 @@ def parse_args():
                         help="window interval seconds (default: 3)")
     parser.add_argument("--idle_timeout", type=float, metavar="seconds", default=1,
                         help="idle timeout seconds (default: 1)")
-    parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
+    parser.add_argument("--logger", metavar="file path", default=None, help="logger configuration file path")
 
     return parser.parse_known_args()
 

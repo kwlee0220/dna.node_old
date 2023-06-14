@@ -232,7 +232,7 @@
 
         { "name": "AssocTrackletMotion",
             "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_sync_tracklets.py",
+            "program": "${workspaceFolder}/scripts/dna_assoc_tracklets_motion.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "etri:04-etri:06", "etri:04-etri:05", "etri:05-etri:06", "etri:05-etri:07",
