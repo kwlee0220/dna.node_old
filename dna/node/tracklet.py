@@ -2,13 +2,11 @@ from __future__ import annotations
 
 from typing import Union
 from collections.abc import Generator
-
 from dataclasses import dataclass, field
-from ..event.track_event import TrackEvent
 
-from dna import ByteString
-from dna.track.track_state import TrackState
-from dna.event import TrackId
+from dna import TrackId
+from dna.track import TrackState
+from dna.event import TrackEvent
 
 
 class Tracklet:

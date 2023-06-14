@@ -5,8 +5,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from dna import ByteString
-from .types import NodeId, TrackId, TrackletId, KafkaEvent
+from dna import ByteString, NodeId, TrackId, TrackletId
+from .types import KafkaEvent
 from .proto.reid_feature_pb2 import TrackFeatureProto
 
 

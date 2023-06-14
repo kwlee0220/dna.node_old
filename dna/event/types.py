@@ -1,31 +1,15 @@
 from __future__ import annotations
 
-from typing import NewType, TypeAlias
+from typing import TypeAlias
 from collections.abc import Callable
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
 
 import time
 
-from dna import ByteString
-from dna.track.track_state import TrackState
+from dna import ByteString, NodeId, TrackId, TrackletId
+from dna.track import TrackState
 
-
-NodeId = NewType('NodeId', str)
-TrackId = NewType('TrackId', str)
-
-
-@dataclass(frozen=True, order=True) # slots=True
-class TrackletId:
-    node_id: NodeId
-    track_id: TrackId
-
-    def __iter__(self):
-        return iter((self.node_id, self.track_id))
-
-    def __repr__(self) -> str:
-        return f'{self.node_id}[{self.track_id}]'
-    
 
 class KafkaEvent(metaclass=ABCMeta):
     @abstractmethod

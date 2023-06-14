@@ -12,16 +12,17 @@ import cv2
 
 import warnings
 from torch.serialization import SourceChangeWarning
-
-from dna.event import TrackEvent
 warnings.filterwarnings("ignore", category=SourceChangeWarning)
+
+from dna import TrackId
+from dna.event import TrackEvent
 
 import dna
 from dna import Point, Box, Size2d, Frame
 from dna.config import load_node_conf2, get_config
 from dna.camera import ImageProcessor, FrameProcessor, create_opencv_camera_from_conf
 from dna.track.track_state import TrackState
-from dna.event import EventProcessor, TrackId
+from dna.event import EventProcessor
 from dna.node import TrackEventPipeline
 from dna.node.zone import ZoneEvent, ZonePipeline
 from dna.event.utils import read_tracks_json

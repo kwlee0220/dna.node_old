@@ -2,28 +2,23 @@ from __future__ import annotations
 
 from typing import Optional
 from collections.abc import Generator
-from contextlib import closing
-from datetime import timedelta
 from pathlib import Path
 from collections import defaultdict
 import itertools
 
-import yaml
-from omegaconf import OmegaConf
 import cv2
 
 import warnings
 from torch.serialization import SourceChangeWarning
 
-from dna.event import TrackEvent
 warnings.filterwarnings("ignore", category=SourceChangeWarning)
 
 import dna
-from dna import Point, Box, Size2d, Frame
-from dna.config import load_node_conf2, get_config
+from dna import Point, Box, Size2d, Frame, TrackId
+from dna.config import load_node_conf2
 from dna.camera import ImageProcessor, FrameProcessor, create_opencv_camera_from_conf
 from dna.track.track_state import TrackState
-from dna.event import EventProcessor, TrackId
+from dna.event import TrackEvent, EventProcessor
 from dna.node import TrackEventPipeline
 from dna.node.zone import ZoneEvent, ZonePipeline
 from dna.event.utils import read_tracks_json

@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from typing import Union, Optional, NewType
+from typing import Union, Optional
 from collections.abc import Iterator, Iterable
 from abc import ABCMeta, abstractmethod
-
 import functools
-import numpy as np
 import logging
 
-from dna.event import TrackDeleted, TrackletId, NodeId, TrackId, EventProcessor
+import numpy as np
+
+from dna import NodeId, TrackId, TrackletId
+from dna.event import TrackDeleted, EventProcessor
 from dna.support import iterables
 
 

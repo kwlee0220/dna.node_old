@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Union, Optional
 from collections.abc import Iterable, Generator
-
 import sys
 import logging
 
+from dna import NodeId, TrackletId
 from dna.support import iterables
-from dna.event import NodeId, EventProcessor, TrackEvent, TimeElapsed, TrackDeleted, TrackletId
+from dna.event import EventProcessor, TrackEvent, TimeElapsed, TrackDeleted
 from .association import Association
 from .collection import AssociationCollector
 from .closure import AssociationClosure, AssociationClosureBuilder

@@ -3,11 +3,11 @@ from __future__ import annotations
 from typing import Union, Optional
 import sys
 from dataclasses import dataclass, field
-
 import logging
 
-from dna.event import TrackId, TimeElapsed, TrackEvent, EventProcessor
-from dna.track.track_state import TrackState
+from dna import TrackId
+from dna.event import TimeElapsed, TrackEvent, EventProcessor
+from dna.track import TrackState
 
 
 @dataclass(eq=True) # slots=True

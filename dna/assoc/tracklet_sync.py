@@ -1,12 +1,11 @@
 from __future__ import annotations
-from typing import Union, Optional
-from collections.abc import Iterable, Generator
 
-import logging
-import math
+from typing import Union, Optional
+
 import numpy as np
 
-from dna.event import TrackEvent, TrackletId, NodeId, TrackId, EventProcessor
+from dna import NodeId, TrackId, TrackletId
+from dna.event import TrackEvent, EventProcessor
 from dna.assoc import Association
             
             

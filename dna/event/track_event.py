@@ -8,10 +8,10 @@ import json
 
 import numpy as np
 
-from dna import Box, Point, ByteString
+from dna import Box, Point, ByteString, NodeId, TrackId, TrackletId
 from dna.track import TrackState
 from dna.support import sql_utils
-from .types import NodeId, TrackId, TrackletId, KafkaEvent
+from .types import KafkaEvent
 
 
 _WGS84_PRECISION = 7

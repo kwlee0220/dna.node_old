@@ -5,7 +5,8 @@ import sys
 import logging
 from collections import defaultdict
 
-from dna.event import TimeElapsed, TrackEvent, TrackId, EventProcessor
+from dna import TrackId
+from dna.event import TimeElapsed, TrackEvent, EventProcessor
 from dna.track import TrackState
 
 

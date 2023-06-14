@@ -4,7 +4,8 @@ from typing import Union, Optional
 from collections.abc import Iterable, Generator, Callable
 import logging
 
-from dna.event import TrackletId, EventProcessor
+from dna import TrackletId
+from dna.event import EventProcessor
 from dna.support import iterables
 from .association import Association
 

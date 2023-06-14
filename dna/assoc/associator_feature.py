@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 from typing import Union, Optional
-from collections.abc import Iterable, Generator
-from dataclasses import dataclass
-import math
-
-import logging
-import numpy as np
+from collections.abc import Generator
 from collections import defaultdict
-from kafka import KafkaConsumer
+import logging
 
-from dna.event import NodeId, EventProcessor, TrackDeleted, TrackletId, TrackFeature
-from dna.event.event_processors import EventRelay
+import numpy as np
+
+from dna import NodeId, TrackletId
+from dna.event import EventProcessor, TrackDeleted, TrackFeature
 from dna.node.zone import ZoneRelation
 from dna.event.tracklet_store import TrackletStore
 from dna.track.utils import cosine_distance

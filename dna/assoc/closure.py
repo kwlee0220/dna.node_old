@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 from typing import Optional
-from collections.abc import Iterator, Iterable
+from collections.abc import Iterable
 import logging 
 from bisect import bisect_left, insort
-import itertools
-import functools
-from operator import attrgetter
+
 import numpy as np
 
+from dna import NodeId, TrackletId
 from dna.support import iterables
-from dna.event import NodeId, EventProcessor, TrackDeleted, TrackletId
+from dna.event import EventProcessor, TrackDeleted
 from .association import Association, BinaryAssociation
 from .collection import AssociationCollector, AssociationCollection, PartialMatch
     

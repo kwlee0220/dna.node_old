@@ -1,24 +1,36 @@
 from __future__ import annotations
-from typing import TypeAlias, NewType, Optional, Union
-from collections.abc import Iterable, Sequence, Callable
 
+from typing import TypeAlias, NewType, Union
+from collections.abc import Callable
 import numbers
 from dataclasses import dataclass, field
-import math
 
 import numpy as np
 import numpy.typing as npt
 
 from .color import BGR
 
-Image = NewType('Image', np.ndarray)
-
-ByteString: TypeAlias = Union[bytes, bytearray, memoryview]
-
 
 class InvalidStateError(ValueError):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
+
+
+NodeId = NewType('NodeId', str)
+TrackId = NewType('TrackId', str)
+Image = NewType('Image', np.ndarray)
+ByteString: TypeAlias = Union[bytes, bytearray, memoryview]
+
+@dataclass(frozen=True, order=True) # slots=True
+class TrackletId:
+    node_id: NodeId
+    track_id: TrackId
+
+    def __iter__(self):
+        return iter((self.node_id, self.track_id))
+
+    def __repr__(self) -> str:
+        return f'{self.node_id}[{self.track_id}]'
 
 
 class Point:

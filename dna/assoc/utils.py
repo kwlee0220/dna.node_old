@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from typing import Optional
-from collections.abc import Iterable, Callable, Generator
-
+from collections.abc import Iterable
 import sys
 import logging
 
+from dna import TrackletId
 from dna.support import iterables
-from dna.event import EventProcessor, EventListener, TrackDeleted, TrackletId
+from dna.event import EventProcessor, EventListener, TrackDeleted
 from .association import Association, BinaryAssociation
 from .collection import AssociationCollection, AssociationCollector
 from .closure import AssociationClosure, AssociationClosureBuilder, PartialMatch

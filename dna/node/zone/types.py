@@ -8,9 +8,8 @@ from dataclasses import dataclass, replace
 import shapely.geometry as geometry
 import numpy as np
 
-from dna import Point
-from dna.event import TrackEvent, TrackId
-from dna.utils import utc2datetime
+from dna import Point, TrackId
+from dna.event import TrackEvent
 
 
 @dataclass(frozen=True)

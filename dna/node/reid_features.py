@@ -4,9 +4,9 @@ from typing import Optional
 
 import numpy as np
 
-from dna import Frame, utils, Size2d
+from dna import Frame, utils, Size2d, TrackId
 from dna.camera import FrameProcessor, ImageProcessor
-from dna.event import TrackEvent, TrackFeature, TrackId, EventProcessor
+from dna.event import TrackEvent, TrackFeature, EventProcessor
 from dna.track.feature_extractor import DeepSORTMetricExtractor
 
 

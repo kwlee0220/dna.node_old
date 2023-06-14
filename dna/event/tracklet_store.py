@@ -1,10 +1,11 @@
 from __future__ import annotations
+
 from typing import Optional
 from collections.abc import Iterable, Generator
-
 from contextlib import closing
 
-from dna.event import TrackId, NodeId, TrackletId, TrackEvent, TrackFeature, TrackletMotion
+from dna import NodeId, TrackId, TrackletId
+from dna.event import TrackEvent, TrackFeature, TrackletMotion
 from dna.support import sql_utils, iterables
 
 

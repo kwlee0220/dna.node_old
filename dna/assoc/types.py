@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from dna.event.types import TrackletId
+from dna import TrackletId
 
-       
+
 @dataclass(frozen=True)
 class TrajectoryFragment:
     id: int

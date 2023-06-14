@@ -5,7 +5,7 @@ import logging
 from kafka import KafkaConsumer
 
 from dna import initialize_logger, config
-from dna.event import EventListener, TrackEvent, TrackDeleted, TrackletId
+from dna.event import TrackEvent
 from dna.assoc.associator_motion import NodeAssociationSchema, MotionBasedTrackletAssociator
 from dna.event.event_processors import PrintEvent
 from dna.assoc import Association, AssociationCollector, AssociationCollection

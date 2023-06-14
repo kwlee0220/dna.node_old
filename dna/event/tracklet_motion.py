@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-
 import json
 
-from dna import ByteString
-from dna.event import KafkaEvent, NodeId, TrackId, TrackletId
+from dna import ByteString, NodeId, TrackId, TrackletId
+from dna.event import KafkaEvent
 
 
 @dataclass(frozen=True, eq=True)
 class TrackletMotion(KafkaEvent):
-    node_id: str
-    track_id: str
+    node_id: NodeId
+    track_id: TrackId
     zone_sequence: str = field(compare=False)
     enter_zone: str = field(compare=False)
     exit_zone: str = field(compare=False)
