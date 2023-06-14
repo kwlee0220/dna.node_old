@@ -25,7 +25,7 @@ TOPIC_FEATURES = 'track-features'
 def parse_args():
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS, description="Tracklet and tracks commands")
     
-    parser.add_argument("--kafka_brokerss", default=['localhost:9092'], help="kafka server")
+    parser.add_argument("--kafka_brokers", default=['localhost:9092'], help="kafka server")
     parser.add_argument("--kafka_offset", default='earliest', choices=['latest', 'earliest', 'none'],
                         help="A policy for resetting offsets: 'latest', 'earliest', 'none'")
     parser.add_argument("--logger", metavar="file path", default=None, help="logger configuration file path")
