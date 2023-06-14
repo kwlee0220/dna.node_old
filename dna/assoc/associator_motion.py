@@ -92,7 +92,7 @@ class MotionBasedAssociator(EventProcessor):
     def handle_event(self, ev:Union[tuple[Window,Optional[TrackletId]],TrackEvent]) -> None:
         if isinstance(ev, TrackEvent):
             if ev.is_deleted():
-                self._publish_event(TrackDeleted(node_id=ev.node_id, track_id=ev.track_id, ts=ev.ts))
+                self._publish_event(TrackDeleted(node_id=ev.node_id, track_id=ev.track_id, frame_index=ev.frame_index, ts=ev.ts))
         else:
             for assoc in self.associate(ev[0].events, tracklet_id=ev[1]):
                 self._publish_event(assoc)
