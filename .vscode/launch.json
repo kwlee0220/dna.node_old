@@ -230,7 +230,7 @@
 
 
 
-        { "name": "SyncMCTracklets",
+        { "name": "AssocTrackletMotion",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_sync_tracklets.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
@@ -241,6 +241,31 @@
             ],
             "justMyCode": true
         },
+        { "name": "AssocTrackletFeature",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_assoc_tracklets.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                // "--listen", "etri:07",
+                "--listen", "etri:04", "etri:05", "etri:06", "etri:07",
+            ],
+            "justMyCode": true
+        },
+        { "name": "FuseAssocTracklet",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_fuse_assoc_tracklets.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "etri:04-etri:06", "etri:04-etri:05", "etri:05-etri:06", "etri:05-etri:07",
+                "--listen", "etri:04", "etri:05", "etri:06", "etri:07",
+                // "--listen", "etri:07",
+                "--max_distance_to_camera", "65",
+                "--max_track_distance", "5",
+            ],
+            "justMyCode": true
+        },
+
+
         { "name": "GenerateTrainSet",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_gen_trainset.py",
@@ -282,38 +307,6 @@
                 "d:/Temp/reduced",
                 "--min_k", "16",
                 "--max_k", "28",
-            ],
-            "justMyCode": true
-        },
-        { "name": "Tracklet",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_tracklet.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "format", "-f",
-            ],
-            "justMyCode": true
-        },
-        { "name": "AssocTracklet",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_assoc_tracklets.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                // "--listen", "etri:07",
-                "--listen", "etri:04", "etri:05", "etri:06", "etri:07",
-            ],
-            "justMyCode": true
-        },
-        { "name": "FuseAssocTracklet",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_fuse_assoc_tracklets.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "etri:04-etri:06", "etri:04-etri:05", "etri:05-etri:06", "etri:05-etri:07",
-                "--listen", "etri:04", "etri:05", "etri:06", "etri:07",
-                // "--listen", "etri:07",
-                "--max_distance_to_camera", "65",
-                "--max_track_distance", "5",
             ],
             "justMyCode": true
         },

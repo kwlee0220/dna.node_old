@@ -1,23 +1,23 @@
+from __future__ import annotations
 
-from omegaconf import OmegaConf
+import logging
+
 from kafka import KafkaConsumer
-from datetime import timedelta
 
 from dna import initialize_logger, config
 from dna.event import EventListener, TrackEvent, TrackDeleted, TrackletId
-from dna.event.utils import read_tracks_json
 from dna.assoc.associator_motion import NodeAssociationSchema, MotionBasedTrackletAssociator
 from dna.event.event_processors import PrintEvent
 from dna.assoc import Association, AssociationCollector, AssociationCollection
 from dna.assoc.closure import AssociationClosureBuilder
 from dna.assoc.utils import ClosedAssociationPublisher, AssociationCloser, FixedIntervalCollector
+from scripts import *
 
-import logging
 LOGGER = logging.getLogger('dna.script.sync_tracklets')
 
 import argparse
 def parse_args():
-    parser = argparse.ArgumentParser(description="Tracklet and tracks commands")
+    parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS, description="Associate tracklets by motion")
     
     parser.add_argument("node_pairs", nargs='+', help="target node ids")
     parser.add_argument("--boostrap_servers", default=['localhost:9092'], help="kafka server")
@@ -38,8 +38,9 @@ def parse_args():
 
 def main():
     args, _ = parse_args()
-
     initialize_logger(args.logger)
+    args = update_namespace_with_environ(args)
+    
     logger = logging.getLogger('dna.assoc.motion')
     
     # argument에 기술된 conf를 사용하여 configuration 파일을 읽는다.
