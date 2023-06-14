@@ -25,19 +25,37 @@ def to_sql_box(box:Box) -> str:
     return ','.join([pt1, pt2])
 
 
+_DEFAULT_POSTGRES_HOST = 'localhost'
+_DEFAULT_POSTGRES_PORT = 5432
+_DEFAULT_POSTGRES_USER = 'dna'
+_DEFAULT_POSTGRES_PASSWORD = 'urc2004'
+_DEFAULT_POSTGRES_DBNAME = '/dna'
 _DB_CONF_KEYS = {'db_host', 'db_port', 'db_dbname', 'db_user', 'db_password'}
+
 @dataclass(frozen=True)
 class SQLConnector:
-    host: str = field(default='localhost')
-    dbname: str = field(default='dna')
-    user: str = field(default='dna')
-    password: str = field(default='urc2004')
-    port: int = field(default=5432)
+    host: str
+    port: int
+    user: str
+    password: str
+    dbname: str
     
     @classmethod
-    def from_conf(cls, conf:OmegaConf):
-        infos = {key[3:]:value for key, value in dict(conf).items() if key in _DB_CONF_KEYS}
-        return cls(**infos)
+    def from_url(cls, url:str) -> SQLConnector:
+        import urllib
+        
+        result = urllib.parse.urlparse(url)
+        if result.scheme != 'postgresql':
+            import sys
+            raise ValueError(f"invalid PostgreSQL URL: {url}")
+        
+        dbname = result.path if result.path else _DEFAULT_POSTGRES_DBNAME
+        dbname = dbname[1:]
+        return cls(host=result.hostname if result.hostname else _DEFAULT_POSTGRES_HOST,
+                   port=result.port if result.port else _DEFAULT_POSTGRES_PORT,
+                   user=result.username if result.username else _DEFAULT_POSTGRES_USER,
+                   password=result.password if result.password else _DEFAULT_POSTGRES_PASSWORD,
+                   dbname=dbname)
     
     def connect(self):
         import psycopg2

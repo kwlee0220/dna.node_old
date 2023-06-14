@@ -8,5 +8,5 @@ docker run -it --rm ^
 			--name dna-tools ^
 			--network host ^
 			-e DISPLAY=%LOCAL_IP%:0.0 ^
-            -v .:/dna.tools ^
-            kwlee0220/dna-tools %*
+			-v .:/dna.tools ^
+			kwlee0220/dna-tools %*

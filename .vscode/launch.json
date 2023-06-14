@@ -66,7 +66,6 @@
                 // "--detector", "dna.detect.rcnn50_fpn_v2",
                 // "--detector", "dna.detect.yolov5:model=l6&score=0.1",
                 "--detector", "dna.detect.yolov5:model=l6&score=0.37&agnostic=True&max_det=50&classes=car,bus,truck",
-                // "--detector", "file:${env:HOME}/Dropbox/data/etri/etri_051_det.txt",
                 // "--output", "output/2022/etri_04_det.csv",   // -o <file>
                 // "--output_video", "output/2022/etri_04_det.mp4",   // -v <file>
                 "--show", //"1280x720",
@@ -121,6 +120,7 @@
             "program": "${workspaceFolder}/scripts/dna_download_node_events.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
+                "--kafka_offset", "earliest",
                 "--output", "output/sorted.pickle",
             ],
             "justMyCode": true
@@ -146,11 +146,15 @@
             "program": "${workspaceFolder}/scripts/dna_store_topics.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--topic", "track-events", "track-motions", "track-features",
+                "--kafka_offset", "earliest",
+                "--db_url", "postgresql://dna:urc2004@localhost:6432/dna",
                 "-f",
             ],
             "justMyCode": true
         },
+
+
+        
 
 
         { "name": "BackupTopics",
@@ -158,6 +162,7 @@
             "program": "${workspaceFolder}/scripts/dna_backup_topics.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
+                "--topic", "track-events", "track-motions", "track-features",
             ],
             "justMyCode": true
         },
@@ -317,8 +322,8 @@
             "program": "${workspaceFolder}/scripts/dna_node_processor_client.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "data/event_publisher/test_data.json",
-                // "data/event_publisher/test_data2.json",
+                // "data/event_publisher/test_data.json",
+                "data/event_publisher/test_data2.json",
             ],
             "justMyCode": true
         },

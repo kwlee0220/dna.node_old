@@ -5,12 +5,30 @@ from collections.abc import Iterator, Sequence, Callable, Generator
 
 import time
 from kafka import KafkaConsumer, KafkaProducer
+from kafka.errors import NoBrokersAvailable
 
 from dna.support import iterables
 from dna.event import KafkaEventDeserializer
 from .types import KafkaEvent
 
 T = TypeVar("T")
+
+
+def open_kafka_producer(brokers:list[str]) -> KafkaProducer:
+    try:
+        return KafkaProducer(bootstrap_servers=brokers)
+    except NoBrokersAvailable as e:
+        raise NoBrokersAvailable(f'fails to connect to Kafka: server={brokers}')
+
+
+def open_kafka_consumer(brokers:list[str], offset:str,
+                        *,
+                        key_deserializer:Optional[Callable[[bytes],str]]=None) -> KafkaConsumer:
+    try:
+        return KafkaConsumer(bootstrap_servers=brokers, auto_offset_reset=offset,
+                                key_deserializer=key_deserializer)
+    except NoBrokersAvailable as e:
+        raise NoBrokersAvailable(f'fails to connect to Kafka: server={brokers}')
 
 
 def publish_kafka_events(producer:KafkaProducer, events:Union[Iterator[KafkaEvent],Sequence[KafkaEvent]],

@@ -3,7 +3,6 @@ import sys
 import logging
 import argparse
 from omegaconf import OmegaConf
-import urllib
 
 from dna import config, initialize_logger
 from dna.node.pika.pika_execution import PikaExecutionFactory, PikaConnector
