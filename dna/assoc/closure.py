@@ -145,7 +145,7 @@ class AssociationClosure(Association):
         dupl._associations = self._associations.copy()
         return dupl
         
-    def _find(self, key:list[TrackletId]) -> tuple[[int,Optional[Association]]:
+    def _find(self, key:list[TrackletId]) -> tuple[int,Optional[Association]]:
         for idx, assoc in enumerate(self.association):
             if assoc.tracklets == key:
                 return idx, assoc
