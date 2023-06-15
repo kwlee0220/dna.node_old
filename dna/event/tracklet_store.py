@@ -84,6 +84,10 @@ class TrackletStore:
     def __init__(self, connector:sql_utils.SQLConnector) -> None:
         self.connector = connector
         
+    @classmethod
+    def from_url(cls, url:str) -> TrackletStore:
+        return TrackletStore(sql_utils.SQLConnector.from_url(url))
+        
     def connect(self):
         '''Tracklet Store를 구성하는 DBMS에 접속한다.'''
         return self.connector.connect()
