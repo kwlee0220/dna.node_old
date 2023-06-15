@@ -5,6 +5,7 @@ from collections.abc import Iterator, Sequence, Callable, Generator
 
 import time
 from kafka import KafkaConsumer, KafkaProducer
+from kafka.consumer.fetcher import ConsumerRecord
 from kafka.errors import NoBrokersAvailable
 
 from dna.support import iterables
@@ -21,7 +22,8 @@ def open_kafka_producer(brokers:list[str]) -> KafkaProducer:
         raise NoBrokersAvailable(f'fails to connect to Kafka: server={brokers}')
 
 
-def open_kafka_consumer(brokers:list[str], offset:str,
+def open_kafka_consumer(brokers:list[str],
+                        offset:str,
                         *,
                         key_deserializer:Optional[Callable[[bytes],str]]=None) -> KafkaConsumer:
     try:
@@ -54,18 +56,13 @@ def publish_kafka_events(producer:KafkaProducer, events:Union[Iterator[KafkaEven
         producer.send(topic, value=ev.serialize(), key=ev.key().encode('utf-8'))
 
 
-def download_topics(consumer:KafkaConsumer,
-                    topics:Sequence[str],
-                    deserializer_func:Callable[[str],KafkaEventDeserializer],
-                    **poll_args) -> Generator[KafkaEvent, None, None]:
+def read_topics(consumer:KafkaConsumer, **poll_args) -> Generator[ConsumerRecord, None, None]:
     while True:
         partitions = consumer.poll(**poll_args)
         if partitions:
-            for topic_info, partition in partitions.items():
-                if topic_info.topic in topics:
-                    deserializer = deserializer_func(topic_info.topic)
-                    for serialized in partition:
-                        yield deserializer(serialized.value)
+            for _, partition in partitions.items():
+                for record in partition:
+                    yield record
         else:
             break
 

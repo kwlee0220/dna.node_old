@@ -9,7 +9,7 @@ from pathlib import Path
 from kafka import KafkaConsumer
 
 from dna import initialize_logger
-from dna.event import open_kafka_consumer, download_topics
+from dna.event import open_kafka_consumer, read_topics
 from dna.node import NodeEvent
 from scripts import *
 
@@ -35,10 +35,8 @@ def main():
         consumer.subscribe(NodeEvent.topics())
         
         print(f"reading events from the topics '{NodeEvent.topics()}'.")
-        full_events = download_topics(consumer, topics=NodeEvent.topics(),
-                                      deserializer_func=lambda t: NodeEvent.from_topic(t).deserializer,
-                                      timeout_ms=2000)
-        full_events = list(tqdm(full_events))
+        records = read_topics(consumer, timeout_ms=2000)
+        full_events = list(tqdm(NodeEvent.from_topic(record.topic).deserializer(record.value) for record in records))
         
         max_track_id = max(int(ev.track_id) for ev in full_events)
         max_ts = max(ev.ts for ev in full_events)

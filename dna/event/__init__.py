@@ -5,4 +5,4 @@ from. tracklet_motion import TrackletMotion
 from .event_processor import EventListener, EventQueue, EventProcessor
 from .kafka_event_publisher import KafkaEventPublisher
 from .utils import read_json_event_file, read_pickle_event_file, read_event_file, \
-                    download_topics, publish_kafka_events, open_kafka_producer, open_kafka_consumer
+                    read_topics, publish_kafka_events, open_kafka_producer, open_kafka_consumer
