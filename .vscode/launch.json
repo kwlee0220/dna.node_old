@@ -230,7 +230,7 @@
 
 
 
-        { "name": "AssocTrackletMotion",
+        { "name": "AssocTrackletsMotion",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_assoc_tracklets_motion.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
@@ -241,21 +241,28 @@
             ],
             "justMyCode": true
         },
-        { "name": "AssocTrackletFeature",
+        { "name": "AssocTrackletsFeature",
             "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_assoc_tracklets.py",
+            "program": "${workspaceFolder}/scripts/dna_assoc_tracklets_feature.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
+                "--kafka_brokers", "localhost:9092",
+                "--kafka_offset", "earliest",
+                "--db_url", "postgresql://dna:urc2004@localhost:6432/dna",
                 // "--listen", "etri:07",
                 "--listen", "etri:04", "etri:05", "etri:06", "etri:07",
             ],
             "justMyCode": true
         },
-        { "name": "FuseAssocTracklet",
+        { "name": "AssocTrackletsFuse",
             "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_fuse_assoc_tracklets.py",
+            "program": "${workspaceFolder}/scripts/dna_assoc_tracklets_fuse.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
+                "--kafka_brokers", "localhost:9092",
+                "--kafka_offset", "earliest",
+                "--db_url", "postgresql://dna:urc2004@localhost:6432/dna",
+                
                 "etri:04-etri:06", "etri:04-etri:05", "etri:05-etri:06", "etri:05-etri:07",
                 "--listen", "etri:04", "etri:05", "etri:06", "etri:07",
                 // "--listen", "etri:07",
