@@ -65,4 +65,4 @@ class TrackFeature(KafkaEvent):
 
     def __repr__(self) -> str:
         # dt = utc2datetime(self.ts)
-        return f'{self.__class__.__name__}[id={self.node_id}[{self.track_id}], zone={self.zone_relation}, ts={self.ts}]'
+        return f'{self.__class__.__name__}[id={self.node_id}[{self.track_id}], zone={self.zone_relation}, frame={self.frame_index}, ts={self.ts}]'

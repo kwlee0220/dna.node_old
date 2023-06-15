@@ -184,7 +184,7 @@ class FeatureBasedTrackletAssociator(EventProcessor):
             session = self.sessions.pop(tracklet_id, None)
             if session and session.enter_zone:
                 self.publish_associations(session)
-            self._publish_event(TrackDeleted(node_id=ev.node_id, track_id=ev.track_id, ts=ev.ts))
+            self._publish_event(TrackDeleted(node_id=ev.node_id, track_id=ev.track_id, frame_index=ev.frame_index, ts=ev.ts))
             self.early_stoppeds.pop(tracklet_id, None)
         else:
             # Association이 이미 완료된 상태가 아닌 경우에 association 작업을 수행한다.
