@@ -98,7 +98,9 @@ class MotionBasedAssociator(EventProcessor):
                 self._publish_event(assoc)
         
     def associate(self, track_events:list[TrackEvent], *,
-                  tracklet_id:Optional[TrackletId]=None) -> Generator[Association, None, None]: 
+                  tracklet_id:Optional[TrackletId]=None) -> Generator[Association, None, None]:
+        def get_tracklet_id(track:TrackEvent):
+            return track.tracklet_id
         def calc_split_distance(events1:list[TrackEvent], events2:list[TrackEvent]) -> float:
             dist = np.mean([te1.world_coord.distance_to(te2.world_coord)
                             for te1, te2 in zip(events1, events2)])
@@ -113,7 +115,7 @@ class MotionBasedAssociator(EventProcessor):
             return min(calc_split_distance(base, split) for split in splits)
         
         # 주어진 TrackEvent들을 tracklet별로 그룹핑한다.
-        tracklets = iterables.groupby(track_events, key_func=lambda v: v.tracklet_id)
+        tracklets = iterables.groupby(track_events, key_func=get_tracklet_id)
         
         if tracklet_id and tracklet_id not in tracklets:
             return

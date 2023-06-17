@@ -81,9 +81,20 @@ def buffer_iterable(list:Iterable[T], count:int, skip:int=None) -> Generator[lis
         if buffer:
             yield buffer
             
-def groupby(list:Iterable[T], key_func:Callable[[T],K], *, value_func:Optional[Callable[[T],V]]=None) -> dict[K,list[Union[T,V]]]:
+def groupby(list:Iterable[T], key_func:Callable[[T],K],
+            *,
+            value_func:Optional[Callable[[T],V]]=None) -> dict[K,list[Union[T,V]]]:
+    """주어진 입력 리스트에 속한 원소들을 지정된 key를 기준으로 grouping한다.
+
+    Args:
+        list (Iterable[T]): Grouping할 대상 리스트.
+        key_func (Callable[[T],K]): 리스트에 포함된 원소에서 key 값을 반환해주는 함수.
+        value_func (Optional[Callable[[T],V]], optional): Grouping할 때 입력 원소를 대신하여 값을 추출해주는 함수. Defaults to None.
+
+    Returns:
+        dict[K,list[Union[T,V]]]: Grouping 결과.
+    """
     def default_get_value(value): return value
-    
     if value_func is None:
         value_func = default_get_value
         
