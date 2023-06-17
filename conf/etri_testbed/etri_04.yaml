@@ -11,7 +11,7 @@ camera:
   open_ts: 0
 
 tracker:
-  draw: ["tracks"]
+  draw: ["tracks", "track_zones"]
   track_zones:
     - [[1204, 397], [1183, 412], [1069, 935], [5, 894], [0, 730], [956, 373], [959, 360], [960, 323], [1205, 346]]
   magnifying_zones:
