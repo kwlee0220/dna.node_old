@@ -1,99 +1,33 @@
 from __future__ import annotations
+
 from typing import Optional
-
-import collections
-from pathlib import Path
-
 from omegaconf import OmegaConf
 import numpy as np
-import cv2
 
-from dna import color, Point, BGR, Image, Frame
-from dna.support import plot_utils
-from .track_state import TrackState
-from .types import ObjectTrack, ObjectTracker, TrackProcessor
-from . import utils
-
-
-class TrackCsvWriter(TrackProcessor):
-    def __init__(self, track_file:str) -> None:
-        super().__init__()
-
-        self.track_file = track_file
-        self.out_handle = None
-
-    def track_started(self, tracker:ObjectTracker) -> None:
-        super().track_started(tracker)
-
-        parent = Path(self.track_file).parent
-        if not parent.exists():
-            parent.mkdir(parents=True, exist_ok=True)
-        self.out_handle = open(self.track_file, 'w')
-    
-    def track_stopped(self, tracker:ObjectTracker) -> None:
-        if self.out_handle:
-            self.out_handle.close()
-            self.out_handle = None
-
-        super().track_stopped(tracker)
-
-    def process_tracks(self, tracker:ObjectTracker, frame:Frame, tracks:list[ObjectTrack]) -> None:
-        for track in tracks:
-            self.out_handle.write(track.to_csv() + '\n')
-
-class Trail:
-    __slots__ = ('__tracks', )
-
-    def __init__(self) -> None:
-        self.__tracks = []
-
-    @property
-    def tracks(self) -> list[ObjectTrack]:
-        return self.__tracks
-
-    def append(self, track:ObjectTrack) -> None:
-        self.__tracks.append(track)
-
-    def draw(self, convas:np.ndarray, color:color.BGR, line_thickness=2) -> np.ndarray:
-        # track의 중점 값들을 선으로 이어서 출력함
-        track_centers:list[Point] = [t.location.center() for t in self.tracks[-11:]]
-        return plot_utils.draw_line_string(convas, track_centers, color, line_thickness)
-    
-
-class TrailCollector(TrackProcessor):
-    __slots__ = ('trails', )
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.trails = collections.defaultdict(lambda: Trail())
-
-    def get_trail(self, track_id:str) -> Trail:
-        return self.trails[track_id]
-
-    def track_started(self, tracker:ObjectTracker) -> None: pass
-    def track_stopped(self, tracker:ObjectTracker) -> None: pass
-
-    def process_tracks(self, tracker:ObjectTracker, frame:Frame, tracks:list[ObjectTrack]) -> None:      
-        for track in tracks:
-            if track.state == TrackState.Confirmed  \
-                or track.state == TrackState.TemporarilyLost    \
-                or track.state == TrackState.Tentative:
-                self.trails[track.id].append(track)
-            elif track.state == TrackState.Deleted:
-                self.trails.pop(track.id, None)
-
-
+from dna import color, BGR, Image, Frame
 from dna.camera import FrameProcessor
+from .types import ObjectTrack, ObjectTracker, TrackProcessor
+from .track_processors import TrailCollector, TrackCsvWriter
+
+
 class TrackingPipeline(FrameProcessor):
-    __slots__ = ( 'tracker', '_trail_collector', '_track_processors', 'draw')
+    __slots__ = ( 'tracker', '_trail_collector', '_track_processors', '_draw')
 
     def __init__(self, tracker:ObjectTracker, draw:list[str]=[]) -> None:
+        """TrackingPipeline을 생성한다.
+
+        Args:
+            tracker (ObjectTracker): TrackEvent를 생성할 tracker 객체.
+            draw (list[str], optional):Tracking 과정에서 영상에 표시할 항목 리스트.
+            리스트에는 'track_zones', 'exit_zones', 'stable_zones', 'magnifying_zones', 'tracks'이 포함될 수 있음.
+            Defaults to [].
+        """
         super().__init__()
 
         self.tracker = tracker
         self._trail_collector = TrailCollector()
         self._track_processors:list[TrackProcessor] = [self._trail_collector]
-        self.draw = draw
+        self._draw = draw
 
     @staticmethod
     def load(tracker_conf:OmegaConf) -> TrackingPipeline:
@@ -121,10 +55,10 @@ class TrackingPipeline(FrameProcessor):
 
     def set_control(self, key:int) -> int:
         def toggle(tag:str):
-            if tag in self.draw:
-                self.draw.pop(tag)
+            if tag in self._draw:
+                self._draw.pop(tag)
             else:
-                self.draw.append(tag)
+                self._draw.append(tag)
             
         if key == ord('t'):
             toggle('tracks')
@@ -146,25 +80,25 @@ class TrackingPipeline(FrameProcessor):
         for processor in self._track_processors:
             processor.process_tracks(self.tracker, frame, tracks)
 
-        if self.draw:
+        if self._draw:
             convas = frame.image
-            if 'track_zones' in self.draw:
+            if 'track_zones' in self._draw:
                 for zone in self.tracker.params.track_zones:
                     convas = zone.draw(convas, color.RED, 1)
-            if 'blind_zones' in self.draw:
+            if 'blind_zones' in self._draw:
                 for zone in self.tracker.params.blind_zones:
                     convas = zone.draw(convas, color.YELLOW, 1)
-            if 'exit_zones' in self.draw:
+            if 'exit_zones' in self._draw:
                 for zone in self.tracker.params.exit_zones:
                     convas = zone.draw(convas, color.RED, 1)
-            if 'stable_zones' in self.draw:
+            if 'stable_zones' in self._draw:
                 for zone in self.tracker.params.stable_zones:
                     convas = zone.draw(convas, color.BLUE, 1)
-            if 'magnifying_zones' in self.draw:
+            if 'magnifying_zones' in self._draw:
                 for roi in self.tracker.params.magnifying_zones:
                     roi.draw(convas, color.ORANGE, line_thickness=1)
 
-            if 'tracks' in self.draw:
+            if 'tracks' in self._draw:
                 tracks = self.tracker.tracks
                 for track in tracks:
                     if hasattr(track, 'last_detection'):
