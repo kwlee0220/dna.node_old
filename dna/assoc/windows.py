@@ -2,15 +2,11 @@ from __future__ import annotations
 
 from typing import Union, Optional
 from collections.abc import Iterable, Generator
-import sys
 import logging
 
 from dna import NodeId, TrackletId
 from dna.support import iterables
-from dna.event import EventProcessor, TrackEvent, TimeElapsed, TrackDeleted
-from .association import Association
-from .collection import AssociationCollector
-from .closure import AssociationClosure, AssociationClosureBuilder
+from dna.event import EventProcessor, TrackEvent, TimeElapsed
 
 
 class Window:
@@ -85,8 +81,8 @@ class TumblingWindowAssigner(EventProcessor):
                     self.max_ts[ev.node_id] = ev.ts
                 
                 # 본 TrackEvent를 해당 window에 추가하고, close된 window들에 대해 association들을 생성한다.
-                self.populate_window(ev)
-                for window in self._generate_closed_windows():
+                self.fill_window(ev)
+                for window in self._list_closed_windows():
                     self._publish_event((window, None))
             elif ev.is_deleted():
                 # 대상 TrackEvent 생성 시점보다 빠른 영역을 갖는 모든 window에 대해
@@ -108,15 +104,16 @@ class TumblingWindowAssigner(EventProcessor):
                 self._publish_event((window, None))
             self.dirty = False
                         
-    def populate_window(self, te:TrackEvent) -> None:
+    def fill_window(self, te:TrackEvent) -> None:
         if self.windows:
             if te.ts < self.windows[0].begin_millis:
+                # 가장 오래된 (첫번째) window의 시간 구간보다도 일찍 생성된 event는 누락시킨다.
                 if self.logger and self.logger.isEnabledFor(logging.WARN):
                     self.logger.warn(f"drop too-late event: {te}")
                 return
             
             while True:
-                # TrackEvent가 포함될 window를 검색한다.
+                # TrackEvent의 timestamp를 기준으로 이벤트가 포함될 window를 검색한다.
                 window = iterables.first((w for w in self.windows if w.range_contains(te)))
                 if window is not None:
                     window.append(te)
@@ -128,19 +125,26 @@ class TumblingWindowAssigner(EventProcessor):
                                      end_millis=last_window.end_millis+self.window_interval_ms)
                 self.windows.append(next_window)
         else:
+            # 첫번째 호출이어서 첫 window를 생성하여 이벤트를 추가함.
             window = Window(begin_millis=te.ts, end_millis=te.ts + self.window_interval_ms)
             window.append(te)
             self.windows.append(window)
         
-    def _generate_closed_windows(self) -> Generator[Window, None, None]:
+    MARGIN_DURATION_MS = 2 * 1000
+    def _list_closed_windows(self) -> Generator[Window, None, None]:
         min_ts = min(self.max_ts.values(), default=0)
-        max_ts = max(self.max_ts.values()) - (2*1000)
+        max_ts = max(self.max_ts.values())  # 가장 최근에 추가된 시각
         while self.windows:
             first_window = self.windows[0]
             if first_window.end_millis < min_ts:
+                # 첫번재 window의 시간 구간에 포함된 이벤트가 없는 경우
+                # 첫 window를 close 시킨다.
                 self.windows.pop(0)
                 yield first_window
-            elif first_window.end_millis < max_ts - (2*1000):
+            elif first_window.end_millis < max_ts - TumblingWindowAssigner.MARGIN_DURATION_MS:
+                # 가장 최근에 생성된 이벤트가 첫번째 window의 시간 구간(MARGIN)보다 일정 기간보다 더 최근인 경우.
+                # 이후에 추가될 이벤트가 첫번째 window에 할당될 경우가 거의 없기 때문에 해당 window를
+                # 종료시키고 window에 포함된 이벤트들을 반환한다.
                 if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f"flush frozen window: {first_window}, max_ts={max_ts}")
                 self.windows.pop(0)
