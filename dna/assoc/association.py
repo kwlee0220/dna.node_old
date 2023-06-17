@@ -3,13 +3,8 @@ from __future__ import annotations
 from typing import Union, Optional
 from collections.abc import Iterator, Iterable
 from abc import ABCMeta, abstractmethod
-import functools
-import logging
-
-import numpy as np
 
 from dna import NodeId, TrackId, TrackletId
-from dna.event import TrackDeleted, EventProcessor
 from dna.support import iterables
 
 
@@ -20,24 +15,56 @@ class Association(metaclass=ABCMeta):
     @property
     @abstractmethod
     def tracklets(self) -> set[TrackletId]:
+        """Association에 포함된 모든 tracklet의 식별자를 반환한다.
+
+        Returns:
+            set[TrackletId]: TrackletId set.
+        """
         pass
     
     @property
     def nodes(self) -> set[NodeId]:
+        """Association에 포함된 모든 tracklet의 node 식별자들을 반환한다.
+
+        Returns:
+            set[NodeId]: NodeId set.
+        """
         return {trk.node_id for trk in self.tracklets}
     
     @property
     @abstractmethod
     def score(self) -> float:
+        """본 association 정보의 confidence 점수를 반환한다.
+
+        Returns:
+            float: confidence 점수 (0~1)
+        """
         pass
     
     @property
     @abstractmethod
     def ts(self) -> int:
+        """본 association이 생성된 timestamp를 반환한다.
+
+        Returns:
+            int: timestamp in milli-seconds.
+        """
         pass
         
     @abstractmethod
     def is_closed(self, *, node:Optional[NodeId]=None, tracklet:Optional[TrackletId]=None) -> bool:
+        """본 association의 추후 변경 여부를 반환한다.
+        'node' 인자가 지정된 경우에는 이 식별자의 node의 tracklet의 종료 여부를 반환하고,
+        'tracklet'인자가 지정된 경우에는 지정된 식별자의 tracklet의 종료 여부를 반환한다.
+        만일 'node', 'tracklet' 이 모두 지정되지 않은 경우에는 association에 포함된 모든 tracklet의 종료 여부를 반환한다.
+
+        Args:
+            node (Optional[NodeId], optional): 대상 node의 식별자. Defaults to None.
+            tracklet (Optional[TrackletId], optional): 대상 tracklet의 식별자. Defaults to None.
+
+        Returns:
+            bool: 종료 여부.
+        """
         pass
     
     @abstractmethod

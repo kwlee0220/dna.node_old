@@ -1,19 +1,12 @@
 from __future__ import annotations
 
-from typing import Optional, Union
-import threading
 from dataclasses import replace
-
-import time
-from datetime import timedelta
 import logging
 
 from omegaconf import OmegaConf
 
 from dna import config
-from dna.track import TrackState
-from dna.track.types import ObjectTracker, TrackProcessor
-from dna.event import TimeElapsed, TrackDeleted, EventQueue, EventListener, EventProcessor
+from dna.event import EventQueue, EventListener
 from .types import ZoneEvent
 
 

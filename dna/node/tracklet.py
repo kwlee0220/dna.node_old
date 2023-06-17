@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Union
 from collections.abc import Generator
-from dataclasses import dataclass, field
 
 from dna import TrackId
 from dna.track import TrackState

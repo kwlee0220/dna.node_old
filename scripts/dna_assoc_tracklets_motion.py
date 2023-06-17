@@ -9,12 +9,10 @@ from dna import initialize_logger, config
 from dna.event import TrackEvent
 from dna.assoc.associator_motion import NodeAssociationSchema, MotionBasedTrackletAssociator
 from dna.event.event_processors import PrintEvent
-from dna.assoc import Association, AssociationCollector, AssociationCollection
+from dna.assoc import Association, AssociationCollection
 from dna.assoc.closure import AssociationClosureBuilder
 from dna.assoc.utils import ClosedAssociationPublisher, AssociationCloser, FixedIntervalCollector
 from scripts import *
-
-LOGGER = logging.getLogger('dna.script.sync_tracklets')
 
 
 def parse_args():

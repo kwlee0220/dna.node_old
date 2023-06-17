@@ -9,9 +9,9 @@ import numpy as np
 
 from dna import NodeId, TrackletId
 from dna.support import iterables
-from dna.event import EventProcessor, TrackDeleted
+from dna.event import EventProcessor
 from .association import Association, BinaryAssociation
-from .collection import AssociationCollector, AssociationCollection, PartialMatch
+from .collection import AssociationCollection, PartialMatch
     
 
 class AssociationClosure(Association):

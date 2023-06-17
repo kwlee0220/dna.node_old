@@ -7,6 +7,7 @@ from contextlib import closing
 from dna import NodeId, TrackId, TrackletId
 from dna.event import TrackEvent, TrackFeature, TrackletMotion
 from dna.support import sql_utils, iterables
+from dna.node.tracklet import Tracklet
 
 
 _CREATE_TRACK_EVENTS = """

@@ -12,7 +12,7 @@ from omegaconf import OmegaConf
 from dna import Frame, Size2d, config, Box, Point
 from dna.camera import ImageProcessor
 from dna.event import TrackEvent, TimeElapsed, TrackDeleted, EventQueue, EventListener, EventProcessor
-from dna.event.event_processors import DropEventByType, GroupByFrameIndex, EventRelay
+from dna.event.event_processors import DropEventByType, GroupByFrameIndex, EventRelay, TimeElapsedGenerator
 from dna.track import TrackState
 from dna.track.types import TrackProcessor, ObjectTrack
 from dna.track.dna_tracker import DNATracker
@@ -23,21 +23,21 @@ _DEFAULT_BUFFER_TIMEOUT = 5.0
 # _DEFAULT_MIN_PATH_LENGTH=10
 
 
-class TimeElapsedGenerator(threading.Thread):
-    def __init__(self, interval:timedelta, publishing_queue:EventQueue):
-        threading.Thread.__init__(self)
-        self.daemon = False
-        self.stopped = threading.Event()
-        self.interval = interval
-        self.publishing_queue = publishing_queue
+# class TimeElapsedGenerator(threading.Thread):
+#     def __init__(self, interval:timedelta, publishing_queue:EventQueue):
+#         threading.Thread.__init__(self)
+#         self.daemon = False
+#         self.stopped = threading.Event()
+#         self.interval = interval
+#         self.publishing_queue = publishing_queue
         
-    def stop(self):
-        self.stopped.set()
-        self.join()
+#     def stop(self):
+#         self.stopped.set()
+#         self.join()
         
-    def run(self):
-        while not self.stopped.wait(self.interval.total_seconds()):
-            self.publishing_queue._publish_event(TimeElapsed())
+#     def run(self):
+#         while not self.stopped.wait(self.interval.total_seconds()):
+#             self.publishing_queue._publish_event(TimeElapsed())
         
         
 class LogTrackEventPipeline(EventQueue):
@@ -180,7 +180,8 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
 
         tick_interval = config.get(publishing_conf, 'tick_interval', default=-1)
         if tick_interval > 0:
-            self._tick_gen = TimeElapsedGenerator(timedelta(seconds=tick_interval), self._input_queue)
+            self._tick_gen = TimeElapsedGenerator(timedelta(seconds=tick_interval))
+            self._tick_gen.add_listener(self)
             self._tick_gen.start()
 
     def close(self) -> None:
@@ -217,7 +218,6 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
     def process_tracks(self, tracker:DNATracker, frame:Frame, tracks:list[ObjectTrack]) -> None:
         for ev in tracker.last_event_tracks:
             ev = dataclasses.replace(ev, node_id=self.node_id)
-            # self._publish_event(ev)
             self.handle_event(ev)
 
     def _append_processor(self, proc:EventProcessor) -> None:
