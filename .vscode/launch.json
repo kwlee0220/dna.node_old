@@ -131,13 +131,13 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "output/sorted.pickle"
-                "output/sorted_1.pickle", "--offsets", "0", "0", "0",
+                // "output/sorted_1.pickle", "--offsets", "0", "0", "0",
                 // "output/sorted_2.pickle", "--offsets", "41", "5843", "584300",
-                // "output/sorted_3.pickle", "--offsets", "89", "9893", "989300",
+                "output/sorted_3.pickle", "--offsets", "89", "9893", "989300",
                 // "output/sorted_4.pickle", "--offsets", "145", "15880", "1588000",
                 // "output/sorted_5.pickle", "--offsets", "191", "21862", "2186200",
-                // "output/sorted_A.pickle"
-                // "--sync",
+                // "output/sorted_A.pickle",
+                "--sync",
             ],
             "justMyCode": true
         },
@@ -149,6 +149,16 @@
                 "--kafka_offset", "earliest",
                 "--db_url", "postgresql://dna:urc2004@localhost:6432/dna",
                 "-f",
+            ],
+            "justMyCode": true
+        },
+        { "name": "Show multiple tracks",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_show_multi_tracks.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "--kafka_brokers", "localhost:9092",
+                "--kafka_offset", "earliest",
             ],
             "justMyCode": true
         },
