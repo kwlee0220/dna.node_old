@@ -9,8 +9,7 @@ import numpy.typing as npt
 from numpy.linalg import det
 import cv2
 
-import dna
-from dna import Box, Frame, color, Image, Point
+from dna import Box, Frame, color, Image, Point, sub_logger
 from dna.detect import Detection
 from dna.support import plot_utils
 from dna.track import utils
@@ -103,7 +102,7 @@ class Tracker:
         iou_cost = build_iou_cost(self.tracks, detections)
         
         dist_iou_matcher = IoUDistanceCostMatcher(self.tracks, detections, self.params,
-                                                  dist_cost, iou_cost, self.logger.getChild('matcher'))
+                                                  dist_cost, iou_cost, sub_logger(self.logger, 'matcher'))
         self.match_by_motion(session, dist_iou_matcher)
         
         ###########################################################################################################

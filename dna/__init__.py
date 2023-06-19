@@ -1,6 +1,6 @@
 from .types import Box, Size2d, Point, Image, Frame, ByteString, InvalidStateError, NodeId, TrackId, TrackletId
 from .color import BGR
-from .utils import initialize_logger
+from .utils import initialize_logger, sub_logger
 
 __version__ = '2.1.2'
 

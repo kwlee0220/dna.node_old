@@ -1,22 +1,21 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from typing import Optional
 import logging
 
 from omegaconf import OmegaConf
 
-from dna import config
+from dna import config, sub_logger
 from dna.event import EventQueue, EventListener
 from .types import ZoneEvent
-
 
 
 class ZonePipeline(EventListener):
     __slots__ = ( 'event_source', 'event_queues', 'services' )
     
-    LOGGER = logging.getLogger('dna.node.zone')
-    
-    def __init__(self, node_id:str, conf:OmegaConf) -> None:
+    def __init__(self, node_id:str, conf:OmegaConf,
+                 *,
+                 logger:Optional[logging.Logger]=None) -> None:
         super().__init__()
         
         self.node_id = node_id
@@ -25,18 +24,18 @@ class ZonePipeline(EventListener):
         self.services:dict[str,object] = dict()
         
         from .to_line_transform import ToLineTransform
-        to_line = ToLineTransform(logger=ZonePipeline.LOGGER.getChild('line'))
+        to_line = ToLineTransform(logger=sub_logger(logger, 'line'))
         self.event_source.add_listener(to_line)
         self.line_event_queue = to_line
         
         from .zone_event_generator import ZoneEventGenerator
         named_zones = config.get(conf, "zones", default=[])
-        zone_detector = ZoneEventGenerator(named_zones, logger=ZonePipeline.LOGGER.getChild('zone'))
+        zone_detector = ZoneEventGenerator(named_zones, logger=sub_logger(logger, 'zone_gen'))
         self.line_event_queue.add_listener(zone_detector)
         self._raw_zone_event_queue = zone_detector
         
         from .zone_event_refiner import ZoneEventRefiner
-        event_refiner = ZoneEventRefiner(logger=ZonePipeline.LOGGER.getChild('zone'))
+        event_refiner = ZoneEventRefiner(logger=sub_logger(logger, 'zone_refine'))
         zone_detector.add_listener(event_refiner)
         self.event_queues['zone_events'] = event_refiner
         self.event_queues['location_changes'] = event_refiner.location_event_queue
@@ -58,7 +57,7 @@ class ZonePipeline(EventListener):
         
         if motions := config.get(conf, "motions"):
             from .motion_detector import MotionDetector
-            motion = MotionDetector(self.node_id, dict(motions), logger=ZonePipeline.LOGGER.getChild('motion'))
+            motion = MotionDetector(self.node_id, dict(motions), logger=sub_logger(logger, 'motion'))
             last_zone_seq.add_listener(motion)
             self.services['motions'] = motion
             self.event_queues['motions'] = motion

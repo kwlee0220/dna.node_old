@@ -7,7 +7,7 @@ import logging
 
 import numpy as np
 
-from dna import TrackletId
+from dna import TrackletId, sub_logger
 from dna.event import TrackEvent, TrackDeleted, EventProcessor
 from dna.support import iterables
 from dna.event.event_processors import TimeElapsedGenerator, EventRelay
@@ -35,7 +35,7 @@ class MotionBasedTrackletAssociator(EventProcessor):
         
         self.windows = TumblingWindowAssigner(nodes=schema.nodes,
                                               window_interval_ms=window_interval_ms,
-                                              logger=logger.getChild('window') if logger else None)
+                                              logger=sub_logger(logger, 'window'))
         self.ticker.add_listener(self.windows)
         
         self.associator = MotionBasedAssociator(schema=schema, max_track_distance=max_track_distance)

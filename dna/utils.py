@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 from typing import Optional, TypeVar
-from collections.abc import Sequence, Callable
+from collections.abc import Callable
+import logging
 
 from datetime import datetime, timezone
 from pathlib import Path
@@ -98,6 +100,9 @@ def initialize_logger(logger_conf_file: Optional[str]=None):
             logger_conf_text = f.read()
     logger_conf = yaml.safe_load(logger_conf_text)
     logging.config.dictConfig(logger_conf)
+    
+def sub_logger(logger:Optional[logging.Logger], suffix:str) -> Optional[logging.Logger]:
+    return logger.getChild(suffix) if logger else None
         
         
 def has_method(obj, name:str) -> bool:

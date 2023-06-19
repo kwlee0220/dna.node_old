@@ -9,7 +9,7 @@ import numpy as np
 from datetime import timedelta
 from omegaconf import OmegaConf
 
-from dna import Frame, Size2d, config, Box, Point
+from dna import Frame, Size2d, config, Box, Point, sub_logger
 from dna.camera import ImageProcessor
 from dna.event import TrackEvent, TimeElapsed, TrackDeleted, EventQueue, EventListener, EventProcessor
 from dna.event.event_processors import DropEventByType, GroupByFrameIndex, EventRelay, TimeElapsedGenerator
@@ -111,7 +111,9 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
                  '_current_queue', '_group_event_queue', 'min_frame_indexers')
 
     def __init__(self, node_id:str, publishing_conf:OmegaConf,
-                 image_processor:Optional[ImageProcessor]=None) -> None:
+                 image_processor:Optional[ImageProcessor]=None,
+                 *,
+                 logger:Optional[logging.Logger]=None) -> None:
         EventQueue.__init__(self)
         TrackProcessor.__init__(self)
 
@@ -124,8 +126,7 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
         self._current_queue = self._input_queue
         self._current_queue.add_listener(self._event_publisher)
         self._group_event_queue:GroupByFrameIndex = None
-        
-        self.logger = logging.getLogger("dna.node.event")
+        self.logger = logger
         
         self.min_frame_indexers:MinFrameIndexComposer = MinFrameIndexComposer()
         
@@ -136,7 +137,7 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
             buffer_size = config.get(refind_track_conf, 'buffer_size', default=_DEFAULT_BUFFER_SIZE)
             buffer_timeout = config.get(refind_track_conf, 'buffer_timeout', default=_DEFAULT_BUFFER_TIMEOUT)
             refine_tracks = RefineTrackEvent(buffer_size=buffer_size, buffer_timeout=buffer_timeout,
-                                                   logger=self.logger)
+                                             logger=sub_logger(logger, "refine"))
             self._append_processor(refine_tracks)
             self.min_frame_indexers.append(refine_tracks)
 
@@ -144,7 +145,7 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
         min_path_length = config.get(publishing_conf, 'min_path_length', default=-1)
         if min_path_length > 0:
             from .drop_short_trail import DropShortTrail
-            drop_short_trail = DropShortTrail(min_path_length, logger=self.logger)
+            drop_short_trail = DropShortTrail(min_path_length, logger=sub_logger(logger, 'drop_short_tail'))
             self._append_processor(drop_short_trail)
             self.min_frame_indexers.append(drop_short_trail)
 
@@ -163,7 +164,8 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
         # generate zone-based events
         zone_pipeline_conf = config.get(publishing_conf, 'zone_pipeline')
         if zone_pipeline_conf:
-            zone_pipeline = ZonePipeline(self.node_id, zone_pipeline_conf)
+            zone_logger = logging.getLogger('dna.node.zone')
+            zone_pipeline = ZonePipeline(self.node_id, zone_pipeline_conf, logger=zone_logger)
             self._current_queue.add_listener(zone_pipeline)
             self.plugins['zone_pipeline'] = zone_pipeline
             
@@ -243,7 +245,8 @@ class ZoneToTrackEventTransform(EventProcessor):
 
 def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
                  image_processor:Optional[ImageProcessor]=None,
-                 *, logger:Optional[logging.Logger]=None) -> None:
+                 *,
+                 logger:Optional[logging.Logger]=None) -> None:
     local_path_conf = config.get(plugins_conf, 'local_path')
     if local_path_conf:
         from .local_path_generator import LocalPathGenerator
@@ -259,7 +262,7 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
         
         kafka_brokers = config.get(publish_tracks_conf, 'kafka_brokers', default=default_kafka_brokers)
         topic = config.get(publish_tracks_conf, 'topic', default='track-events')
-        plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=logger.getChild('kafka.tracks'))
+        plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=sub_logger(logger, 'kafka.tracks'))
         pipeline.add_listener(plugin)
         pipeline.plugins['publish_tracks'] = plugin
             
@@ -279,7 +282,7 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
         
         kafka_brokers = config.get(publish_features_conf, 'kafka_brokers', default=default_kafka_brokers)
         topic = config.get(publish_features_conf, 'topic', default='track-features')
-        plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=logger.getChild('kafka.features'))
+        plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=sub_logger(logger, 'kafka.features'))
         publish.add_listener(plugin)
         pipeline.plugins['publish_features'] = plugin
         
@@ -292,7 +295,7 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
             if motions:
                 kafka_brokers = config.get(publish_motions_conf, 'kafka_brokers', default=default_kafka_brokers)
                 topic = config.get(publish_motions_conf, 'topic', default='track-motions')
-                plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=logger.getChild('kafka.motions'))
+                plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=sub_logger(logger, 'kafka.motions'))
                 motions.add_listener(plugin)
                 pipeline.plugins['publish_motions'] = plugin
     

@@ -4,7 +4,6 @@ from typing import Optional
 import logging
 import itertools
 
-from dna import utils
 from dna.event import EventProcessor, TrackDeleted, TrackletMotion
 from .zone_sequence_collector import ZoneSequence
     
@@ -34,7 +33,8 @@ class MotionDetector(EventProcessor):
                     self.logger.debug(f'detect motion: track={ev.track_id}, seq={seq_str}, motion={motion.motion}, '
                                         f'frame={ev.frame_index}')
             else:
-                self.logger.warn(f'unknown motion: track={ev.track_id}, seq={seq_str}, frame={ev.frame_index}')
+                if self.logger:
+                    self.logger.warn(f'unknown motion: track={ev.track_id}, seq={seq_str}, frame={ev.frame_index}')
                     
             motion = TrackletMotion(node_id=self.node_id,
                                     track_id=ev.track_id,

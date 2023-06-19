@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from typing import Optional
+import logging
 
 from omegaconf import OmegaConf
 
@@ -23,8 +25,10 @@ def build_node_processor(image_processor:ImageProcessor, conf: OmegaConf,
 
     # TrackEventPipeline 생성하고 TrackingPipeline에 등록함
     publishing_conf = config.get_or_insert_empty(conf, 'publishing')
+    logger = logging.getLogger("dna.node.event")
     track_event_pipeline = TrackEventPipeline(conf.id, publishing_conf=publishing_conf,
-                                              image_processor=image_processor)
+                                              image_processor=image_processor,
+                                              logger=logger)
     tracking_pipeline.add_track_processor(track_event_pipeline)
 
     # ZonePipeline이 TrackEventPipeline에 등록되고, motion detection이 정의된 경우

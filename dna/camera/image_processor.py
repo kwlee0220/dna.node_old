@@ -14,7 +14,7 @@ from omegaconf import OmegaConf
 from tqdm import tqdm
 import cv2
 
-from dna import color, Frame, utils, Size2d
+from dna import color, Frame, utils, Size2d, sub_logger
 from .camera import ImageCapture
 from dna.execution import AbstractExecution, ExecutionContext, CancellationError
 
@@ -79,12 +79,12 @@ class ImageProcessor(AbstractExecution):
             self.suffix_processors.append(DrawFrameTitle())
         if output_video:
             self.suffix_processors.append(ImageWriteProcessor(Path(output_video),
-                                                              logger=self.logger.getChild('image_writer')))
+                                                              logger=sub_logger(self.logger, 'image_writer')))
 
         if show:
             window_name = f'camera={cap.camera.uri}'
             self.show_processor = ShowFrame(window_name, tuple(show.wh) if show else None,
-                                            logger=self.logger.getChild('show_frame'))
+                                            logger=sub_logger(self.logger, 'show_frame'))
             self.suffix_processors.append(self.show_processor)
 
         if show_progress:
