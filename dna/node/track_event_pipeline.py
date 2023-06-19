@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Union, Optional
 import dataclasses
-import threading
 
 import logging
 import numpy as np
@@ -11,38 +10,18 @@ from omegaconf import OmegaConf
 
 from dna import Frame, Size2d, config, Box, Point, sub_logger
 from dna.camera import ImageProcessor
-from dna.event import TrackEvent, TimeElapsed, TrackDeleted, EventQueue, EventListener, EventProcessor
-from dna.event.event_processors import DropEventByType, GroupByFrameIndex, EventRelay, TimeElapsedGenerator
-from dna.track import TrackState
+from dna.event import TimeElapsed, TrackDeleted, EventQueue, EventListener, EventProcessor
+from dna.event.event_processors import DropEventByType, EventRelay, TimeElapsedGenerator
+from dna.node.utils import GroupByFrameIndex
 from dna.track.types import TrackProcessor, ObjectTrack
 from dna.track.dna_tracker import DNATracker
 from .zone.zone_pipeline import ZonePipeline
 
 _DEFAULT_BUFFER_SIZE = 30
 _DEFAULT_BUFFER_TIMEOUT = 5.0
-# _DEFAULT_MIN_PATH_LENGTH=10
-
-
-# class TimeElapsedGenerator(threading.Thread):
-#     def __init__(self, interval:timedelta, publishing_queue:EventQueue):
-#         threading.Thread.__init__(self)
-#         self.daemon = False
-#         self.stopped = threading.Event()
-#         self.interval = interval
-#         self.publishing_queue = publishing_queue
-        
-#     def stop(self):
-#         self.stopped.set()
-#         self.join()
-        
-#     def run(self):
-#         while not self.stopped.wait(self.interval.total_seconds()):
-#             self.publishing_queue._publish_event(TimeElapsed())
         
         
 class LogTrackEventPipeline(EventQueue):
-    __slots__ = ('plugins')
-
     def __init__(self, track_file) -> None:
         super().__init__()
 
@@ -59,7 +38,7 @@ class LogTrackEventPipeline(EventQueue):
     @property
     def group_event_queue(self) -> EventQueue:
         if not self._group_event_queue:
-            from ..event.event_processors import GroupByFrameIndex
+            from .utils import GroupByFrameIndex
             self._group_event_queue = GroupByFrameIndex(max_pending_frames=1, timeout=0.5)
             self.add_listener(self._group_event_queue)
         return self._group_event_queue
@@ -106,14 +85,13 @@ class MinFrameIndexComposer:
             return None
 
 
-class TrackEventPipeline(EventQueue,TrackProcessor):
-    __slots__ = ('node_id', 'plugins', '_tick_gen', '_input_queue', '_output_queue',
-                 '_current_queue', '_group_event_queue', 'min_frame_indexers')
-
+class TrackEventPipeline(EventListener, EventQueue, TrackProcessor):
+        
     def __init__(self, node_id:str, publishing_conf:OmegaConf,
                  image_processor:Optional[ImageProcessor]=None,
                  *,
                  logger:Optional[logging.Logger]=None) -> None:
+        EventListener.__init__(self)
         EventQueue.__init__(self)
         TrackProcessor.__init__(self)
 
@@ -121,10 +99,8 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
         self.plugins = dict()
         self._tick_gen = None
         
-        self._input_queue = EventQueue()
-        self._event_publisher = EventRelay(self)
-        self._current_queue = self._input_queue
-        self._current_queue.add_listener(self._event_publisher)
+        self._head = EventQueue()
+        self._tail = self._head
         self._group_event_queue:GroupByFrameIndex = None
         self.logger = logger
         
@@ -159,6 +135,7 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
             stabilizer = Stabilizer(publishing_conf.stabilization)
             self._append_processor(stabilizer)
             self.min_frame_indexers.append(stabilizer)
+            
         self._append_processor(DropEventByType([TimeElapsed]))
         
         # generate zone-based events
@@ -166,14 +143,23 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
         if zone_pipeline_conf:
             zone_logger = logging.getLogger('dna.node.zone')
             zone_pipeline = ZonePipeline(self.node_id, zone_pipeline_conf, logger=zone_logger)
-            self._current_queue.add_listener(zone_pipeline)
-            self.plugins['zone_pipeline'] = zone_pipeline
+            self._append_processor(zone_pipeline)
             
             transform = ZoneToTrackEventTransform()
-            self._current_queue.remove_listener(self._event_publisher)
-            transform.add_listener(self._event_publisher)
-            self._current_queue = transform
-            zone_pipeline.event_queues['zone_events'].add_listener(transform)
+            self._append_processor(transform)
+            
+            draw_motions = config.get(zone_pipeline_conf, "draw", default=True)
+            if image_processor.is_drawing and draw_motions:
+                motion_queue = zone_pipeline.event_queues.get('motions')
+                if motion_queue:
+                    from .zone.zone_sequences_display import ZoneSequenceDisplay
+                    display = ZoneSequenceDisplay(motion_definitions=motion_queue.motion_definitions)
+                    motion_queue.add_listener(display)
+                    self.add_listener(display)
+                    image_processor.add_frame_processor(display)
+            
+        # end-of-processors here
+        self._tail.add_listener(EventRelay(self))
     
         # 알려진 TrackEventPipeline의 plugin 을 생성하여 등록시킨다.
         plugins_conf = config.get(publishing_conf, "plugins")
@@ -189,7 +175,7 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
     def close(self) -> None:
         if self._tick_gen:
             self._tick_gen.stop()
-        self._input_queue.close()
+        self._head.close()
         
         super().close()
         
@@ -197,18 +183,18 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
             if hasattr(plugin, 'close') and callable(plugin.close):
                 plugin.close()
             
-    def handle_event(self, track:TrackEvent) -> None:
+    def handle_event(self, ev:object) -> None:
         """TrackEvent pipeline에 주어진 track event를 입력시킨다.
 
         Args:
-            track (TrackEvent): 입력 TrackEvent
+            track (object): 입력 이벤트.
         """
-        self._input_queue._publish_event(track)
+        self._head._publish_event(ev)
     
     @property
     def group_event_queue(self) -> EventQueue:
         if not self._group_event_queue:
-            from ..event.event_processors import GroupByFrameIndex
+            from dna.node.utils import GroupByFrameIndex
             self._group_event_queue = GroupByFrameIndex(self.min_frame_indexers.min_frame_index)
             self.add_listener(self._group_event_queue)
         return self._group_event_queue
@@ -223,10 +209,8 @@ class TrackEventPipeline(EventQueue,TrackProcessor):
             self.handle_event(ev)
 
     def _append_processor(self, proc:EventProcessor) -> None:
-        self._current_queue.remove_listener(self._event_publisher)
-        proc.add_listener(self._event_publisher)
-        self._current_queue.add_listener(proc)
-        self._current_queue = proc
+        self._tail.add_listener(proc)
+        self._tail = proc
         
         
 from dataclasses import replace
@@ -264,7 +248,6 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
         topic = config.get(publish_tracks_conf, 'topic', default='track-events')
         plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=sub_logger(logger, 'kafka.tracks'))
         pipeline.add_listener(plugin)
-        pipeline.plugins['publish_tracks'] = plugin
             
     # 'PublishReIDFeatures' plugin은 ImageProcessor가 지정된 경우에만 등록시킴
     publish_features_conf = config.get(plugins_conf, "publish_features")
@@ -284,20 +267,18 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
         topic = config.get(publish_features_conf, 'topic', default='track-features')
         plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=sub_logger(logger, 'kafka.features'))
         publish.add_listener(plugin)
-        pipeline.plugins['publish_features'] = plugin
         
     zone_pipeline:ZonePipeline = pipeline.plugins.get('zone_pipeline')
     if zone_pipeline:
         publish_motions_conf = config.get(plugins_conf, 'publish_motions')
         if publish_motions_conf:
-            from ..event.kafka_event_publisher import KafkaEventPublisher
+            from dna.event import KafkaEventPublisher
             motions = zone_pipeline.event_queues.get('motions')
             if motions:
                 kafka_brokers = config.get(publish_motions_conf, 'kafka_brokers', default=default_kafka_brokers)
                 topic = config.get(publish_motions_conf, 'topic', default='track-motions')
                 plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=sub_logger(logger, 'kafka.motions'))
                 motions.add_listener(plugin)
-                pipeline.plugins['publish_motions'] = plugin
     
     output_file = config.get(plugins_conf, 'output')
     if output_file is not None:

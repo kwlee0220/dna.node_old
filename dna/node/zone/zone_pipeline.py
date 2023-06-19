@@ -7,12 +7,11 @@ from omegaconf import OmegaConf
 
 from dna import config, sub_logger
 from dna.event import EventQueue, EventListener
+from dna.event.event_processors import EventRelay
 from .types import ZoneEvent
 
 
-class ZonePipeline(EventListener):
-    __slots__ = ( 'event_source', 'event_queues', 'services' )
-    
+class ZonePipeline(EventListener,EventQueue):
     def __init__(self, node_id:str, conf:OmegaConf,
                  *,
                  logger:Optional[logging.Logger]=None) -> None:
@@ -21,7 +20,6 @@ class ZonePipeline(EventListener):
         self.node_id = node_id
         self.event_source = EventQueue()
         self.event_queues:dict[str,EventQueue] = dict()
-        self.services:dict[str,object] = dict()
         
         from .to_line_transform import ToLineTransform
         to_line = ToLineTransform(logger=sub_logger(logger, 'line'))
@@ -36,6 +34,7 @@ class ZonePipeline(EventListener):
         
         from .zone_event_refiner import ZoneEventRefiner
         event_refiner = ZoneEventRefiner(logger=sub_logger(logger, 'zone_refine'))
+        event_refiner.add_listener(EventRelay(self))
         zone_detector.add_listener(event_refiner)
         self.event_queues['zone_events'] = event_refiner
         self.event_queues['location_changes'] = event_refiner.location_event_queue
@@ -59,7 +58,6 @@ class ZonePipeline(EventListener):
             from .motion_detector import MotionDetector
             motion = MotionDetector(self.node_id, dict(motions), logger=sub_logger(logger, 'motion'))
             last_zone_seq.add_listener(motion)
-            self.services['motions'] = motion
             self.event_queues['motions'] = motion
 
     def close(self) -> None:
