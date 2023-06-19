@@ -3,6 +3,7 @@ from typing import Optional
 
 import logging
 
+from dna import TrackId
 from dna.event import TrackEvent, EventProcessor, TrackDeleted
 from .types import LineTrack
 
@@ -12,7 +13,7 @@ class ToLineTransform(EventProcessor):
     
     def __init__(self, *, logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
-        self.last_events:dict[str,TrackEvent] = dict()
+        self.last_events:dict[TrackId,TrackEvent] = dict()
         self.logger = logger
 
     def close(self) -> None:
@@ -26,12 +27,12 @@ class ToLineTransform(EventProcessor):
             self._publish_event(ev)
 
     def handle_track_event(self, ev:TrackEvent) -> None:
-        if not ev.is_deleted():
+        if ev.is_deleted():
+            self.last_events.pop(ev.track_id, None)
+            self._publish_event(TrackDeleted(node_id=ev.node_id, track_id=ev.track_id,
+                                             frame_index=ev.frame_index, ts=ev.ts, source=ev))
+        else:           
             # track의 첫번재 이벤트인 경우는 last_event가 ev(자기 자신)이 됨.
             last_event = self.last_events.get(ev.track_id, ev)
             self._publish_event(LineTrack.from_events(last_event, ev))
             self.last_events[ev.track_id] = ev
-        else:
-            self.last_events.pop(ev.track_id, None)
-            self._publish_event(TrackDeleted(node_id=ev.node_id, track_id=ev.track_id,
-                                             frame_index=ev.frame_index, ts=ev.ts, source=ev))
