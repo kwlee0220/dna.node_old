@@ -39,9 +39,9 @@ def build_node_processor(image_processor:ImageProcessor, conf: OmegaConf,
         motion_detector = zone_pipeline.services.get('motions')
         motion_queue = zone_pipeline.event_queues.get('motions')
         if motion_detector and motion_queue:
-            display = ZoneSequenceDisplay(motion_definitions=motion_detector.motion_definitions,
-                                          track_queue=track_event_pipeline,
-                                          motion_queue=motion_queue)
+            display = ZoneSequenceDisplay(motion_definitions=motion_detector.motion_definitions)
+            motion_queue.add_listener(display)
+            track_event_pipeline.add_listener(display)
             image_processor.add_frame_processor(display)
     
     return tracking_pipeline, track_event_pipeline

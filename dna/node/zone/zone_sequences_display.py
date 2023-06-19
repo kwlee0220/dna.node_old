@@ -15,14 +15,12 @@ from .resident_changes import ResidentChanges
 
 
 class ZoneSequenceDisplay(FrameProcessor,EventListener):
-    def __init__(self, motion_definitions:dict[str,str], track_queue:EventQueue, motion_queue:EventQueue) -> None:
+    def __init__(self, motion_definitions:dict[str,str]) -> None:
         self.motion_counts:dict[str,int] = defaultdict(int)
         for motion_id in motion_definitions.values():
             self.motion_counts[motion_id] = 0
         self.track_locations:dict[str,Box] = dict()
         self.motion_tracks:set[int] = set()
-        self.track_queue = track_queue
-        self.motion_queue = motion_queue
 
     def close(self) -> None:
         for key in self.motion_counts.keys():
@@ -39,8 +37,6 @@ class ZoneSequenceDisplay(FrameProcessor,EventListener):
     def on_started(self, proc:ImageProcessor) -> None:
         for key in self.motion_counts.keys():
             self.motion_counts[key] = 0
-        self.track_queue.add_listener(self)
-        self.motion_queue.add_listener(self)
 
     def on_stopped(self) -> None:
         pass
