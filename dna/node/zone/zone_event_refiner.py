@@ -2,13 +2,9 @@ from __future__ import annotations
 
 from typing import Optional, Union
 from collections.abc import Iterable
-from dataclasses import dataclass, field
-
 import logging
-import shapely.geometry as geometry
-from omegaconf.omegaconf import OmegaConf
-from collections import defaultdict
 
+from dna import TrackId
 from dna.event import EventQueue, EventProcessor, TrackDeleted
 from .types import ZoneRelation, ZoneEvent, LocationChanged
 
@@ -31,7 +27,7 @@ class ZoneEventRefiner(EventProcessor):
     def __init__(self, *, logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
 
-        self.locations:dict[str,TrackLocations]=dict()
+        self.locations:dict[TrackId,TrackLocations] = dict()
         self.location_event_queue = EventQueue()
         self.logger = logger
 

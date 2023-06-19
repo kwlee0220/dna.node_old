@@ -163,8 +163,8 @@ class FixedIntervalCollector(EventProcessor):
         if isinstance(assoc, Association):
             # 추가된 association을 바로 closure 생성에 사용하지 않고, 'interval_ms' 동안 수집한다.
             self.collection.add(assoc)
-            self.first_ms = min(self.first_ms, assoc.ts)
-            self.last_ms = max(self.last_ms, assoc.ts)
+            self.first_ms = min(self.first_ms, assoc.ts)    # 수집된 association들 중 가장 오래된 것의 timestamp
+            self.last_ms = max(self.last_ms, assoc.ts)      # 수집된 association들 중 가장 최근 것의 timestamp
             
             if (self.last_ms - self.first_ms) > self.interval_ms and self.collection:
                 self._publish_old_associations(self.first_ms)
