@@ -147,4 +147,7 @@ class ZoneEventRefiner(EventProcessor):
                        zone_id=zone_id if zone_id else zone_ev.zone_id,
                        frame_index=zone_ev.frame_index, ts=zone_ev.ts, source=zone_ev.source)
         self._publish_event(ev)
+        
+    def __repr__(self) -> str:
+        return f"RefineZoneEvents"
     

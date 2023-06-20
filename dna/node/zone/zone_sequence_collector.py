@@ -55,6 +55,9 @@ class ZoneSequenceCollector(EventProcessor):
     def handle_track_deleted(self, ev:TrackDeleted):
         self.sequences.pop(ev.track_id, None)
         self._publish_event(ev)
+        
+    def __repr__(self) -> str:
+        return f"CollectZoneSeqs"
 
 
 class FinalZoneSequenceFilter(EventProcessor):

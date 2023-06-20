@@ -4,5 +4,7 @@ from .track_feature import TrackFeature
 from. tracklet_motion import TrackletMotion
 from .event_processor import EventListener, EventQueue, EventProcessor
 from .kafka_event_publisher import KafkaEventPublisher
+from .multi_stage_pipeline import MultiStagePipeline
+from .event_processors import EventRelay
 from .utils import read_json_event_file, read_pickle_event_file, read_event_file, \
                     read_topics, publish_kafka_events, open_kafka_producer, open_kafka_consumer

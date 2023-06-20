@@ -36,3 +36,6 @@ class ToLineTransform(EventProcessor):
             last_event = self.last_events.get(ev.track_id, ev)
             self._publish_event(LineTrack.from_events(last_event, ev))
             self.last_events[ev.track_id] = ev
+            
+    def __repr__(self) -> str:
+        return f"ToLine"

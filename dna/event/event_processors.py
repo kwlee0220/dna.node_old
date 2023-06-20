@@ -1,17 +1,10 @@
 from __future__ import annotations
 
-import sys
-from typing import Union
-
 import threading
 from datetime import timedelta
-from pathlib import Path
-
-from .track_event import TrackEvent
 
 from .types import TimeElapsed
 from .event_processor import EventProcessor, EventListener, EventQueue
-from ..node.refine_track_event import RefineTrackEvent
 
 
 class PrintEvent(EventListener):
@@ -57,7 +50,7 @@ class DropEventByType(EventProcessor):
         super().__init__()
         self.drop_list = event_types
 
-    def handle_event(self, ev:Union[TrackEvent,TimeElapsed]) -> None:
+    def handle_event(self, ev:object) -> None:
         if not any(ev_type for ev_type in self.drop_list if isinstance(ev, ev_type)):
             self._publish_event(ev)
 
@@ -67,6 +60,6 @@ class FilterEventByType(EventProcessor):
         super().__init__()
         self.keep_list = event_types
 
-    def handle_event(self, ev:Union[TrackEvent,TimeElapsed]) -> None:
+    def handle_event(self, ev:object) -> None:
         if any(ev_type for ev_type in self.keep_list if isinstance(ev, ev_type)):
             self._publish_event(ev)
