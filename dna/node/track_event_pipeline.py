@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from typing import Union, Optional
 import dataclasses
-
 import logging
-import numpy as np
 from datetime import timedelta
+
+import numpy as np
 from omegaconf import OmegaConf
 
-from dna import Frame, Size2d, config, Box, Point, sub_logger
+from dna import Frame, Size2d, config, sub_logger
 from dna.camera import ImageProcessor
-from dna.event import TimeElapsed, TrackDeleted, EventQueue, EventListener, EventProcessor
-from dna.event.event_processors import DropEventByType, EventRelay, TimeElapsedGenerator
+from dna.event import TimeElapsed, TrackDeleted, MultiStagePipeline, EventQueue, EventProcessor
+from dna.event.event_processors import DropEventByType, TimeElapsedGenerator
 from dna.node.utils import GroupByFrameIndex
 from dna.track.types import TrackProcessor, ObjectTrack
 from dna.track.dna_tracker import DNATracker
@@ -19,40 +19,6 @@ from .zone.zone_pipeline import ZonePipeline
 
 _DEFAULT_BUFFER_SIZE = 30
 _DEFAULT_BUFFER_TIMEOUT = 5.0
-        
-        
-class LogTrackEventPipeline(EventQueue):
-    def __init__(self, track_file) -> None:
-        super().__init__()
-
-        self.track_file = track_file
-        self.plugins = dict()
-        self.sorted_event_queue = self
-
-    def close(self) -> None:
-        for plugin in self.plugins.values():
-            if hasattr(plugin, 'close') and callable(plugin.close):
-                plugin.close()
-        super().close()
-    
-    @property
-    def group_event_queue(self) -> EventQueue:
-        if not self._group_event_queue:
-            from .utils import GroupByFrameIndex
-            self._group_event_queue = GroupByFrameIndex(max_pending_frames=1, timeout=0.5)
-            self.add_listener(self._group_event_queue)
-        return self._group_event_queue
-
-    def add_plugin(self, id:str, plugin:EventListener, queue:Optional[EventQueue]=None) -> None:
-        queue = queue if queue else self
-        queue.add_listener(plugin)
-        self.plugins[id] = plugin
-        
-    def run(self) -> None:
-        from dna.event.utils import read_tracks_json
-        for track in read_tracks_json(self.track_file):
-            self._publish_event(track)
-        self.close()
 
 
 class MinFrameIndexComposer:
@@ -85,22 +51,18 @@ class MinFrameIndexComposer:
             return None
 
 
-class TrackEventPipeline(EventListener, EventQueue, TrackProcessor):
-        
+class TrackEventPipeline(MultiStagePipeline, TrackProcessor):
     def __init__(self, node_id:str, publishing_conf:OmegaConf,
                  image_processor:Optional[ImageProcessor]=None,
                  *,
                  logger:Optional[logging.Logger]=None) -> None:
-        EventListener.__init__(self)
-        EventQueue.__init__(self)
+        MultiStagePipeline.__init__(self)
         TrackProcessor.__init__(self)
 
         self.node_id = node_id
         self.plugins = dict()
         self._tick_gen = None
         
-        self._head = EventQueue()
-        self._tail = self._head
         self._group_event_queue:GroupByFrameIndex = None
         self.logger = logger
         
@@ -114,7 +76,7 @@ class TrackEventPipeline(EventListener, EventQueue, TrackProcessor):
             buffer_timeout = config.get(refind_track_conf, 'buffer_timeout', default=_DEFAULT_BUFFER_TIMEOUT)
             refine_tracks = RefineTrackEvent(buffer_size=buffer_size, buffer_timeout=buffer_timeout,
                                              logger=sub_logger(logger, "refine"))
-            self._append_processor(refine_tracks)
+            self.add_stage(refine_tracks)
             self.min_frame_indexers.append(refine_tracks)
 
         # drop too-short tracks of an object
@@ -122,31 +84,31 @@ class TrackEventPipeline(EventListener, EventQueue, TrackProcessor):
         if min_path_length > 0:
             from .drop_short_trail import DropShortTrail
             drop_short_trail = DropShortTrail(min_path_length, logger=sub_logger(logger, 'drop_short_tail'))
-            self._append_processor(drop_short_trail)
+            self.add_stage(drop_short_trail)
             self.min_frame_indexers.append(drop_short_trail)
 
         # attach world-coordinates to each track
         if config.exists(publishing_conf, 'attach_world_coordinates'):
             from .world_coord_attach import WorldCoordinateAttacher
-            self._append_processor(WorldCoordinateAttacher(publishing_conf.attach_world_coordinates))
+            self.add_stage(WorldCoordinateAttacher(publishing_conf.attach_world_coordinates))
 
         if config.exists(publishing_conf, 'stabilization'):
             from .stabilizer import Stabilizer
             stabilizer = Stabilizer(publishing_conf.stabilization)
-            self._append_processor(stabilizer)
+            self.add_stage(stabilizer)
             self.min_frame_indexers.append(stabilizer)
             
-        self._append_processor(DropEventByType([TimeElapsed]))
+        self.add_stage(DropEventByType([TimeElapsed]))
         
         # generate zone-based events
         zone_pipeline_conf = config.get(publishing_conf, 'zone_pipeline')
         if zone_pipeline_conf:
             zone_logger = logging.getLogger('dna.node.zone')
             zone_pipeline = ZonePipeline(self.node_id, zone_pipeline_conf, logger=zone_logger)
-            self._append_processor(zone_pipeline)
+            self.add_stage(zone_pipeline)
             
             transform = ZoneToTrackEventTransform()
-            self._append_processor(transform)
+            self.add_stage(transform)
             
             draw_motions = config.get(zone_pipeline_conf, "draw", default=True)
             if image_processor.is_drawing and draw_motions:
@@ -157,9 +119,6 @@ class TrackEventPipeline(EventListener, EventQueue, TrackProcessor):
                     motion_queue.add_listener(display)
                     self.add_listener(display)
                     image_processor.add_frame_processor(display)
-            
-        # end-of-processors here
-        self._tail.add_listener(EventRelay(self))
     
         # 알려진 TrackEventPipeline의 plugin 을 생성하여 등록시킨다.
         plugins_conf = config.get(publishing_conf, "plugins")
@@ -175,21 +134,13 @@ class TrackEventPipeline(EventListener, EventQueue, TrackProcessor):
     def close(self) -> None:
         if self._tick_gen:
             self._tick_gen.stop()
-        self._head.close()
-        
-        super().close()
         
         for plugin in reversed(self.plugins.values()):
             if hasattr(plugin, 'close') and callable(plugin.close):
                 plugin.close()
-            
-    def handle_event(self, ev:object) -> None:
-        """TrackEvent pipeline에 주어진 track event를 입력시킨다.
-
-        Args:
-            track (object): 입력 이벤트.
-        """
-        self._head._publish_event(ev)
+        
+        TrackProcessor.close(self)
+        MultiStagePipeline.close(self)
     
     @property
     def group_event_queue(self) -> EventQueue:
@@ -225,6 +176,9 @@ class ZoneToTrackEventTransform(EventProcessor):
             if ev.source:
                 track_ev = replace(ev.source, zone_relation='D')
                 self._publish_event(track_ev)
+        
+    def __repr__(self) -> str:
+        return f"ZoneToTrackEventTransform"
 
 
 def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,

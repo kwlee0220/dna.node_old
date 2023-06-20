@@ -53,6 +53,11 @@ class DropEventByType(EventProcessor):
     def handle_event(self, ev:object) -> None:
         if not any(ev_type for ev_type in self.drop_list if isinstance(ev, ev_type)):
             self._publish_event(ev)
+    
+    def __repr__(self) -> str:
+        types_str = ",".join(ev_type.__name__ for ev_type in self.drop_list)
+        return f"DropEventByType(types={types_str})"
+
 
 
 class FilterEventByType(EventProcessor):

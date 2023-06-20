@@ -62,3 +62,6 @@ class DropShortTrail(EventProcessor):
     def __publish_pendings(self, pendings:list[TrackEvent]) -> None:
         for pev in pendings:
             self._publish_event(pev)
+    
+    def __repr__(self) -> str:
+        return f"DropShortTrail(min_trail_length={self.min_trail_length})"

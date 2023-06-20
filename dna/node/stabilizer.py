@@ -141,5 +141,8 @@ class Stabilizer(EventProcessor):
                     self.upper -= 1
         else:
             self._publish_event(ev)
+    
+    def __repr__(self) -> str:
+        return f"Stabilize(look_ahead={self.look_ahead}, smoothing_factor={self.smoothing_factor})"
 
 

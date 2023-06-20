@@ -215,3 +215,6 @@ class RefineTrackEvent(EventProcessor):
             return end_idx
         else:
             return 0
+    
+    def __repr__(self) -> str:
+        return f"RefineTrackEvent(nbuffers={self.buffer_size}, timeout={self.timeout})"

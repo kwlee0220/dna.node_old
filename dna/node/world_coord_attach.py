@@ -40,3 +40,6 @@ class WorldCoordinateAttacher(EventProcessor):
             self._publish_event(updated)
         else:
             self._publish_event(ev)
+    
+    def __repr__(self) -> str:
+        return f"AttachWorldCoordinate(contact={self.contact_point})"
