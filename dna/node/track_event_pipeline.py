@@ -10,11 +10,10 @@ from omegaconf import OmegaConf
 
 from dna import Frame, Size2d, config, sub_logger
 from dna.camera import ImageProcessor
-from dna.event import TimeElapsed, TrackDeleted, MultiStagePipeline, EventQueue, EventProcessor
-from dna.event.event_processors import DropEventByType, TimeElapsedGenerator
-from dna.node.utils import GroupByFrameIndex
+from dna.event import TimeElapsed, TrackEvent, MultiStagePipeline, EventQueue, EventProcessor, DropEventByType, TimeElapsedGenerator
 from dna.track.types import TrackProcessor, ObjectTrack
 from dna.track.dna_tracker import DNATracker
+from dna.node.utils import GroupByFrameIndex
 from .zone.zone_pipeline import ZonePipeline
 
 _DEFAULT_BUFFER_SIZE = 30
@@ -139,7 +138,6 @@ class TrackEventPipeline(MultiStagePipeline, TrackProcessor):
             if hasattr(plugin, 'close') and callable(plugin.close):
                 plugin.close()
         
-        TrackProcessor.close(self)
         MultiStagePipeline.close(self)
     
     @property
@@ -167,15 +165,14 @@ class TrackEventPipeline(MultiStagePipeline, TrackProcessor):
 from dataclasses import replace
 from .zone import ZoneEvent
 class ZoneToTrackEventTransform(EventProcessor):
-    def handle_event(self, ev:Union[ZoneEvent,TrackDeleted]) -> None:
+    def handle_event(self, ev:Union[ZoneEvent,TrackEvent]) -> None:
         if isinstance(ev, ZoneEvent):
             if ev.source:
                 track_ev = replace(ev.source, zone_relation=ev.relation_str())
                 self._publish_event(track_ev)
-        elif isinstance(ev, TrackDeleted):
-            if ev.source:
-                track_ev = replace(ev.source, zone_relation='D')
-                self._publish_event(track_ev)
+        elif isinstance(ev, TrackEvent) and ev.is_deleted():
+            track_ev = replace(ev, zone_relation='D')
+            self._publish_event(track_ev)
         
     def __repr__(self) -> str:
         return f"ZoneToTrackEventTransform"

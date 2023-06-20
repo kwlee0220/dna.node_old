@@ -5,7 +5,7 @@ from collections.abc import Iterable
 import logging
 
 from dna import TrackId
-from dna.event import EventQueue, EventProcessor, TrackDeleted
+from dna.event import EventQueue, EventProcessor, TrackEvent
 from .types import ZoneRelation, ZoneEvent, LocationChanged
 
 
@@ -35,10 +35,10 @@ class ZoneEventRefiner(EventProcessor):
         self.location_event_queue.close()
         super().close()
                 
-    def handle_event(self, ev:Union[ZoneEvent,TrackDeleted]) -> None:
+    def handle_event(self, ev:Union[ZoneEvent,TrackEvent]) -> None:
         if isinstance(ev, ZoneEvent):
             self.handle_zone_event(ev)
-        elif isinstance(ev, TrackDeleted):
+        elif isinstance(ev, TrackEvent) and ev.is_deleted():
             self.handle_track_deleted(ev)
         else:
             if self.logger and self.logger.isEnabledFor(logging.DEBUG):
@@ -95,22 +95,11 @@ class ZoneEventRefiner(EventProcessor):
         else:
             raise ValueError(f'invalid ZoneEvent: {zone_ev}')
                 
-    def handle_track_deleted(self, ev:TrackDeleted) -> None:
-        track_id = ev.track_id
-        
-        # # Zone에 위치한 상태에서 추적 물체가 delete된 경우에는 가짜로 LEFT event를 추가한다.
-        # zone_ids = zlocs.zones if (zlocs := self.locations.get(track_id)) else set()
-        # if zone_ids:
-        #     for zid in zone_ids.copy():
-        #         self.leave_zone(ev, zone_id=zid)
-        #         if self.logger and self.logger.isEnabledFor(logging.DEBUG):
-        #             self.logger.debug(f'generate a LEFT(track={track_id}, zone={zid}, frame={ev.frame_index})')
-        #         self.publish_left(ev, zone_id=zid)
-        
+    def handle_track_deleted(self, ev:TrackEvent) -> None:
         # 삭제된 track의 location 정보를 삭제한다
-        self.locations.pop(track_id, None)
+        self.locations.pop(ev.track_id, None)
         
-        # TrackDeleted 이벤트를 re-publish한다
+        # TrackEvent 이벤트를 re-publish한다
         self._publish_event(ev)
 
     def enter_zone(self, zone_ev:ZoneEvent) -> TrackLocations:

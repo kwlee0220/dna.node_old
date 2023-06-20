@@ -1,10 +1,10 @@
 from __future__ import annotations
+
 from typing import Optional
-
-import logging
 import itertools
+import logging
 
-from dna.event import EventProcessor, TrackDeleted, TrackletMotion
+from dna.event import EventProcessor, TrackletMotion
 from .zone_sequence_collector import ZoneSequence
     
 
@@ -19,7 +19,7 @@ class MotionDetector(EventProcessor):
     def close(self) -> None:
         super().close()
 
-    def handle_event(self, ev:ZoneSequence|TrackDeleted) -> None:
+    def handle_event(self, ev:ZoneSequence) -> None:
         if isinstance(ev, ZoneSequence):
             seq = ''.join([visit.zone_id for visit in ev])
             seq = ''.join(i for i, _ in itertools.groupby(seq))
@@ -45,8 +45,6 @@ class MotionDetector(EventProcessor):
                                     frame_index=ev.frame_index,
                                     ts=ev.ts)
             self._publish_event(motion)
-        elif isinstance(ev, TrackDeleted):
-            pass
         else:
             self._publish_event(ev)
     

@@ -1,17 +1,13 @@
 from __future__ import annotations
-from typing import Union, Optional
 
-import numbers
+from typing import Optional
 import logging
-import numpy.typing as npt
-from shapely.geometry.base import BaseGeometry
+
 import shapely.geometry as geometry
 from omegaconf.omegaconf import OmegaConf
 
-from dna import Point, Box, Image, BGR
-from dna.support import plot_utils
 from dna.zone import Zone
-from dna.event import EventProcessor, TrackDeleted
+from dna.event import EventProcessor
 from .types import LineTrack, ZoneRelation, ZoneEvent
 
 
@@ -84,9 +80,6 @@ class ZoneEventGenerator(EventProcessor):
                 if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'{enter_ev}')
                 self._publish_event(enter_ev)
-        
-    def handle_track_deleted(self, ev:TrackDeleted) -> None:
-        self._publish_event(ev)
         
     def get_relation(self, zone:Zone, line:geometry.LineString) -> ZoneRelation:
         start_cond = zone.covers_point(line.coords[0])

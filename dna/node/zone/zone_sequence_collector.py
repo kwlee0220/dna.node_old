@@ -1,10 +1,9 @@
 from __future__ import annotations
-from typing import Optional, Union
 
+from typing import Union
 import logging
-from datetime import timedelta
 
-from dna.event import EventProcessor, TrackDeleted
+from dna.event import EventProcessor, TrackEvent
 from dna.node.zone import ZoneEvent, ZoneVisit, ZoneSequence
 
 LOGGER = logging.getLogger('dna.node.zone.Turn')
@@ -20,11 +19,12 @@ class ZoneSequenceCollector(EventProcessor):
         self.sequences.clear()
         super().close()
 
-    def handle_event(self, ev:Union[ZoneEvent,TrackDeleted]) -> None:
+    def handle_event(self, ev:Union[ZoneEvent,TrackEvent]) -> None:
         if isinstance(ev, ZoneEvent):
             self.handle_zone_event(ev)
-        elif isinstance(ev, TrackDeleted):
-            self.handle_track_deleted(ev)
+        elif isinstance(ev, TrackEvent) and ev.is_deleted():
+            self.sequences.pop(ev.track_id, None)
+            self._publish_event(ev)
             
     def handle_zone_event(self, ev:ZoneEvent) -> None:
         if ev.is_inside() or ev.is_unassigned():
@@ -51,10 +51,6 @@ class ZoneSequenceCollector(EventProcessor):
             
             last.close_at_event(ev)
         self._publish_event(seq.duplicate())
-            
-    def handle_track_deleted(self, ev:TrackDeleted):
-        self.sequences.pop(ev.track_id, None)
-        self._publish_event(ev)
         
     def __repr__(self) -> str:
         return f"CollectZoneSeqs"
@@ -70,11 +66,10 @@ class FinalZoneSequenceFilter(EventProcessor):
         self.sequences.clear()
         super().close()
         
-    def handle_event(self, ev:Union[ZoneSequence,TrackDeleted]) -> None:
+    def handle_event(self, ev:Union[ZoneSequence,TrackEvent]) -> None:
         if isinstance(ev, ZoneSequence):
             self.sequences[ev.track_id] = ev
-        elif isinstance(ev, TrackDeleted):
+        elif isinstance(ev, TrackEvent) and ev.is_deleted():
             zseq = self.sequences.get(ev.track_id)
             if zseq:
                 self._publish_event(zseq)
-            self._publish_event(ev)

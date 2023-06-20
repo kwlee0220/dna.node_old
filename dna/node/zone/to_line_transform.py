@@ -1,10 +1,10 @@
 from __future__ import annotations
-from typing import Optional
 
+from typing import Optional
 import logging
 
 from dna import TrackId
-from dna.event import TrackEvent, EventProcessor, TrackDeleted
+from dna.event import TrackEvent, EventProcessor
 from .types import LineTrack
 
 
@@ -29,8 +29,7 @@ class ToLineTransform(EventProcessor):
     def handle_track_event(self, ev:TrackEvent) -> None:
         if ev.is_deleted():
             self.last_events.pop(ev.track_id, None)
-            self._publish_event(TrackDeleted(node_id=ev.node_id, track_id=ev.track_id,
-                                             frame_index=ev.frame_index, ts=ev.ts, source=ev))
+            self._publish_event(ev)
         else:           
             # track의 첫번재 이벤트인 경우는 last_event가 ev(자기 자신)이 됨.
             last_event = self.last_events.get(ev.track_id, ev)
