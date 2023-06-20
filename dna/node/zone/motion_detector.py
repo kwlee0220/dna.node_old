@@ -9,10 +9,9 @@ from .zone_sequence_collector import ZoneSequence
     
 
 class MotionDetector(EventProcessor):
-    def __init__(self, node_id:str, motion_definitons:dict[str,str], *,
+    def __init__(self, motion_definitons:dict[str,str], *,
                  logger:Optional[logging.Logger]=None) -> None:
         super().__init__() 
-        self.node_id = node_id
         self.motion_definitions = motion_definitons
         self.logger = logger
 
@@ -36,7 +35,7 @@ class MotionDetector(EventProcessor):
                 if self.logger:
                     self.logger.warn(f'unknown motion: track={ev.track_id}, seq={seq_str}, frame={ev.frame_index}')
                     
-            motion = TrackletMotion(node_id=self.node_id,
+            motion = TrackletMotion(node_id=ev.node_id,
                                     track_id=ev.track_id,
                                     zone_sequence=seq_str,
                                     enter_zone=enter_zone,

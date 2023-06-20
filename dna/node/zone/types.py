@@ -8,12 +8,13 @@ from dataclasses import dataclass, replace
 import shapely.geometry as geometry
 import numpy as np
 
-from dna import Point, TrackId
+from dna import Point, NodeId, TrackId
 from dna.event import TrackEvent
 
 
 @dataclass(frozen=True)
 class LineTrack:
+    node_id: NodeId
     track_id: TrackId
     line: geometry.LineString
     frame_index: int
@@ -38,7 +39,8 @@ class LineTrack:
 
         p0 = t0.location.center()
         p1 = t1.location.center()
-        return LineTrack(track_id=t1.track_id, line=to_line_string(p0, p1), frame_index=t1.frame_index, ts=t1.ts, source=t1)
+        return LineTrack(node_id=t1.node_id, track_id=t1.track_id, line=to_line_string(p0, p1),
+                         frame_index=t1.frame_index, ts=t1.ts, source=t1)
     
     def __repr__(self) -> str:
         def to_line_end_points(ls:geometry.LineString) -> tuple[Point,Point]:
@@ -80,7 +82,8 @@ class ZoneRelation(Enum):
 
 @dataclass(frozen=True)
 class ZoneEvent:
-    track_id: str
+    node_id: NodeId
+    track_id: TrackId
     relation: ZoneRelation
     zone_id: str
     frame_index: int
@@ -102,7 +105,7 @@ class ZoneEvent:
 
     @staticmethod
     def UNASSIGNED(line:LineTrack) -> ZoneEvent:
-        return ZoneEvent(track_id=line.track_id, relation=ZoneRelation.Unassigned, zone_id=None,
+        return ZoneEvent(node_id=line.node_id, track_id=line.track_id, relation=ZoneRelation.Unassigned, zone_id=None,
                          frame_index=line.frame_index, ts=line.ts, source=line.source)
     
     def relation_str(self) -> str:
@@ -186,9 +189,10 @@ class ZoneVisit:
 
 
 class ZoneSequence:
-    __slots__ = ( 'track_id', 'visits', '_first_frame_index', '_first_ts', '_frame_index', '_ts' )
+    __slots__ = ( 'node_id', 'track_id', 'visits', '_first_frame_index', '_first_ts', '_frame_index', '_ts' )
 
-    def __init__(self, track_id:str, visits:list[ZoneVisit]) -> None:
+    def __init__(self, node_id:NodeId, track_id:TrackId, visits:list[ZoneVisit]) -> None:
+        self.node_id = node_id
         self.track_id = track_id
         self.visits = visits
         self._first_frame_index = visits[0].enter_frame_index if visits else -1
@@ -228,7 +232,7 @@ class ZoneSequence:
         if isinstance(index, int):
             return self.visits[index]
         else:
-            return ZoneSequence(track_id=self.track_id, visits=self.visits[index])
+            return ZoneSequence(node_id=self.node_id, track_id=self.track_id, visits=self.visits[index])
     
     def __len__(self) -> int:
         return len(self.visits)
@@ -238,19 +242,6 @@ class ZoneSequence:
         
     def __iter__(self):
         return (visit for visit in self.visits)
-        # class ZoneIter:
-        #     def __init__(self, visits:list[ZoneVisit]) -> None:
-        #         self.visits = visits
-        #         self.index = 0
-                
-        #     def __next__(self):
-        #         if self.index < len(self.visits):
-        #             visit = self.visits[self.index]
-        #             self.index += 1
-        #             return visit
-        #         else:
-        #             raise StopIteration
-        # return ZoneIter(self.visits)
     
     def append(self, visit:ZoneVisit) -> None:
         if self._first_frame_index < 0:
@@ -265,7 +256,7 @@ class ZoneSequence:
         
     def duplicate(self) -> ZoneSequence:
         dup_visits = [visit.duplicate() for visit in self.visits]
-        return ZoneSequence(track_id=self.track_id, visits=dup_visits)
+        return ZoneSequence(node_id=self.node_id, track_id=self.track_id, visits=dup_visits)
     
     def sequence_str(self) -> str:
         seq_str = ''.join([visit.zone_id for visit in self.visits])

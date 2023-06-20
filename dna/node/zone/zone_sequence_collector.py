@@ -32,7 +32,7 @@ class ZoneSequenceCollector(EventProcessor):
         
         seq = self.sequences.get(ev.track_id)
         if seq is None:
-            seq = ZoneSequence(track_id=ev.track_id, visits=[])
+            seq = ZoneSequence(node_id=ev.node_id, track_id=ev.track_id, visits=[])
             self.sequences[ev.track_id] = seq
             
         if ev.is_entered():

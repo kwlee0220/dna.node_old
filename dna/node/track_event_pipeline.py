@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from typing import Union, Optional
-import dataclasses
+from dataclasses import replace
 import logging
 from datetime import timedelta
 
 import numpy as np
 from omegaconf import OmegaConf
 
-from dna import Frame, Size2d, config, sub_logger
+from dna import Frame, Size2d, config, NodeId, sub_logger
 from dna.camera import ImageProcessor
 from dna.event import TimeElapsed, TrackEvent, MultiStagePipeline, EventQueue, EventProcessor, DropEventByType, TimeElapsedGenerator
 from dna.track.types import TrackProcessor, ObjectTrack
@@ -51,7 +51,7 @@ class MinFrameIndexComposer:
 
 
 class TrackEventPipeline(MultiStagePipeline, TrackProcessor):
-    def __init__(self, node_id:str, publishing_conf:OmegaConf,
+    def __init__(self, node_id:NodeId, publishing_conf:OmegaConf,
                  image_processor:Optional[ImageProcessor]=None,
                  *,
                  logger:Optional[logging.Logger]=None) -> None:
@@ -103,7 +103,7 @@ class TrackEventPipeline(MultiStagePipeline, TrackProcessor):
         zone_pipeline_conf = config.get(publishing_conf, 'zone_pipeline')
         if zone_pipeline_conf:
             zone_logger = logging.getLogger('dna.node.zone')
-            zone_pipeline = ZonePipeline(self.node_id, zone_pipeline_conf, logger=zone_logger)
+            zone_pipeline = ZonePipeline(zone_pipeline_conf, logger=zone_logger)
             self.add_stage(zone_pipeline)
             
             transform = ZoneToTrackEventTransform()
@@ -154,7 +154,7 @@ class TrackEventPipeline(MultiStagePipeline, TrackProcessor):
         
     def process_tracks(self, tracker:DNATracker, frame:Frame, tracks:list[ObjectTrack]) -> None:
         for ev in tracker.last_event_tracks:
-            ev = dataclasses.replace(ev, node_id=self.node_id)
+            ev = replace(ev, node_id=self.node_id)
             self.handle_event(ev)
 
     def _append_processor(self, proc:EventProcessor) -> None:
@@ -162,7 +162,6 @@ class TrackEventPipeline(MultiStagePipeline, TrackProcessor):
         self._tail = proc
         
         
-from dataclasses import replace
 from .zone import ZoneEvent
 class ZoneToTrackEventTransform(EventProcessor):
     def handle_event(self, ev:Union[ZoneEvent,TrackEvent]) -> None:

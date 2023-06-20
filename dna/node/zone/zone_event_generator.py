@@ -94,7 +94,7 @@ class ZoneEventGenerator(EventProcessor):
             return ZoneRelation.Through
         
     def to_zone_event(self, rel:ZoneRelation, zone_id:str, line:LineTrack) -> ZoneEvent:
-        return ZoneEvent(track_id=line.track_id, relation=rel, zone_id=zone_id,
+        return ZoneEvent(node_id=line.node_id, track_id=line.track_id, relation=rel, zone_id=zone_id,
                          frame_index=line.frame_index, ts=line.ts, source=line.source)
         
     def __repr__(self) -> str:

@@ -10,12 +10,11 @@ from dna.event import EventQueue, MultiStagePipeline
 
 
 class ZonePipeline(MultiStagePipeline):
-    def __init__(self, node_id:str, conf:OmegaConf,
+    def __init__(self, conf:OmegaConf,
                  *,
                  logger:Optional[logging.Logger]=None) -> None:
         super().__init__()
         
-        self.node_id = node_id
         self.event_queues:dict[str,EventQueue] = dict()
         
         from .to_line_transform import ToLineTransform
@@ -49,7 +48,7 @@ class ZonePipeline(MultiStagePipeline):
         
         if motions := config.get(conf, "motions"):
             from .motion_detector import MotionDetector
-            motion = MotionDetector(self.node_id, dict(motions), logger=sub_logger(logger, 'motion'))
+            motion = MotionDetector(dict(motions), logger=sub_logger(logger, 'motion'))
             last_zone_seq.add_listener(motion)
             self.event_queues['motions'] = motion
 
