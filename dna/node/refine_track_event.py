@@ -200,7 +200,8 @@ class RefineTrackEvent(EventProcessor):
     def _publish_old_events(self, session:Session, ts:int) -> int:
         from dna.support import iterables
         
-        end_idx = iterables.first((idx for idx, tev in enumerate(session.pendings) if (ts - tev.ts) < self.timeout_millis), default=-1)
+        end_idx = iterables.first((idx for idx, tev in enumerate(session.pendings)
+                                   if (ts - tev.ts) < self.timeout_millis), default=-1)
         if end_idx > 0:
             if self.logger and self.logger.isEnabledFor(logging.INFO):
                 longest = (ts - session.pendings[0].ts) / 1000
