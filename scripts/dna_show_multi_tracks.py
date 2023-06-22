@@ -13,7 +13,7 @@ from kafka import KafkaConsumer
 
 from dna import Box, Image, BGR, color, Frame, Point, TrackletId, initialize_logger, config
 from dna.camera import Camera
-from dna.event import TrackEvent
+from dna.event import TrackEvent, read_topics
 from dna.node import stabilizer
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
 from dna.support import plot_utils
@@ -91,31 +91,38 @@ def main():
     
     first_ts = -1
     first_rts = -1
+    done = False
     tracks:dict[TrackletId,TrackEvent] = dict()
-    for record in consumer:
-        track = TrackEvent.deserialize(record.value)
-        
-        if track.is_deleted():
-            tracks.pop(track.tracklet_id)
-        else:
-            tracks[track.tracklet_id] = track
-        
-        now_rts = int(time.time()*1000)
-        if first_ts < 0:
-            first_ts = track.ts
-            first_rts = now_rts
+    while not done:
+        for record in read_topics(consumer, timeout_ms=500):
+            track = TrackEvent.deserialize(record.value)
             
-        delay = (track.ts - first_ts) - (now_rts - first_rts)
-        # print(f"delay={delay} = {track.ts - first_ts} - {now_rts - first_rts}")
-        if delay > 30:
-            time.sleep(delay / 1000.0)
+            if track.is_deleted():
+                tracks.pop(track.tracklet_id)
+            else:
+                tracks[track.tracklet_id] = track
+            
+            now_rts = int(time.time()*1000)
+            if first_ts < 0:
+                first_ts = track.ts
+                first_rts = now_rts
+                
+            delay = (track.ts - first_ts) - (now_rts - first_rts)
+            if delay > 30:
+                key = cv2.waitKey(1) & 0xFF
+                # key = cv2.waitKey(delay) & 0xFF
+            else:
+                key = cv2.waitKey(1) & 0xFF
+            drawer.draw_tracks(tracks)
             last_ts = track.ts
-        elif delay > 0:
-            last_ts = track.ts
-        drawer.draw_tracks(tracks)
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            break
+            
+            if key == ord('q'):
+                done = True
+                break
+        if not done:
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                done = True
     drawer.close()
 
 if __name__ == '__main__':
