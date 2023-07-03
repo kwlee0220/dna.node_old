@@ -50,6 +50,7 @@ publishing:
       'EA': 'EA'
 
   plugins:
+    kafka_brokers: [localhost:9092]
     publish_tracks:
       topic: 'track-events'
     publish_motions:
