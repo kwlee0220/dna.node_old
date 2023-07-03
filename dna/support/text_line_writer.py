@@ -28,5 +28,5 @@ class TextLineWriter:
 
     def write(self, line:str) -> None:
         if not self.fp:
-            raise ValueError(f'not opened')
+            raise ValueError(f'not opened, supposed to write: {line}')
         self.fp.write(line)

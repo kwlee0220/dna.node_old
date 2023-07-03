@@ -109,9 +109,9 @@ class ImageProcessor(AbstractExecution):
         started = time.time()
 
         # 등록된 모든 frame processor들의 'on_started()' 메소드를 호출하여 ImageProcessor가 시작됨을 알린다.
-        processors = self.frame_processors + self.suffix_processors
-        for fproc in processors:
-            fproc.on_started(self)
+        full_frame_processors = self.frame_processors + self.suffix_processors
+        for frame_proc in full_frame_processors:
+            frame_proc.on_started(self)
 
         capture_count = 0
         self.fps_measured = 0.
@@ -133,8 +133,8 @@ class ImageProcessor(AbstractExecution):
                 # 이후 processor들은 자신 바로 전에 호출된 process_frame()의 반환값을 입력으로 받는다.
                 # 만일 어느 한 frame-processor의 process_frame() 호출 결과가 None인 경우는 이후 frame-processor 호출은 중단되고
                 # 전체 image-processor의 수행이 중단된다.
-                for fproc in processors:
-                    frame = fproc.process_frame(frame)
+                for frame_proc in full_frame_processors:
+                    frame = frame_proc.process_frame(frame)
                     if frame is None:
                         self.stop(nowait=True)
                         break
@@ -151,9 +151,9 @@ class ImageProcessor(AbstractExecution):
             self.logger.error(e, exc_info=True)
         finally:
             # 등록된 순서의 역순으로 'on_stopped()' 메소드를 호출함
-            for fproc in reversed(processors):
+            for frame_proc in reversed(full_frame_processors):
                 try:
-                    fproc.on_stopped()
+                    frame_proc.on_stopped()
                 except Exception as e:
                     self.logger.error(e, exc_info=True)
 

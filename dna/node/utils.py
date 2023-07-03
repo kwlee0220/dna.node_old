@@ -27,6 +27,15 @@ class JsonTrackEventGroupWriter(TextLineWriter):
     def handle_event(self, group:list[TrackEvent]) -> None:
         for track in group:
             self.write(track.to_json() + '\n')
+            
+    def is_closeable_plugin(self) -> bool:
+        """본 객체는 event chain에 의해 close() 메소드가 호출되기 때문에,
+        plugin close가 호출되지 않아야 한다.
+
+        Returns:
+            bool: Plugin 종료시 close 호출 여부.
+        """
+        return False
 
 
 class GroupByFrameIndex(EventProcessor):

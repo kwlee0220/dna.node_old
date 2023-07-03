@@ -136,7 +136,10 @@ class TrackEventPipeline(MultiStagePipeline, TrackProcessor):
         
         for plugin in reversed(self.plugins.values()):
             if hasattr(plugin, 'close') and callable(plugin.close):
-                plugin.close()
+                if ( not hasattr(plugin, 'is_closeable_plugin') # 'is_closeable_plugin' 이라는 attribute가 없거나,
+                    or not callable(plugin.is_closeable_plugin) # 'is_closeable_plugin'가 callable하지 않거나,
+                    or plugin.is_closeable_plugin() ):          # 'is_closeable_plugin()' 호출 결과가 True인 경우.
+                    plugin.close()
         
         MultiStagePipeline.close(self)
     
