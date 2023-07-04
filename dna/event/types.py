@@ -17,6 +17,18 @@ class KafkaEvent(metaclass=ABCMeta):
     
     @abstractmethod
     def serialize(self) -> object: pass
+    
+class SimpleKafkaEvent(KafkaEvent):
+    def __init__(self, key:str, value:str) -> None:
+        super().__init__()
+        self.key = key
+        self.value = value
+        
+    def key(self) -> str:
+        return self.key
+    
+    def value(self) -> object:
+        return self.value
 
 KafkaEventDeserializer:TypeAlias = Callable[[ByteString], KafkaEvent]
 KafkaEventSerializer:TypeAlias = Callable[[KafkaEvent], ByteString]
