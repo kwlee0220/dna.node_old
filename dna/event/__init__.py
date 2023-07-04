@@ -1,4 +1,5 @@
-from .types import KafkaEvent, TrackDeleted, TimeElapsed, KafkaEventDeserializer, KafkaEventSerializer
+from .types import KafkaEvent, TrackDeleted, TimeElapsed, KafkaEventDeserializer, KafkaEventSerializer, \
+                    SimpleKafkaEvent
 from .event_processor import EventListener, EventQueue, EventProcessor
 from .event_processors import EventRelay, DropEventByType, TimeElapsedGenerator
 
