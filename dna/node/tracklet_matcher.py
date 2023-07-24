@@ -4,7 +4,7 @@ from typing import Union, Optional
 from dataclasses import dataclass, field, replace
 import itertools
 
-from dna.event import TrackEvent
+from dna.event import NodeTrack
 from dna.track import TrackState
 from dna.node import Tracklet
 
@@ -59,7 +59,7 @@ class Node:
     def track_ids(self) -> set[str]:
         return self.tracklets.keys()
     
-    def append(self, ev:TrackEvent) -> None:
+    def append(self, ev:NodeTrack) -> None:
         tracklet = self.tracklets.get(ev.track_id)
         if tracklet is None:
             tracklet = Tracklet(ev.track_id, [])
@@ -101,8 +101,8 @@ class TrackletMatcher:
         self.matches:dict[tuple[str,str],float] = dict()
         self.dismatches:set[tuple[str,str]] = set()
             
-    def handle_event(self, ev:TrackEvent) -> None:
-        def is_valid_track(ev:TrackEvent) -> bool:
+    def handle_event(self, ev:NodeTrack) -> None:
+        def is_valid_track(ev:NodeTrack) -> bool:
             if ev.is_deleted():
                 return True
             elif ev.state != TrackState.Confirmed and ev.state != TrackState.Tentative:

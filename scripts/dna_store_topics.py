@@ -5,7 +5,7 @@ from contextlib import closing
 from kafka import KafkaConsumer
 
 from dna import initialize_logger, config
-from dna.event import TrackEvent, TrackFeature, TrackletMotion
+from dna.event import NodeTrack, TrackFeature, TrackletMotion
 from dna.support import sql_utils
 from dna.event.tracklet_store import TrackletStore
 from scripts import update_namespace_with_environ
@@ -41,15 +41,15 @@ def main():
     consumer = KafkaConsumer(bootstrap_servers=config.get(conf, 'kafka_brokers'),
                              auto_offset_reset=config.get(conf, 'kafka_offset'),
                              key_deserializer=lambda k: k.decode('utf-8'))
-    consumer.subscribe(['track-events', 'track-motions', 'track-features'])
+    consumer.subscribe(['node-tracks', 'track-motions', 'track-features'])
     
     while True:
         partitions = consumer.poll(timeout_ms=500, max_records=100)
         if partitions:
             with closing(store.connect()) as conn:
                 for topic_info, partition in partitions.items():
-                    if topic_info.topic == 'track-events':
-                        tracks = [TrackEvent.deserialize(serialized.value) for serialized in partition]
+                    if topic_info.topic == 'node-tracks':
+                        tracks = [NodeTrack.deserialize(serialized.value) for serialized in partition]
                         store.insert_track_events_conn(conn, tracks, batch_size=30)
                     elif topic_info.topic == 'track-motions':
                         metas = [TrackletMotion.deserialize(serialized.value) for serialized in partition]

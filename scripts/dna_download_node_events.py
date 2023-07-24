@@ -10,7 +10,7 @@ from kafka import KafkaConsumer
 
 from dna import initialize_logger
 from dna.event import open_kafka_consumer, read_topics
-from dna.node import NodeEvent
+from dna.node import NodeEventType
 from scripts import *
 
 
@@ -31,12 +31,13 @@ def main():
     initialize_logger(args.logger)
     args = update_namespace_with_environ(args)
     
-    with closing(open_kafka_consumer(args.kafka_brokers, args.kafka_offset, key_deserializer=lambda k: k.decode('utf-8'))) as consumer:
-        consumer.subscribe(NodeEvent.topics())
+    with closing(open_kafka_consumer(args.kafka_brokers, args.kafka_offset,
+                                     key_deserializer=lambda k: k.decode('utf-8'))) as consumer:
+        consumer.subscribe(NodeEventType.topics())
         
-        print(f"reading events from the topics '{NodeEvent.topics()}'.")
+        print(f"reading events from the topics '{NodeEventType.topics()}'.")
         records = read_topics(consumer, timeout_ms=2000)
-        full_events = list(tqdm(NodeEvent.from_topic(record.topic).deserializer(record.value) for record in records))
+        full_events = list(tqdm(NodeEventType.from_topic(record.topic).deserializer(record.value) for record in records))
         
         max_track_id = max(int(ev.track_id) for ev in full_events)
         max_ts = max(ev.ts for ev in full_events)

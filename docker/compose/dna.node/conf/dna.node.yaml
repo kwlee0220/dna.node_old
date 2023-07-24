@@ -38,7 +38,7 @@ publishing:
 
   plugins:
     publish_tracks:
-      topic: 'track-events'
+      topic: 'node-tracks'
     publish_motions:
       topic: 'track-motions'
     publish_features:

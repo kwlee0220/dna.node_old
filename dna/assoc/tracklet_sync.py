@@ -5,7 +5,7 @@ from typing import Union, Optional
 import numpy as np
 
 from dna import NodeId, TrackId, TrackletId
-from dna.event import TrackEvent, EventProcessor
+from dna.event import NodeTrack, EventProcessor
 from dna.assoc import Association
             
             
@@ -39,10 +39,10 @@ class AssociationAggregator(EventProcessor):
     def close(self) -> None:
         super().close()
         
-    def handle_event(self, ev:Union[Association,TrackEvent]) -> None:
+    def handle_event(self, ev:Union[Association,NodeTrack]) -> None:
         if isinstance(ev, Association):
             self.add_association(ev)
-        elif isinstance(ev, TrackEvent):
+        elif isinstance(ev, NodeTrack):
             pass
             # if ev.is_deleted():
             #     self.handle_track_deleted(ev)
@@ -87,10 +87,10 @@ class BestAssociationAggregator(EventProcessor):
             
         super().close()
         
-    def handle_event(self, ev:Union[Association,TrackEvent]) -> None:
+    def handle_event(self, ev:Union[Association,NodeTrack]) -> None:
         if isinstance(ev, Association):
             self.handle_association(ev)
-        elif isinstance(ev, TrackEvent):
+        elif isinstance(ev, NodeTrack):
             if ev.is_deleted():
                 self.handle_track_deleted(ev)
             else:
@@ -103,7 +103,7 @@ class BestAssociationAggregator(EventProcessor):
         if min_dist is None or min_dist > dist:
             self.associations[key] = dist
             
-    def handle_track_deleted(self, te:TrackEvent) -> None:
+    def handle_track_deleted(self, te:NodeTrack) -> None:
         fixeds = [(key, score) for key, score in self.associations.items() if te.tracklet_id in key]
         for key, _ in fixeds:
             del self.associations[key]

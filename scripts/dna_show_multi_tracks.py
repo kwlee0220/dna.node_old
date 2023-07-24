@@ -13,7 +13,7 @@ from kafka import KafkaConsumer
 
 from dna import Box, Image, BGR, color, Frame, Point, TrackletId, initialize_logger, config
 from dna.camera import Camera
-from dna.event import TrackEvent, read_topics
+from dna.event import NodeTrack, read_topics
 from dna.node import stabilizer
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
 from dna.support import plot_utils
@@ -55,13 +55,15 @@ class MCLocationDrawer:
     def close(self) -> None:
         cv2.destroyWindow(self.title)
     
-    def draw_tracks(self, tracks:dict[TrackletId,TrackEvent]) -> Image:
+    def draw_tracks(self, tracks:dict[TrackletId,NodeTrack]) -> Image:
         convas = self.world_image.copy()
         for track in tracks.values():
             color = COLORS[track.node_id]
             if track.distance < MAX_DISTS[track.node_id]:
                 localizer = self.localizers[track.node_id]
-                pt_m, dist = localizer.from_camera_box(track.location.tlbr)
+                pt_m = localizer.from_world_coord(track.world_coord)
+                # localizer = self.localizers[track.node_id]
+                # pt_m, dist = localizer.from_camera_box(track.location.tlbr)
                 center = tuple(Point(localizer.to_image_coord(pt_m)).to_rint().xy)
                 convas = cv2.circle(convas, center, radius=7, color=color, thickness=-1, lineType=cv2.LINE_AA)
         cv2.imshow(self.title, convas)
@@ -87,15 +89,15 @@ def main():
     consumer = KafkaConsumer(bootstrap_servers=args.kafka_brokers,
                              auto_offset_reset=args.kafka_offset,
                              key_deserializer=lambda k: k.decode('utf-8'))
-    consumer.subscribe(['track-events'])
+    consumer.subscribe(['node-tracks'])
     
     first_ts = -1
     first_rts = -1
     done = False
-    tracks:dict[TrackletId,TrackEvent] = dict()
+    tracks:dict[TrackletId,NodeTrack] = dict()
     while not done:
         for record in read_topics(consumer, timeout_ms=500):
-            track = TrackEvent.deserialize(record.value)
+            track = NodeTrack.deserialize(record.value)
             
             if track.is_deleted():
                 tracks.pop(track.tracklet_id)
@@ -109,8 +111,8 @@ def main():
                 
             delay = (track.ts - first_ts) - (now_rts - first_rts)
             if delay > 30:
-                key = cv2.waitKey(1) & 0xFF
-                # key = cv2.waitKey(delay) & 0xFF
+                # key = cv2.waitKey(1) & 0xFF
+                key = cv2.waitKey(delay) & 0xFF
             else:
                 key = cv2.waitKey(1) & 0xFF
             drawer.draw_tracks(tracks)

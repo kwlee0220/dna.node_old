@@ -4,16 +4,17 @@ camera:
   # uri: data/2021/etri_07_hot.mp4
   # uri: data/2022/crops/etri_074_crop.mp4
   # uri: data/2022/etri_07_hot.mp4
-  uri: data/2022/etri_074.mp4
+  uri: data/2022/etri_071.mp4
   sync: False
-  # begin_frame: 70
-  # end_frame: 200
+  # begin_frame: 1830
+  # begin_frame: 5760
   open_ts: 0
 
 tracker:
   draw: ['tracks', 'track_zones']
   detection_min_size: [30, 30]
   max_age: 20
+  drop_border_detections: true
   track_zones:
     - [[182, 399], [182, 478], [523, 503], [799, 460], [1194, 299],
       [1408, 313], [1362, 488], [1807, 595], [1814, 930], [4, 927], [0, 399]]
@@ -52,7 +53,7 @@ publishing:
   plugins:
     kafka_brokers: [localhost:9092]
     publish_tracks:
-      topic: 'track-events'
+      topic: 'node-tracks'
     publish_motions:
       topic: 'track-motions'
     publish_features:

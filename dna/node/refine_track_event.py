@@ -2,21 +2,22 @@ from __future__ import annotations
 
 from typing import Union, Optional
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import logging
 
-from dna import TrackId
-from dna.event import TimeElapsed, TrackEvent, EventProcessor
+from dna import NodeId, TrackId, Box
+from dna.event import TimeElapsed, NodeTrack, EventProcessor
 from dna.track import TrackState
 
 
 @dataclass(eq=True) # slots=True
 class Session:
-    id: TrackId = field(hash=True)
+    node_id: NodeId = field(hash=True)
+    track_id: TrackId = field(hash=True)
     '''본 세션에 해당하는 track id.'''
     state: TrackState = field(hash=False, compare=False)
     '''본 track session의 상태.'''
-    pendings: list[TrackEvent] = field(hash=False, compare=False)
+    pendings: list[NodeTrack] = field(hash=False, compare=False)
     '''TrackEvent refinement를 위해 track별로 보류되고 있는 TrackEvent 리스트.'''
     
     @property
@@ -46,25 +47,41 @@ class Session:
         interval_str = ""
         if self.pendings:
             interval_str = f':{self.pendings[0].frame_index}-{self.pendings[-1].frame_index}'
-        return f'{self.id}({self.state.abbr})[{len(self.pendings)}{interval_str}]'
+        return f'{self.track_id}({self.state.abbr})[{len(self.pendings)}{interval_str}]'
 
 
 class RefineTrackEvent(EventProcessor):
-    __slots__ = ('sessions', 'buffer_size', 'timeout', 'timeout_millis', 'logger', 'oldest_pending_session')
+    __slots__ = ('sessions', 'buffer_size', 'timeout', 'timeout_millis', 'oldest_pending_session',
+                 'max_frame_index', 'max_ts', 'logger')
 
     def __init__(self, buffer_size:int=30, buffer_timeout:float=1.0,
-                 *, logger:Optional[logging.Logger]=None) -> None:
+                 *,
+                 delete_on_close: bool=True,
+                 logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
 
         self.sessions: dict[str, Session] = {}
         self.buffer_size = buffer_size
         self.timeout = buffer_timeout
         self.timeout_millis = round(buffer_timeout * 1000)
+        self.delete_on_close = delete_on_close
         self.logger = logger
         self.oldest_pending_session:Session = None
+        self.max_frame_index = 0
+        self.max_ts = 0
 
     def close(self) -> None:
-        self.sessions.clear()
+        if self.delete_on_close:
+            non_closed_sessions = list(self.sessions.values())
+            for session in non_closed_sessions:
+                deleted = NodeTrack(node_id=session.node_id, track_id=session.track_id,
+                                     state=TrackState.Deleted,
+                                     location=Box([0, 0, 0, 0]),
+                                     frame_index=self.max_frame_index,
+                                     ts=self.max_ts)
+                self.handle_event(deleted)
+        else:
+            self.sessions.clear()
         super().close()
         
     def min_frame_index(self) -> Optional[int]:
@@ -79,14 +96,17 @@ class RefineTrackEvent(EventProcessor):
             self.oldest_pending_session = min(pending_sessions, key=lambda s: s.first_frame_index) if pending_sessions else None
         return self.oldest_pending_session.first_frame_index if self.oldest_pending_session else None
 
-    def handle_event(self, ev:Union[TrackEvent,TimeElapsed]) -> None:
-        if isinstance(ev, TrackEvent):
+    def handle_event(self, ev:Union[NodeTrack,TimeElapsed]) -> None:
+        if isinstance(ev, NodeTrack):
+            self.max_frame_index = max(self.max_frame_index, ev.frame_index)
+            self.max_ts = max(self.max_ts, ev.ts)
+            
             self.handle_track_event(ev)
             pass
         elif isinstance(ev, TimeElapsed):
             self.handle_time_elapsed(ev)
 
-    def handle_track_event(self, ev:TrackEvent) -> None:
+    def handle_track_event(self, ev:NodeTrack) -> None:
         session:Session = self.sessions.get(ev.track_id)
         if session is None: # TrackState.Null or TrackState.Deleted
             self.__on_initial(ev)
@@ -106,10 +126,10 @@ class RefineTrackEvent(EventProcessor):
         session = self.sessions.pop(id, None)
         self._unset_oldest_pending_session(session)
 
-    def __on_initial(self, ev:TrackEvent) -> None:
+    def __on_initial(self, ev:NodeTrack) -> None:
         # track과 관련된 session 정보가 없다는 것은 이 track event가 한 물체의 첫번째 track event라는 것을 
         # 의미하기 때문에 session을 새로 생성한다.
-        self.sessions[ev.track_id] = session = Session(id=ev.track_id, state=ev.state, pendings=[])
+        self.sessions[ev.track_id] = session = Session(node_id=ev.node_id, track_id=ev.track_id, state=ev.state, pendings=[])
         if ev.state == TrackState.Tentative:
             self._append_track_event(session, ev)
         elif ev.state == TrackState.Confirmed:
@@ -119,7 +139,7 @@ class RefineTrackEvent(EventProcessor):
         else:
             raise AssertionError(f"unexpected track event (invalid track state): {ev}")
 
-    def __on_confirmed(self, session:Session, ev:TrackEvent) -> None:
+    def __on_confirmed(self, session:Session, ev:NodeTrack) -> None:
         if ev.state == TrackState.Confirmed:
             self._publish_event(ev)
         elif ev.state == TrackState.TemporarilyLost:
@@ -132,7 +152,7 @@ class RefineTrackEvent(EventProcessor):
             raise AssertionError(f"unexpected track event (invalid track state): "
                                 f"state={session.state}, event={ev.track}")
 
-    def __on_tentative(self, session:Session, ev:TrackEvent) -> None:
+    def __on_tentative(self, session:Session, ev:NodeTrack) -> None:
         if ev.state == TrackState.Confirmed:
             # 본 trail을 임시 상태에서 정식의 trail 상태로 변환시키고,
             # 지금까지 pending된 모든 tentative event를 trail에 포함시킨다
@@ -152,7 +172,7 @@ class RefineTrackEvent(EventProcessor):
             raise AssertionError(f"unexpected track event (invalid track state): "
                                     f"state={session.state}, event={ev.track}")
 
-    def __on_temporarily_lost(self, session:Session, ev:TrackEvent) -> None:
+    def __on_temporarily_lost(self, session:Session, ev:NodeTrack) -> None:
         if ev.state == TrackState.Confirmed:
             session.trim_right_to(ev.frame_index)
             self._publish_all_pended_events(session)
@@ -166,16 +186,21 @@ class RefineTrackEvent(EventProcessor):
             n_overflows = len(session.pendings) - self.buffer_size
             if n_overflows > 0:
                 if self.logger and self.logger.isEnabledFor(logging.INFO):
-                    self.logger.info(f'flush overflowed {n_overflows} TrackEvent: track_id={session.id}, '
+                    self.logger.info(f'flush overflowed {n_overflows} TrackEvent: track_id={session.track_id}, '
                                         f'range={session.pendings[0].frame_index}-{session.pendings[n_overflows-1].frame_index}')
                 for tev in session.pendings[:n_overflows]:
                     self._publish_event(tev)
                 session.pendings = session.pendings[n_overflows:]
                 self._unset_oldest_pending_session(session)
         elif ev.state == TrackState.Deleted:
+            # 기존에 pending 중이던 모든 'temporarily-lost' track event들을 제거한다.
+            # 또한 인자로 주어진 'delete' track의 frame_index와 ts를 가장 오랫동안
+            # pending되었던 track event의 그것들로 대체시킨다.
             if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                 self.logger.debug(f"discard all pending lost track events: "
                                 f"track_id={ev.track_id}, count={len(session.pendings)}")
+            oldest_pended = session.pendings[0]
+            ev = replace(ev, frame_index=oldest_pended.frame_index, ts=oldest_pended.ts)
             self._publish_event(ev)
             self._remove_session(ev.track_id)
         else:
@@ -186,7 +211,7 @@ class RefineTrackEvent(EventProcessor):
         if self.oldest_pending_session == session:
             self.oldest_pending_session = None
         
-    def _append_track_event(self, session:Session, te:TrackEvent) -> None:
+    def _append_track_event(self, session:Session, te:NodeTrack) -> None:
         session.pendings.append(te)
         if self.oldest_pending_session and self.oldest_pending_session != session:
             if te.frame_index < self.oldest_pending_session.first_frame_index:
@@ -205,7 +230,7 @@ class RefineTrackEvent(EventProcessor):
         if end_idx > 0:
             if self.logger and self.logger.isEnabledFor(logging.INFO):
                 longest = (ts - session.pendings[0].ts) / 1000
-                self.logger.info(f'flush too old {end_idx} TrackEvents: track_id={session.id}, '
+                self.logger.info(f'flush too old {end_idx} TrackEvents: track_id={session.track_id}, '
                                  f'range={session.pendings[0].frame_index}-{session.pendings[end_idx-1].frame_index}, '
                                  f'longest={longest:.3f}s, '
                                  f'timeout={self.timeout:.3f}s')

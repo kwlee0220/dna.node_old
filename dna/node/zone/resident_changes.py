@@ -4,7 +4,7 @@ from typing import Union
 from dataclasses import dataclass
 import logging
 
-from dna.event import EventProcessor, TrackEvent
+from dna.event import EventProcessor, NodeTrack
 from .types import ZoneEvent, ResidentChanged
 
 LOGGER = logging.getLogger('dna.node.zone.Residents')
@@ -43,10 +43,10 @@ class ResidentChanges(EventProcessor):
         self.residents.clear()
         super().close()
 
-    def handle_event(self, ev:Union[ZoneEvent,TrackEvent]) -> None:
+    def handle_event(self, ev:Union[ZoneEvent,NodeTrack]) -> None:
         if isinstance(ev, ZoneEvent):
             self.handle_zone_event(ev)
-        elif isinstance(ev, TrackEvent) and ev.is_deleted():
+        elif isinstance(ev, NodeTrack) and ev.is_deleted():
             self.handle_track_deleted(ev)
         else:
             self._publish_event(ev)
@@ -66,7 +66,7 @@ class ResidentChanges(EventProcessor):
         if publish_event:
             self._publish_event(self._create_resident_changed(ev.zone_id, residents))
                 
-    def handle_track_deleted(self, deleted:TrackEvent) -> None:
+    def handle_track_deleted(self, deleted:NodeTrack) -> None:
         # 제거된 track id를 갖는 residents를 검색하여 그 residents에서 삭제한다.
         track_id = deleted.track_id
         for zone_id, residents in self.residents.items():

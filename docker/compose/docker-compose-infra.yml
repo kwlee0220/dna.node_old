@@ -20,7 +20,7 @@ services:
       LOGGING_LEVEL_ROOT: warn
     networks:
       - dna_server_net
-    restart: on-failure
+    restart: always
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.1.2

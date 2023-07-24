@@ -85,7 +85,7 @@ publishing:
   plugins:
     publish_tracks:
       <<: *local_kafka_connection
-      topic: 'track-events'
+      topic: 'node-tracks'
     publish_motions:
       <<: *local_kafka_connection
       topic: 'track-motions'

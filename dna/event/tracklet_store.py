@@ -5,7 +5,7 @@ from collections.abc import Iterable, Generator
 from contextlib import closing
 
 from dna import NodeId, TrackId, TrackletId
-from dna.event import TrackEvent, TrackFeature, TrackletMotion
+from dna.event import NodeTrack, TrackFeature, TrackletMotion
 from dna.support import sql_utils, iterables
 from dna.node.tracklet import Tracklet
 
@@ -125,11 +125,11 @@ class TrackletStore:
     ############################################################################################################
     ############################################## Track Events ################################################
     ############################################################################################################  
-    def insert_track_events(self, tracks:Iterable[TrackEvent], batch_size:int=30) -> int:
+    def insert_track_events(self, tracks:Iterable[NodeTrack], batch_size:int=30) -> int:
         with closing(self.connector.connect()) as conn:
             return self.insert_track_events_conn(conn, tracks, batch_size)
         
-    def insert_track_events_conn(self, conn, tracks:Iterable[TrackEvent], batch_size:int) -> int:
+    def insert_track_events_conn(self, conn, tracks:Iterable[NodeTrack], batch_size:int) -> int:
         count = 0
         with conn.cursor() as cursor:
             for bulk in iterables.buffer_iterable(tracks, count=batch_size):
@@ -144,7 +144,7 @@ class TrackletStore:
         with closing(self.connector.connect()) as conn:
             cursor = conn.cursor()
             cursor.execute(sql, (node_id, track_id))
-            events = [TrackEvent.from_row(row) for row in cursor.fetchall()]
+            events = [NodeTrack.from_row(row) for row in cursor.fetchall()]
             return Tracklet(track_id, events)
         
     def list_tracklets_in_range(self, node_id:NodeId, begin_ts:int, end_ts:int) -> list[TrackletId]:
@@ -250,23 +250,23 @@ class TrackletStore:
             
 
         
-    def stream_tracks(self, sql:str) -> Generator[TrackEvent, None, None]:
+    def stream_tracks(self, sql:str) -> Generator[NodeTrack, None, None]:
         with closing(self.connector.connect()) as conn:
             cursor = conn.cursor()
             cursor.execute(sql)
             for row in cursor.fetchall():
-                yield TrackEvent.from_row(row)
+                yield NodeTrack.from_row(row)
         
-    def read_first_and_last_track(self, node_id:NodeId, track_id:TrackId) -> tuple[TrackEvent,TrackEvent]:
+    def read_first_and_last_track(self, node_id:NodeId, track_id:TrackId) -> tuple[NodeTrack,NodeTrack]:
         sql_first = 'select * from track_events where node_id=%s and track_id=%s order by ts,row_no limit 1'
         sql_last = 'select * from track_events where node_id=%s and track_id=%s order by ts desc,row_no desc limit 1'
         with closing(self.connector.connect()) as conn:
             cursor = conn.cursor()
             cursor.execute(sql_first, (node_id, track_id))
-            first = TrackEvent.from_row(cursor.fetchone())
+            first = NodeTrack.from_row(cursor.fetchone())
             
             cursor.execute(sql_last, (node_id, track_id))
-            last = TrackEvent.from_row(cursor.fetchone())
+            last = NodeTrack.from_row(cursor.fetchone())
             return first, last
         
     def update_or_insert_tracklet(self, node_id:str, track_id:str,

@@ -8,7 +8,7 @@ import itertools
 from contextlib import closing
 
 from dna import  initialize_logger
-from dna.event import TrackEvent
+from dna.event import NodeTrack
 from dna.track import TrackState
 from dna.node import Tracklet
 from dna.node.tracklet_matcher import match_tracklets
@@ -19,7 +19,7 @@ import logging
 LOGGER = logging.getLogger('dna.node.sync_frames')
 
 def load_tracklets(track_file:str, offset:int, max_camera_dist:float) -> tuple[str, dict[str,Tracklet]]:
-    def is_valid_track(ev:TrackEvent) -> bool:
+    def is_valid_track(ev:NodeTrack) -> bool:
         if ev.is_deleted():
             return True
         elif ev.state != TrackState.Confirmed and ev.state != TrackState.Tentative:

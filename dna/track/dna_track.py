@@ -13,7 +13,7 @@ from dna.track import TrackState
 from dna.track.types import ObjectTrack
 from .kalman_filter import KalmanFilter
 from .dna_track_params import DNATrackParams
-from dna.event.track_event import TrackEvent
+from dna.event.track_event import NodeTrack
 
 
 def to_tlbr(xyah:np.ndarray) -> Box:
@@ -163,9 +163,9 @@ class DNATrack(ObjectTrack):
     def mark_deleted(self) -> None:
         self.state = TrackState.Deleted
 
-    def to_track_event(self) -> TrackEvent:
+    def to_track_event(self) -> NodeTrack:
         d_box = d.bbox if (d := self.detections[-1]) else None
-        return TrackEvent(node_id=None, track_id=str(self.id), state=self.state, location=self.location,
+        return NodeTrack(node_id=None, track_id=str(self.id), state=self.state, location=self.location,
                           frame_index=self.frame_index, ts=int(round(self.timestamp * 1000)),
                           detection_box=d_box)
         
@@ -190,7 +190,7 @@ class DNATrack(ObjectTrack):
         return (f'{self.id}({self.state.abbr})[{len(self.detections)}{interval_str}]({self.time_since_update}), '
                 f'nfeats={len(self.features)}, frame={self.frame_index}')
 
-    def take_over(self, victim_track:DNATrack, kf:KalmanFilter, frame:Frame, track_events:list[TrackEvent]) -> None:
+    def take_over(self, victim_track:DNATrack, kf:KalmanFilter, frame:Frame, track_events:list[NodeTrack]) -> None:
         archived_state = self.archived_state
         
         if self.logger.isEnabledFor(logging.INFO):

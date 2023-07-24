@@ -83,6 +83,10 @@ loggers:
         level: WARN
         handlers: [console]
         propagate: no
+    dna.assoc.global:
+        level: INFO
+        handlers: [console]
+        propagate: no
 
     kafka:
         level: WARN

@@ -6,6 +6,7 @@ from shapely import geometry
 
 from dna import color
 
+_RADIUS = 4
 
 class PolygonDrawer:
     def __init__(self, image: np.ndarray, coords: list[list[float]]=[]) -> None:

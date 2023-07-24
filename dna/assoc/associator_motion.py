@@ -8,7 +8,7 @@ import logging
 import numpy as np
 
 from dna import TrackletId, sub_logger
-from dna.event import TrackEvent, TrackDeleted, EventProcessor
+from dna.event import NodeTrack, TrackDeleted, EventProcessor
 from dna.support import iterables
 from dna.event.event_processors import TimeElapsedGenerator, EventRelay
 from .windows import Window, TumblingWindowAssigner
@@ -51,7 +51,7 @@ class MotionBasedTrackletAssociator(EventProcessor):
     def start(self) -> None:
         self.ticker.start()
         
-    def handle_event(self, ev:TrackEvent) -> None:
+    def handle_event(self, ev:NodeTrack) -> None:
         # 일정 거리 이상에서 추정된 물체 위치 정보는 사용하지 않는다.
         if (ev.is_confirmed() or ev.is_tentative()) and ev.distance > self.max_distance_to_camera:
             return
@@ -89,23 +89,23 @@ class MotionBasedAssociator(EventProcessor):
     def close(self) -> None:
         super().close()
         
-    def handle_event(self, ev:Union[tuple[Window,Optional[TrackletId]],TrackEvent]) -> None:
-        if isinstance(ev, TrackEvent):
+    def handle_event(self, ev:Union[tuple[Window,Optional[TrackletId]],NodeTrack]) -> None:
+        if isinstance(ev, NodeTrack):
             if ev.is_deleted():
                 self._publish_event(TrackDeleted(node_id=ev.node_id, track_id=ev.track_id, frame_index=ev.frame_index, ts=ev.ts))
         else:
             for assoc in self.associate(ev[0].events, tracklet_id=ev[1]):
                 self._publish_event(assoc)
         
-    def associate(self, track_events:list[TrackEvent], *,
+    def associate(self, track_events:list[NodeTrack], *,
                   tracklet_id:Optional[TrackletId]=None) -> Generator[Association, None, None]:
-        def get_tracklet_id(track:TrackEvent):
+        def get_tracklet_id(track:NodeTrack):
             return track.tracklet_id
-        def calc_split_distance(events1:list[TrackEvent], events2:list[TrackEvent]) -> float:
+        def calc_split_distance(events1:list[NodeTrack], events2:list[NodeTrack]) -> float:
             dist = np.mean([te1.world_coord.distance_to(te2.world_coord)
                             for te1, te2 in zip(events1, events2)])
             return dist
-        def calc_distance(ev_list1:list[TrackEvent], ev_list2:list[TrackEvent]) -> Association:
+        def calc_distance(ev_list1:list[NodeTrack], ev_list2:list[NodeTrack]) -> Association:
             if len(ev_list1) >= len(ev_list2):
                 splits = iterables.buffer_iterable(ev_list1, len(ev_list2), skip=1)
                 base = ev_list2

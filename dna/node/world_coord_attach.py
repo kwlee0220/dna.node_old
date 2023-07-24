@@ -8,7 +8,7 @@ import logging
 from omegaconf import OmegaConf
 
 from dna import Point
-from dna.event import TrackEvent, TimeElapsed, EventProcessor
+from dna.event import NodeTrack, TimeElapsed, EventProcessor
 
 LOGGER = logging.getLogger("dna.node.world_coord")
 
@@ -30,8 +30,8 @@ class WorldCoordinateAttacher(EventProcessor):
                           f'epsg_code={epsg_code}, '
                           f'contact_point={self.contact_point}'))
 
-    def handle_event(self, ev:Union[TrackEvent, TimeElapsed]) -> None:
-        if isinstance(ev, TrackEvent):
+    def handle_event(self, ev:Union[NodeTrack, TimeElapsed]) -> None:
+        if isinstance(ev, NodeTrack):
             pt_m, dist = self.localizer.from_camera_box(ev.location.tlbr)
             world_coord = self.localizer.to_world_coord(pt_m) if pt_m is not None else None
             if world_coord is not None:

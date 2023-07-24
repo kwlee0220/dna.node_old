@@ -1,1 +1,1 @@
-from .node_event import NodeEvent
+from .node_event_type import NodeEventType

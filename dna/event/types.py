@@ -16,7 +16,7 @@ class KafkaEvent(metaclass=ABCMeta):
     def key(self) -> str: pass
     
     @abstractmethod
-    def serialize(self) -> object: pass
+    def serialize(self) -> bytes: pass
     
 class SimpleKafkaEvent(KafkaEvent):
     def __init__(self, key:str, value:str) -> None:

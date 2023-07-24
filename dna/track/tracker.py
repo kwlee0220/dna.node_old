@@ -22,7 +22,7 @@ from .matcher.cost_matrices import build_dist_cost, build_iou_cost, \
 from .kalman_filter import KalmanFilter
 from .dna_track_params import DNATrackParams
 from .dna_track import DNATrack
-from dna.event.track_event import TrackEvent
+from dna.event.track_event import NodeTrack
 
 _EMPTY_FEATURE = np.zeros(1024)
 
@@ -34,7 +34,7 @@ class Tracker:
         self._next_id = 1
         self.logger = logger
 
-    def track(self, frame:Frame, detections: list[Detection]) -> tuple[MatchingSession, list[DNATrack], list[TrackEvent]]:
+    def track(self, frame:Frame, detections: list[Detection]) -> tuple[MatchingSession, list[DNATrack], list[NodeTrack]]:
         # Estimate the next state for each tracks using Kalman filter
         for track in self.tracks:
             track.predict(self.kf, frame.index, frame.ts)
@@ -238,7 +238,7 @@ class Tracker:
                 if self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f"rematch yielding tracks, {matcher}: {matches_str(self.tracks, matches1)}")
     
-    def merge_fragment(self, session:MatchingSession, frame:Frame, track_events:list[TrackEvent]) -> set[DNATrack]:
+    def merge_fragment(self, session:MatchingSession, frame:Frame, track_events:list[NodeTrack]) -> set[DNATrack]:
         merged_tracks = set()
         
         # Stable zone에서 시작된 track들을 검색한다.

@@ -14,10 +14,10 @@ from tqdm import tqdm
 
 from dna import initialize_logger
 from dna.support import iterables
-from dna.event import TrackFeature, TrackEvent, TrackletMotion
+from dna.event import TrackFeature, NodeTrack, TrackletMotion
 from scripts import update_namespace_with_environ
 
-TOPIC_TRACK_EVENTS = "track-events"
+TOPIC_TRACK_EVENTS = "node-tracks"
 TOPIC_MOTIONS = "track-motions"
 TOPIC_FEATURES = 'track-features'
 
@@ -65,7 +65,7 @@ def main():
         consumer = KafkaConsumer(bootstrap_servers=args.kafka_brokerss,
                                 auto_offset_reset=args.kafka_offset,
                                 key_deserializer=lambda k: k.decode('utf-8'))
-        with suppress(EOFError): backup(consumer, TOPIC_TRACK_EVENTS, f"output/{TOPIC_TRACK_EVENTS}.pickle", TrackEvent.deserialize)
+        with suppress(EOFError): backup(consumer, TOPIC_TRACK_EVENTS, f"output/{TOPIC_TRACK_EVENTS}.pickle", NodeTrack.deserialize)
         with suppress(EOFError): backup(consumer, TOPIC_MOTIONS, f"output/{TOPIC_MOTIONS}.pickle", TrackletMotion.deserialize)
         with suppress(EOFError): backup(consumer, TOPIC_FEATURES, f"output/{TOPIC_FEATURES}.pickle", TrackFeature.deserialize)
         consumer.close()

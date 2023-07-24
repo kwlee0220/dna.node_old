@@ -6,7 +6,7 @@ import pika
 from kafka import KafkaProducer
 
 import dna
-from dna.event import TrackEvent
+from dna.event import NodeTrack
 from dna.execution import AbstractExecution, Execution, ExecutionContext, ExecutionFactory
 from dna.pika_execution import PikaExecutionContext, PikaExecutionFactory, PikaExecutionContext
 
@@ -39,13 +39,13 @@ class TrackEventPublishingExecution(AbstractExecution):
                 while True:
                     line = fp.readline().rstrip()
                     if len(line) > 0:
-                        te = TrackEvent.from_json(line)
+                        te = NodeTrack.from_json(line)
                         heapq.heappush(heap, te)
                     elif len(heap) == 0:
                         break
                     
                     if len(heap) >= 32 or len(line) == 0:
-                        track: TrackEvent = heapq.heappop(heap)
+                        track: NodeTrack = heapq.heappop(heap)
                         if self.sync and last_ts > 0:
                             remains = track.ts - last_ts
                             if remains > 30:

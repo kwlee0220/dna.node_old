@@ -9,7 +9,7 @@ import shapely.geometry as geometry
 import numpy as np
 
 from dna import Point, NodeId, TrackId
-from dna.event import TrackEvent
+from dna.event import NodeTrack
 
 
 @dataclass(frozen=True)
@@ -19,7 +19,7 @@ class LineTrack:
     line: geometry.LineString
     frame_index: int
     ts: float
-    source: TrackEvent
+    source: NodeTrack
     
     def is_point_track(self) -> bool:
         return self.line.coords[0] == self.line.coords[1]
@@ -33,7 +33,7 @@ class LineTrack:
         return self.line.coords[1]
         
     @staticmethod
-    def from_events(t0:TrackEvent, t1:TrackEvent):
+    def from_events(t0:NodeTrack, t1:NodeTrack):
         def to_line_string(pt0:Point, pt1:Point) -> geometry.LineString:
             return geometry.LineString([list(pt0.xy), list(pt1.xy)])
 
@@ -88,7 +88,7 @@ class ZoneEvent:
     zone_id: str
     frame_index: int
     ts: float
-    source: TrackEvent
+    source: NodeTrack
 
     def is_unassigned(self) -> bool:
         return self.relation == ZoneRelation.Unassigned

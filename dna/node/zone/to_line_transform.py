@@ -4,7 +4,7 @@ from typing import Optional
 import logging
 
 from dna import TrackId
-from dna.event import TrackEvent, EventProcessor
+from dna.event import NodeTrack, EventProcessor
 from .types import LineTrack
 
 
@@ -13,7 +13,7 @@ class ToLineTransform(EventProcessor):
     
     def __init__(self, *, logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
-        self.last_events:dict[TrackId,TrackEvent] = dict()
+        self.last_events:dict[TrackId,NodeTrack] = dict()
         self.logger = logger
 
     def close(self) -> None:
@@ -21,12 +21,12 @@ class ToLineTransform(EventProcessor):
         super().close()
 
     def handle_event(self, ev:object) -> None:
-        if isinstance(ev, TrackEvent):
+        if isinstance(ev, NodeTrack):
             self.handle_track_event(ev)
         else:
             self._publish_event(ev)
 
-    def handle_track_event(self, ev:TrackEvent) -> None:
+    def handle_track_event(self, ev:NodeTrack) -> None:
         if ev.is_deleted():
             self.last_events.pop(ev.track_id, None)
             self._publish_event(ev)

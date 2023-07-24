@@ -12,7 +12,7 @@ import json
 
 from dna import Box, Image, BGR, color, Frame, Point
 from dna.camera import Camera
-from dna.event import TrackEvent
+from dna.event import NodeTrack
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
 from dna.node import stabilizer
 from dna.support import plot_utils
@@ -43,7 +43,7 @@ def parse_args():
 
 def load_json(track_file:str, localizer:WorldCoordinateLocalizer) -> tuple[str, dict[int, list[Location]]]:
     def parse_line(line:str) -> tuple[str, str, int, TrackState, Location]:
-        ev = TrackEvent.from_json(line)
+        ev = NodeTrack.from_json(line)
 
         pt_m, dist = localizer.from_camera_box(ev.location.tlbr)
         pt = Point(localizer.to_image_coord(pt_m))

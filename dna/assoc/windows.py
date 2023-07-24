@@ -6,7 +6,7 @@ import logging
 
 from dna import NodeId, TrackletId
 from dna.support import iterables
-from dna.event import EventProcessor, TrackEvent, TimeElapsed
+from dna.event import EventProcessor, NodeTrack, TimeElapsed
 
 
 class Window:
@@ -15,16 +15,16 @@ class Window:
     def __init__(self, begin_millis:int, end_millis:int) -> None:
         self.begin_millis = begin_millis
         self.end_millis = end_millis
-        self.events:list[TrackEvent] = []
+        self.events:list[NodeTrack] = []
         
-    def range_contains(self, ev:TrackEvent) -> bool:
+    def range_contains(self, ev:NodeTrack) -> bool:
         return ev.ts >= self.begin_millis and ev.ts < self.end_millis
         
-    def append(self, te:TrackEvent) -> None:
+    def append(self, te:NodeTrack) -> None:
         self.events.append(te)
             
     def remove(self, trk_id:TrackletId) -> None:
-        """주어진 tracklet id를 갖는 모든 TrackEvent를 삭제한다.
+        """주어진 tracklet id를 갖는 모든 NodeTrackEvent를 삭제한다.
 
         Args:
             trk_id (TrackletId): 삭제 대상 tracklet의 식별자.
@@ -61,18 +61,18 @@ class TumblingWindowAssigner(EventProcessor):
         self.logger = logger
         
     def close(self) -> None:
-        # 잔여 window에 포함된 TrackEvent에 대해 association을 생성한다.
+        # 잔여 window에 포함된 NodeTrackEvent에 대해 association을 생성한다.
         for window in self.windows:
             self._publish_event((window, None))
         self.windows.clear()
             
         super().close()
         
-    def handle_event(self, ev:Union[TrackEvent,TimeElapsed]) -> None:
-        if isinstance(ev, TrackEvent):
+    def handle_event(self, ev:Union[NodeTrack,TimeElapsed]) -> None:
+        if isinstance(ev, NodeTrack):
             self.dirty = True
             
-            # 너무 늦게 도착한 TrackEvent인 경우는 무시한다.
+            # 너무 늦게 도착한 NodeTrackEvent인 경우는 무시한다.
             if ev.node_id not in self.max_ts:
                 return
             
@@ -80,14 +80,14 @@ class TumblingWindowAssigner(EventProcessor):
                 if ev.ts > self.max_ts[ev.node_id]:
                     self.max_ts[ev.node_id] = ev.ts
                 
-                # 본 TrackEvent를 해당 window에 추가하고, close된 window들에 대해 association들을 생성한다.
+                # 본 NodeTrackEvent를 해당 window에 추가하고, close된 window들에 대해 association들을 생성한다.
                 self.fill_window(ev)
                 for window in self._list_closed_windows():
                     self._publish_event((window, None))
             elif ev.is_deleted():
-                # 대상 TrackEvent 생성 시점보다 빠른 영역을 갖는 모든 window에 대해
+                # 대상 NodeTrackEvent 생성 시점보다 빠른 영역을 갖는 모든 window에 대해
                 # 종료된 tracklet과 관련된 association을 생성하고, 관련 window들에서
-                # 종료된 tracklet에 의해 생성된 TrackEvent를 모두 삭제한다.
+                # 종료된 tracklet에 의해 생성된 NodeTrackEvent를 모두 삭제한다.
                 for window in self.windows:
                     if ev.ts < window.begin_millis:
                         break
@@ -95,7 +95,7 @@ class TumblingWindowAssigner(EventProcessor):
                     window.remove(ev.tracklet_id)
                 self._publish_event(ev)
         elif isinstance(ev, TimeElapsed):
-            # 바로 전 TimeElapsed 이벤트를 받은 후부터 지금까지 한번도 TrackEvent를 받지 않은 경우에는
+            # 바로 전 TimeElapsed 이벤트를 받은 후부터 지금까지 한번도 NodeTrackEvent를 받지 않은 경우에는
             # 가장 오래된 window를 통한 association을 생성하고, 해당 window를 제거한다.
             if not self.dirty and self.windows:
                 window = self.windows.pop(0)
@@ -104,7 +104,7 @@ class TumblingWindowAssigner(EventProcessor):
                 self._publish_event((window, None))
             self.dirty = False
                         
-    def fill_window(self, te:TrackEvent) -> None:
+    def fill_window(self, te:NodeTrack) -> None:
         if self.windows:
             if te.ts < self.windows[0].begin_millis:
                 # 가장 오래된 (첫번째) window의 시간 구간보다도 일찍 생성된 event는 누락시킨다.
@@ -113,7 +113,7 @@ class TumblingWindowAssigner(EventProcessor):
                 return
             
             while True:
-                # TrackEvent의 timestamp를 기준으로 이벤트가 포함될 window를 검색한다.
+                # NodeTrackEvent의 timestamp를 기준으로 이벤트가 포함될 window를 검색한다.
                 window = iterables.first((w for w in self.windows if w.range_contains(te)))
                 if window is not None:
                     window.append(te)

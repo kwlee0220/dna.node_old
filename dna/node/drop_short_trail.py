@@ -6,7 +6,7 @@ import logging
 from collections import defaultdict
 
 from dna import TrackId
-from dna.event import TimeElapsed, TrackEvent, EventProcessor
+from dna.event import TimeElapsed, NodeTrack, EventProcessor
 from dna.track import TrackState
 
 
@@ -18,7 +18,7 @@ class DropShortTrail(EventProcessor):
 
         self.min_trail_length = min_trail_length
         self.long_trails: set[TrackId] = set()  # 'long trail' 여부
-        self.pending_dict: dict[TrackId, list[TrackEvent]] = defaultdict(list)
+        self.pending_dict: dict[TrackId, list[NodeTrack]] = defaultdict(list)
         self.logger = logger
 
     def close(self) -> None:
@@ -29,13 +29,13 @@ class DropShortTrail(EventProcessor):
     def min_frame_index(self) -> int:
         return min(ev_list[0].frame_index for ev_list in self.pending_dict.values()) if self.pending_dict else None
 
-    def handle_event(self, ev:Union[TrackEvent,TimeElapsed]) -> None:
-        if isinstance(ev, TrackEvent):
+    def handle_event(self, ev:Union[NodeTrack,TimeElapsed]) -> None:
+        if isinstance(ev, NodeTrack):
             self.handle_track_event(ev)
         else:
             self._publish_event(ev)
 
-    def handle_track_event(self, ev:TrackEvent) -> None:
+    def handle_track_event(self, ev:NodeTrack) -> None:
         is_long_trail = ev.track_id in self.long_trails
         if ev.state == TrackState.Deleted:   # tracking이 종료된 경우
             if is_long_trail:
@@ -59,7 +59,7 @@ class DropShortTrail(EventProcessor):
                 self.long_trails.add(ev.track_id)
                 self.pending_dict.pop(ev.track_id, None)
 
-    def __publish_pendings(self, pendings:list[TrackEvent]) -> None:
+    def __publish_pendings(self, pendings:list[NodeTrack]) -> None:
         for pev in pendings:
             self._publish_event(pev)
     

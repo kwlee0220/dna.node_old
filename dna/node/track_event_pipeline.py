@@ -10,7 +10,7 @@ from omegaconf import OmegaConf
 
 from dna import Frame, Size2d, config, NodeId, sub_logger
 from dna.camera import ImageProcessor
-from dna.event import TimeElapsed, TrackEvent, MultiStagePipeline, EventQueue, EventProcessor, DropEventByType, TimeElapsedGenerator
+from dna.event import TimeElapsed, NodeTrack, MultiStagePipeline, EventQueue, EventProcessor, DropEventByType, TimeElapsedGenerator
 from dna.track.types import TrackProcessor, ObjectTrack
 from dna.track.dna_tracker import DNATracker
 from dna.node.utils import GroupByFrameIndex
@@ -50,7 +50,7 @@ class MinFrameIndexComposer:
             return None
 
 
-class TrackEventPipeline(MultiStagePipeline, TrackProcessor):
+class NodeTrackEventPipeline(MultiStagePipeline, TrackProcessor):
     def __init__(self, node_id:NodeId, publishing_conf:OmegaConf,
                  image_processor:Optional[ImageProcessor]=None,
                  *,
@@ -167,12 +167,12 @@ class TrackEventPipeline(MultiStagePipeline, TrackProcessor):
         
 from .zone import ZoneEvent
 class ZoneToTrackEventTransform(EventProcessor):
-    def handle_event(self, ev:Union[ZoneEvent,TrackEvent]) -> None:
+    def handle_event(self, ev:Union[ZoneEvent,NodeTrack]) -> None:
         if isinstance(ev, ZoneEvent):
             if ev.source:
                 track_ev = replace(ev.source, zone_relation=ev.relation_str())
                 self._publish_event(track_ev)
-        elif isinstance(ev, TrackEvent) and ev.is_deleted():
+        elif isinstance(ev, NodeTrack) and ev.is_deleted():
             track_ev = replace(ev, zone_relation='D')
             self._publish_event(track_ev)
         
@@ -180,7 +180,7 @@ class ZoneToTrackEventTransform(EventProcessor):
         return f"ZoneToTrackEventTransform"
 
 
-def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
+def load_plugins(plugins_conf:OmegaConf, pipeline:NodeTrackEventPipeline,
                  image_processor:Optional[ImageProcessor]=None,
                  *,
                  logger:Optional[logging.Logger]=None) -> None:
@@ -198,7 +198,7 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:TrackEventPipeline,
         from dna.event import KafkaEventPublisher
         
         kafka_brokers = config.get(publish_tracks_conf, 'kafka_brokers', default=default_kafka_brokers)
-        topic = config.get(publish_tracks_conf, 'topic', default='track-events')
+        topic = config.get(publish_tracks_conf, 'topic', default='node-tracks')
         plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=sub_logger(logger, 'kafka.tracks'))
         pipeline.add_listener(plugin)
             

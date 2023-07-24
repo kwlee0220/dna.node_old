@@ -6,11 +6,12 @@ camera:
   # uri: data/etri_04_hot.mp4
   uri: data/2022/etri_041.mp4
   sync: False
-  # begin_frame: 930
-  # end_frame: 200
+  # begin_frame: 5750
+  # end_frame: 100
   open_ts: 0
 
 tracker:
+  drop_border_detections: true
   draw: ["tracks", "track_zones"]
   track_zones:
     - [[1204, 397], [1183, 412], [1069, 935], [5, 894], [0, 730], [956, 373], [959, 360], [960, 323], [1205, 346]]
@@ -46,7 +47,7 @@ publishing:
   plugins:
     kafka_brokers: [localhost:9092]
     publish_tracks:
-      topic: 'track-events'
+      topic: 'node-tracks'
     publish_motions:
       topic: 'track-motions'
     publish_features:

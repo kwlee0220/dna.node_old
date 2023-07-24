@@ -8,7 +8,7 @@ from dna import Point
 from dna.color import BGR
 from dna.track.track_state import TrackState
 from ..event.local_path_event import LocalPathEvent
-from dna.event import TrackEvent, EventProcessor
+from dna.event import NodeTrack, EventProcessor
 
 class Session:
     def __init__(self, node_id:str, luid:str) -> None:
@@ -24,7 +24,7 @@ class Session:
     def length(self) -> int:
         return len(self.points)
 
-    def append(self, ev: TrackEvent) -> None:
+    def append(self, ev: NodeTrack) -> None:
         self.points.append(ev.location.center())
         self.world_coords.append(ev.world_coord)
         if self.first_frame < 0:
@@ -61,7 +61,7 @@ class LocalPathGenerator(EventProcessor):
         self.sessions.clear()
 
 
-    def handle_event(self, ev: TrackEvent) -> None:
+    def handle_event(self, ev: NodeTrack) -> None:
         session = self.sessions.get(ev.track_id, None)
         if session is None:
             session = Session(ev.node_id, ev.track_id)

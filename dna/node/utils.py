@@ -5,26 +5,26 @@ from collections.abc import Callable, Generator
 import logging
 from typing import Optional, Union
 
-from dna.event import TrackEvent
+from dna.event import NodeTrack
 from dna.event.event_processor import EventProcessor
-from dna.event.track_event import TrackEvent
+from dna.event.track_event import NodeTrack
 from dna.event.types import TimeElapsed
 from dna.support.text_line_writer import TextLineWriter
             
 
-def read_tracks_csv(track_file:str) -> Generator[TrackEvent, None, None]:
+def read_tracks_csv(track_file:str) -> Generator[NodeTrack, None, None]:
     import csv
     with open(track_file) as f:
         reader = csv.reader(f)
         for row in reader:
-            yield TrackEvent.from_csv(row)
+            yield NodeTrack.from_csv(row)
 
 
 class JsonTrackEventGroupWriter(TextLineWriter):
     def __init__(self, file_path: str) -> None:
         super().__init__(file_path)
 
-    def handle_event(self, group:list[TrackEvent]) -> None:
+    def handle_event(self, group:list[NodeTrack]) -> None:
         for track in group:
             self.write(track.to_json() + '\n')
             
@@ -42,7 +42,7 @@ class GroupByFrameIndex(EventProcessor):
     def __init__(self, min_frame_index_func:Callable[[],int], *, logger:Optional[logging.Logger]=None) -> None:
         EventProcessor.__init__(self)
 
-        self.groups:dict[int,list[TrackEvent]] = defaultdict(list)  # frame index별로 TrackEvent들의 groupp
+        self.groups:dict[int,list[NodeTrack]] = defaultdict(list)  # frame index별로 TrackEvent들의 groupp
         self.min_frame_index_func = min_frame_index_func
         self.max_published_index = 0
         self.logger = logger
@@ -54,8 +54,8 @@ class GroupByFrameIndex(EventProcessor):
             self._publish_event(group)
         super().close()
 
-    def handle_event(self, ev:Union[TrackEvent,TimeElapsed]) -> None:
-        if isinstance(ev, TrackEvent):
+    def handle_event(self, ev:Union[NodeTrack,TimeElapsed]) -> None:
+        if isinstance(ev, NodeTrack):
             # 만일 새 TrackEvent가 이미 publish된 track event group의 frame index보다 작은 경우
             # late-arrived event 문제가 발생하여 예외를 발생시킨다.
             if ev.frame_index <= self.max_published_index:

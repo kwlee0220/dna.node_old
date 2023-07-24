@@ -11,7 +11,8 @@ from dna.camera.utils import multi_camera_context
 def parse_args():
     parser = argparse.ArgumentParser(description="Show multiple videos")
     parser.add_argument("video_uris", nargs='+', help="video uris to display")
-    parser.add_argument("--begin_frames", metavar="csv", help="camera offsets")
+    parser.add_argument("--frame_offset", metavar="csv", help="camera offsets")
+    parser.add_argument("--start", default=0, type=int, help="start frame index")
     parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
 
     return parser.parse_known_args()
@@ -92,15 +93,17 @@ def main():
 
     initialize_logger(args.logger)
 
-    if args.begin_frames is not None:
-        begin_frames = [max(0, int(vstr)) for vstr in args.begin_frames.split(',')]
+    if args.frame_offset is not None:
+        frame_offset = [int(vstr) for vstr in args.frame_offset.split(',')]
     else:
-        begin_frames = [0] * len(args.video_uris)
+        frame_offset = [0] * len(args.video_uris)
+    offset = args.start - min(frame_offset)
+    frame_offset = [idx+offset for idx in frame_offset]
 
     size:Size2d = None
     camera_list:list[Camera] = []
     for idx, uri in enumerate(args.video_uris):
-        camera = create_opencv_camera(uri, begin_frame=begin_frames[idx])
+        camera = create_opencv_camera(uri, begin_frame=frame_offset[idx])
         if idx == 0:
             size = (camera.size * 0.6).to_rint()
         camera_list.append(camera.resize(size))

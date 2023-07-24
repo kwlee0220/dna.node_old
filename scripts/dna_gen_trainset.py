@@ -15,7 +15,7 @@ from torch.serialization import SourceChangeWarning
 warnings.filterwarnings("ignore", category=SourceChangeWarning)
 
 from dna import TrackId
-from dna.event import TrackEvent
+from dna.event import NodeTrack
 
 import dna
 from dna import Point, Box, Size2d, Frame
@@ -101,8 +101,8 @@ def parse_args():
     return parser.parse_known_args()
 
 
-def load_tracklets_by_frame(tracklet_gen:Generator[TrackEvent, None, None]) -> dict[int,list[TrackEvent]]:
-    tracklets:dict[int,list[TrackEvent]] = dict()
+def load_tracklets_by_frame(tracklet_gen:Generator[NodeTrack, None, None]) -> dict[int,list[NodeTrack]]:
+    tracklets:dict[int,list[NodeTrack]] = dict()
     for track in tracklet_gen:
         tracks = tracklets.get(track.frame_index)
         if tracks is None:
@@ -118,7 +118,7 @@ def to_crop_file(dir:Path, track_id:str, ts:int) -> Path:
 
 
 class TrackletCropWriter(FrameProcessor):
-    def __init__(self, tracks_per_frame_index:dict[int, list[TrackEvent]],
+    def __init__(self, tracks_per_frame_index:dict[int, list[NodeTrack]],
                  zone_events:dict[TrackId,list[ZoneEvent]],
                  motions: dict[TrackId,tuple[str,str]],
                  global_tracklet_mappings: dict[TrackId,tuple[str,str,str]],
@@ -166,7 +166,7 @@ class TrackletCropWriter(FrameProcessor):
 
         return frame
 
-    def crop_file_path(self, track:TrackEvent) -> str:
+    def crop_file_path(self, track:NodeTrack) -> str:
         motion = self.motions.get(track.track_id)
         if not motion:
             if (track.node_id, track.track_id) not in self.empty_motions:

@@ -19,7 +19,7 @@ _DIST_PRECISION = 3
 
 
 @dataclass(frozen=True, eq=True, order=False, repr=False)   # slots=True
-class TrackEvent(KafkaEvent):
+class NodeTrack(KafkaEvent):
     node_id: NodeId     # node id
     track_id: TrackId   # tracking object id
     state: TrackState   # tracking state
@@ -59,8 +59,8 @@ class TrackEvent(KafkaEvent):
             return False
 
     @staticmethod
-    def from_row(row:tuple[str,str,TrackState,Box,Point,float,str,int,int]) -> TrackEvent:
-        return TrackEvent(node_id=row[1],
+    def from_row(row:tuple[str,str,TrackState,Box,Point,float,str,int,int]) -> NodeTrack:
+        return NodeTrack(node_id=row[1],
                             track_id=row[2],
                             state=TrackState.from_abbr(row[3]),
                             location=sql_utils.from_sql_box(row[4]),
@@ -78,7 +78,7 @@ class TrackEvent(KafkaEvent):
                 self.frame_index, self.ts)
 
     @staticmethod
-    def from_json(json_str:str) -> TrackEvent:
+    def from_json(json_str:str) -> NodeTrack:
         def json_to_box(tlbr_list:Optional[Iterable[float]]) -> Box:
             return Box(tlbr_list) if tlbr_list else None
 
@@ -91,7 +91,7 @@ class TrackEvent(KafkaEvent):
         zone_relation = json_obj.get('zone_relation', None)
         # detection_box = json_to_box(json_obj.get('detection_box', None))
 
-        return TrackEvent(node_id=json_obj['node'],
+        return NodeTrack(node_id=json_obj['node'],
                             track_id=json_obj['track_id'],
                             state=TrackState[json_obj['state']],
                             location=json_to_box(json_obj['location']),
@@ -122,14 +122,14 @@ class TrackEvent(KafkaEvent):
         return self.to_json().encode('utf-8')
 
     @staticmethod
-    def deserialize(serialized:ByteString) -> TrackEvent:
-        return TrackEvent.from_json(serialized.decode('utf-8'))
+    def deserialize(serialized:ByteString) -> NodeTrack:
+        return NodeTrack.from_json(serialized.decode('utf-8'))
 
-    def updated(self, **kwargs:object) -> TrackEvent:
+    def updated(self, **kwargs:object) -> NodeTrack:
         fields = asdict(self)
         for key, value in kwargs.items():
             fields[key] = value
-        return TrackEvent(**fields)
+        return NodeTrack(**fields)
 
     def to_csv(self) -> str:
         vlist = [self.node_id, self.track_id, self.state.name] \
@@ -143,7 +143,7 @@ class TrackEvent(KafkaEvent):
         return ','.join([str(v) for v in vlist])
 
     @staticmethod
-    def from_csv(csv: str) -> TrackEvent:
+    def from_csv(csv: str) -> NodeTrack:
         parts = csv.split(',')
 
         node_id = parts[0]
@@ -160,7 +160,7 @@ class TrackEvent(KafkaEvent):
             world_coord = None
             dist = None
 
-        return TrackEvent(node_id=node_id, track_id=track_id, state=state, location=loc,
+        return NodeTrack(node_id=node_id, track_id=track_id, state=state, location=loc,
                             frame_index=frame_idx, ts=ts, world_coord=world_coord, distance=dist)
 
     def __repr__(self) -> str:

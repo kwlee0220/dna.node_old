@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Union
 import logging
 
-from dna.event import EventProcessor, TrackEvent
+from dna.event import EventProcessor, NodeTrack
 from dna.node.zone import ZoneEvent, ZoneVisit, ZoneSequence
 
 LOGGER = logging.getLogger('dna.node.zone.Turn')
@@ -19,10 +19,10 @@ class ZoneSequenceCollector(EventProcessor):
         self.sequences.clear()
         super().close()
 
-    def handle_event(self, ev:Union[ZoneEvent,TrackEvent]) -> None:
+    def handle_event(self, ev:Union[ZoneEvent,NodeTrack]) -> None:
         if isinstance(ev, ZoneEvent):
             self.handle_zone_event(ev)
-        elif isinstance(ev, TrackEvent) and ev.is_deleted():
+        elif isinstance(ev, NodeTrack) and ev.is_deleted():
             self.sequences.pop(ev.track_id, None)
             self._publish_event(ev)
             
@@ -66,10 +66,10 @@ class FinalZoneSequenceFilter(EventProcessor):
         self.sequences.clear()
         super().close()
         
-    def handle_event(self, ev:Union[ZoneSequence,TrackEvent]) -> None:
+    def handle_event(self, ev:Union[ZoneSequence,NodeTrack]) -> None:
         if isinstance(ev, ZoneSequence):
             self.sequences[ev.track_id] = ev
-        elif isinstance(ev, TrackEvent) and ev.is_deleted():
+        elif isinstance(ev, NodeTrack) and ev.is_deleted():
             zseq = self.sequences.get(ev.track_id)
             if zseq:
                 self._publish_event(zseq)

@@ -8,7 +8,7 @@ from omegaconf import OmegaConf
 
 from dna import Box, Image, BGR, color, Frame, Point
 from dna.camera import create_opencv_camera
-from dna.event import TrackEvent, read_event_file
+from dna.event import NodeTrack, read_event_file
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
 from dna.node.running_stabilizer import RunningStabilizer
 from dna.node.trajectory_drawer import TrajectoryDrawer
@@ -51,7 +51,7 @@ def load_track_events(track_file:str, node_id:str) -> defaultdict[str,list[Box]]
     def filter_cond(ev):
         return (not node_id or ev.node_id == node_id) and not ev.is_deleted()
         
-    events = read_event_file(track_file, event_type=TrackEvent)
+    events = read_event_file(track_file, event_type=NodeTrack)
     events = filter(filter_cond, events)
     return functools.reduce(append, events, defaultdict(list))
 

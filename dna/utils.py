@@ -111,6 +111,18 @@ def has_method(obj, name:str) -> bool:
 
 
 
+from typing import TypeVar, Union
+from collections.abc import Callable
+
+T = TypeVar("T")
+def get_or_else(value:T, else_value:Union[T,Callable[[],T]]) -> T:
+    if value:
+        return value
+    else:
+        return else_value() if callable(else_value) else else_value
+
+
+
 def detect_outliers(values:list[T], weight:float=1.5, *,
                     key:Optional[Callable[[T],float]]=None) -> tuple[list[T],list[T]]:
     import numpy as np

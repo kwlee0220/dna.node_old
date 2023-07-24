@@ -9,7 +9,7 @@ import itertools
 
 import time
 from dna import Point, initialize_logger
-from dna.event import TrackEvent
+from dna.event import NodeTrack
 from dna.support import iterables
 
 import logging
@@ -21,7 +21,7 @@ class Sample:
     frame_index: int
     
     @classmethod
-    def from_event(cls, te: TrackEvent) -> Sample:
+    def from_event(cls, te: NodeTrack) -> Sample:
         return cls(te.world_coord, te.frame_index)
     
     def distance_to(self, other: Sample) -> float:
@@ -84,7 +84,7 @@ class Trajectory:
                 f"len={self.length}]")
 
 
-def load_log_file(log_path:str, max_camera_dist:float) -> dict[int,list[TrackEvent]]:
+def load_log_file(log_path:str, max_camera_dist:float) -> dict[int,list[NodeTrack]]:
     event_dict = defaultdict(list)
     with open(log_path, 'r') as fp:
         while True:
@@ -93,7 +93,7 @@ def load_log_file(log_path:str, max_camera_dist:float) -> dict[int,list[TrackEve
                 break
             
             # 'json' 문자열을 파싱하여 로딩한다
-            te = TrackEvent.from_json(line)
+            te = NodeTrack.from_json(line)
             
             # 일부 TrackEvent의 "world_coord"와 "distance" 필드가 None 값을 갖기 때문에
             # 해당 event는 제외시킨다. 또한 대상 물체와 카메라와의 거리 (distance)가
@@ -104,8 +104,8 @@ def load_log_file(log_path:str, max_camera_dist:float) -> dict[int,list[TrackEve
                 event_dict[te.frame_index].append(te)
     return event_dict
 
-def find_isolated_trajectories(events_by_frame:dict[int,list[TrackEvent]], sparse_dist:float) -> list[Trajectory]:
-    def is_isolated(target:TrackEvent, events:list[TrackEvent]):
+def find_isolated_trajectories(events_by_frame:dict[int,list[NodeTrack]], sparse_dist:float) -> list[Trajectory]:
+    def is_isolated(target:NodeTrack, events:list[NodeTrack]):
         # 같은 frame_index를 갖는 다른 track_event들과의 거리가 일정거리(sparse_dist) 이상인지를 판단함.
         for ev in events:
             if target.track_id != ev.track_id and target.world_coord.distance_to(ev.world_coord) < sparse_dist:

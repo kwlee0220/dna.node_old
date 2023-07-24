@@ -9,7 +9,7 @@ import cv2
 from dna import Frame, Box, color
 from dna.camera import FrameProcessor, ImageProcessor
 from dna.track import TrackState
-from dna.event import TrackEvent, TrackletMotion, EventQueue, EventListener
+from dna.event import NodeTrack, TrackletMotion, EventQueue, EventListener
 from .types import ResidentChanged
 from .resident_changes import ResidentChanges
 
@@ -26,8 +26,8 @@ class ZoneSequenceDisplay(FrameProcessor,EventListener):
         for key in self.motion_counts.keys():
             self.motion_counts[key] = 0
         
-    def handle_event(self, ev:Union[TrackEvent,TrackletMotion]) -> None:
-        if isinstance(ev, TrackEvent):
+    def handle_event(self, ev:Union[NodeTrack,TrackletMotion]) -> None:
+        if isinstance(ev, NodeTrack):
             if ev.state == TrackState.Deleted:
                 self.track_locations[ev.track_id] = ev.location
         elif isinstance(ev, TrackletMotion) and ev.motion:

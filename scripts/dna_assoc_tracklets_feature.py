@@ -8,7 +8,7 @@ from omegaconf import OmegaConf
 from kafka import KafkaConsumer
 
 from dna import initialize_logger, config
-from dna.event import TrackEvent, TrackFeature, open_kafka_consumer, read_topics
+from dna.event import NodeTrack, TrackFeature, open_kafka_consumer, read_topics
 from dna.event.event_processors import PrintEvent
 from dna.event.tracklet_store import TrackletStore
 from dna.support.sql_utils import SQLConnector

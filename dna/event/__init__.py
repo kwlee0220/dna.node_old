@@ -6,7 +6,7 @@ from .event_processors import EventRelay, DropEventByType, TimeElapsedGenerator
 from .kafka_event_publisher import KafkaEventPublisher
 from .multi_stage_pipeline import MultiStagePipeline
 
-from .track_event import TrackEvent
+from .track_event import NodeTrack
 from .track_feature import TrackFeature
 from. tracklet_motion import TrackletMotion
 

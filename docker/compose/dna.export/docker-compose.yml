@@ -9,7 +9,7 @@ services:
   dna-export:
     container_name: 'dna-export'
     image: kwlee0220/dna-export
-    command: dna_export_topics --db_host postgres --kafka_brokers kafka02:19092 --topic track-events track-motions track-features -f
+    command: dna_export_topics --db_host postgres --kafka_brokers kafka02:19092 --topic node-tracks track-motions track-features -f
     networks:
       - dna_server_net
 

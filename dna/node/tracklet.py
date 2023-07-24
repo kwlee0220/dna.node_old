@@ -5,13 +5,13 @@ from collections.abc import Generator
 
 from dna import TrackId
 from dna.track import TrackState
-from dna.event import TrackEvent
+from dna.event import NodeTrack
 
 
 class Tracklet:
-    def __init__(self, track_id:TrackId, tracks:list[TrackEvent], offset:int=0) -> None:
+    def __init__(self, track_id:TrackId, tracks:list[NodeTrack], offset:int=0) -> None:
         self.track_id = track_id
-        self.tracks:list[TrackEvent] = tracks
+        self.tracks:list[NodeTrack] = tracks
 
     def is_closed(self) -> bool:
         return len(self.tracks) > 0 and self.tracks[-1].state == TrackState.Deleted
@@ -22,7 +22,7 @@ class Tracklet:
     def __iter__(self):
         return (track for track in self.tracks)
     
-    def __getitem__(self, index) -> Union[TrackEvent, Tracklet]:
+    def __getitem__(self, index) -> Union[NodeTrack, Tracklet]:
         if isinstance(index, int):
             return self.tracks[index]
         else:
@@ -35,11 +35,11 @@ class Tracklet:
         sub_tracks = [t for t in self.tracks if t.frame_index >= begin_frame and t.frame_index < end_frame]
         return Tracklet(self.track_id, sub_tracks)
 
-    def append(self, track:TrackEvent) -> None:
+    def append(self, track:NodeTrack) -> None:
         self.tracks.append(track)
 
     @staticmethod
-    def from_tracks(tracks:list[TrackEvent]) -> Tracklet:
+    def from_tracks(tracks:list[NodeTrack]) -> Tracklet:
         if len(tracks) > 0:
             raise ValueError(f'empty track events')
         return Tracklet(tracks[0].track_id, tracks)
@@ -53,7 +53,7 @@ class Tracklet:
         return overlap1, overlap2
     
     @staticmethod
-    def sync(tracklet1:Tracklet, tracklet2:Tracklet) -> Generator[tuple[TrackEvent,TrackEvent], None, None]:
+    def sync(tracklet1:Tracklet, tracklet2:Tracklet) -> Generator[tuple[NodeTrack,NodeTrack], None, None]:
         try:
             iter1, iter2 = iter(tracklet1), iter(tracklet2)
             track1, track2 = next(iter1), next(iter2)
@@ -79,7 +79,7 @@ class Tracklet:
         return f'{self.track_id}{state_str}:{len(self.tracks)}[{seq_str}]'
     
 
-def read_tracklets(tracklet_gen:Generator[TrackEvent, None, None]) -> dict[TrackId, Tracklet]:
+def read_tracklets(tracklet_gen:Generator[NodeTrack, None, None]) -> dict[TrackId, Tracklet]:
     tracklets:dict[TrackId, Tracklet] = dict()
     for track in tracklet_gen:
         tracklet = tracklets.get(track.track_id)

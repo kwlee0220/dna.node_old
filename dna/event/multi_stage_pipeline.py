@@ -12,9 +12,10 @@ class MultiStagePipeline(EventProcessor):
         self.stages:list[EventProcessor] = []
 
     def close(self) -> None:
-        super().close()
-        for stage in reversed(self.stages):
+        # for stage in reversed(self.stages):
+        for stage in self.stages:
             stage.close()
+        super().close()
 
     def add_stage(self, proc:EventProcessor) -> None:
         if self.stages:

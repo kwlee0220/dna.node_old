@@ -8,7 +8,7 @@ from omegaconf import OmegaConf
 from kafka import KafkaConsumer
 
 from dna import initialize_logger, config
-from dna.event import TrackEvent, TrackFeature, EventListener, open_kafka_consumer
+from dna.event import NodeTrack, TrackFeature, EventListener, open_kafka_consumer
 from dna.event.event_processors import PrintEvent
 from dna.event.tracklet_store import TrackletStore
 from dna.assoc import Association, AssociationCollection, AssociationCollector
@@ -51,9 +51,9 @@ def consume_tracks_upto(consumer:KafkaConsumer, listener:EventListener, upto_ms:
         partitions = consumer.poll(timeout_ms=1000, max_records=50)
         if partitions:
             for topic_info, partition in partitions.items():
-                if topic_info.topic == 'track-events':
+                if topic_info.topic == 'node-tracks':
                     for serialized in partition:
-                        ev = TrackEvent.deserialize(serialized.value)
+                        ev = NodeTrack.deserialize(serialized.value)
                         listener.handle_event(ev)
                         last_ts = ev.ts
             if last_ts > upto_ms:
@@ -136,7 +136,7 @@ def main():
     motion_associator.start()
     
     with closing(open_consumer(args)) as track_consumer, closing(open_consumer(args)) as feature_consumer:
-        track_consumer.subscribe(['track-events'])
+        track_consumer.subscribe(['node-tracks'])
         feature_consumer.subscribe(['track-features'])
         
         listening_nodes = set(args.listen)

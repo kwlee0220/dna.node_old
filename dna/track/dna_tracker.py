@@ -26,7 +26,7 @@ from .dna_track_params import load_track_params, DNATrackParams
 from .feature_extractor import DeepSORTMetricExtractor
 from .dna_track import DNATrack
 from .tracker import Tracker
-from dna.event.track_event import TrackEvent
+from dna.event.track_event import NodeTrack
 
 import logging
 LOGGER = logging.getLogger('dna.tracker')
@@ -79,7 +79,7 @@ class DNATracker(ObjectTracker):
     def tracks(self) -> list[DNATrack]:
         return self.tracker.tracks
 
-    def track(self, frame: Frame) -> tuple[list[DNATrack], list[TrackEvent]]:
+    def track(self, frame: Frame) -> tuple[list[DNATrack], list[NodeTrack]]:
         dna.DEBUG_FRAME_INDEX = frame.index
         self.last_event_tracks = []
 

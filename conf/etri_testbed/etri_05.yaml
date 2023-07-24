@@ -31,6 +31,7 @@ publishing:
   attach_world_coordinates:
     camera_geometry: regions/etri_testbed/etri_testbed.json
     camera_index: 1
+  drop_border_detections: true
   zone_pipeline:
     zones:
       A: [[1126, 249], [660, 194], [644, 333], [937, 349], [1126, 249]]
@@ -47,7 +48,7 @@ publishing:
   plugins:
     kafka_brokers: [localhost:9092]
     publish_tracks:
-      topic: 'track-events'
+      topic: 'node-tracks'
     publish_motions:
       topic: 'track-motions'
     publish_features:

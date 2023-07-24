@@ -8,10 +8,10 @@ from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable
 
 from dna import initialize_logger
-from dna.event import TrackEvent, TrackFeature, TrackletMotion
+from dna.event import NodeTrack, TrackFeature, TrackletMotion
 from scripts import update_namespace_with_environ
 
-TOPIC_TRACK_EVENTS = "track-events"
+TOPIC_TRACK_EVENTS = "node-tracks"
 TOPIC_MOTIONS = "track-motions"
 TOPIC_FEATURES = 'track-features'
 
@@ -28,7 +28,7 @@ def parse_args():
         
     
 def topic_for(ev):
-    if isinstance(ev, TrackEvent):
+    if isinstance(ev, NodeTrack):
         return TOPIC_TRACK_EVENTS
     elif isinstance(ev, TrackFeature):
         return TOPIC_FEATURES

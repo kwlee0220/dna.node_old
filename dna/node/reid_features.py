@@ -6,7 +6,7 @@ import numpy as np
 
 from dna import Frame, utils, Size2d, TrackId
 from dna.camera import FrameProcessor, ImageProcessor
-from dna.event import TrackEvent, TrackFeature, EventProcessor
+from dna.event import NodeTrack, TrackFeature, EventProcessor
 from dna.track.feature_extractor import DeepSORTMetricExtractor
 
 
@@ -22,10 +22,10 @@ class PublishReIDFeatures(FrameProcessor,EventProcessor):
         self.distinct_distance = distinct_distance
         self.min_crop_size = min_crop_size
         self.frame_buffer:list[Frame] = []
-        self.pending_reid_tracks:list[tuple[int, list[TrackEvent]]] = []
+        self.pending_reid_tracks:list[tuple[int, list[NodeTrack]]] = []
         self.representives:dict[TrackId,np.ndarray] = dict()
     
-    def handle_event(self, group:list[TrackEvent]) -> None:
+    def handle_event(self, group:list[NodeTrack]) -> None:
         # frame_buffer에 해당 frame 존재 여부와 무관하게 'delete'된 track 처리를 수행함.
         reid_tracks = []
         for track in group:
@@ -62,8 +62,8 @@ class PublishReIDFeatures(FrameProcessor,EventProcessor):
             self.frame_buffer.pop(0)
         return frame
             
-    def _publish_reid_features(self, reid_tracks:list[TrackEvent], frame:Frame) -> None:
-        def to_feature(track:TrackEvent, feature:np.ndarray) -> TrackFeature:
+    def _publish_reid_features(self, reid_tracks:list[NodeTrack], frame:Frame) -> None:
+        def to_feature(track:NodeTrack, feature:np.ndarray) -> TrackFeature:
             return TrackFeature(node_id=track.node_id, track_id=track.track_id, feature=feature,
                                 zone_relation=track.zone_relation, frame_index=track.frame_index, ts=track.ts)
             

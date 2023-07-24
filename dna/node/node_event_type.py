@@ -3,14 +3,14 @@ from collections.abc import Callable
 from enum import Enum
 
 from dna import ByteString
-from dna.event import KafkaEvent, TrackEvent, TrackFeature, TrackletMotion, KafkaEventDeserializer, KafkaEventSerializer
+from dna.event import KafkaEvent, NodeTrack, TrackFeature, TrackletMotion, KafkaEventDeserializer, KafkaEventSerializer
 from dna.support import iterables
 
 
-class NodeEvent(Enum):
-    TRACK_EVENT = ("track-events", TrackEvent)
-    TRACK_FEATURE = ("track-features", TrackFeature)
-    TRACK_MOTION = ("track-motions", TrackletMotion)
+class NodeEventType(Enum):
+    NODE_TRACK = ("node-tracks", NodeTrack)
+    FEATURE = ("track-features", TrackFeature)
+    MOTION = ("track-motions", TrackletMotion)
 
     def __init__(self, topic:str, event_type:type[KafkaEvent]) -> None:
         self.topic = topic
@@ -29,9 +29,9 @@ class NodeEvent(Enum):
         return [node_ev.topic for node_ev in cls]
 
     @classmethod
-    def from_topic(cls, topic:str) -> NodeEvent:
+    def from_topic(cls, topic:str) -> NodeEventType:
         return iterables.first(node_ev for node_ev in cls if node_ev.topic == topic)
 
     @classmethod
-    def from_event_type(cls, event_type:type[KafkaEvent]) -> NodeEvent:
+    def from_event_type(cls, event_type:type[KafkaEvent]) -> NodeTrack:
         return iterables.first(node_ev for node_ev in cls if node_ev.event_type == event_type)

@@ -6,7 +6,7 @@ import argparse
 from kafka import KafkaConsumer
 
 from dna import initialize_logger, config
-from dna.event import TrackEvent
+from dna.event import NodeTrack
 from dna.assoc.associator_motion import NodeAssociationSchema, MotionBasedTrackletAssociator
 from dna.event.event_processors import PrintEvent
 from dna.assoc import Association, AssociationCollection
@@ -71,15 +71,15 @@ def main():
     consumer = KafkaConsumer(bootstrap_servers=kafka_brokerss,
                              auto_offset_reset=offset,
                              key_deserializer=lambda k: k.decode('utf-8'))
-    consumer.subscribe(['track-events'])
+    consumer.subscribe(['node-tracks'])
     
     count = 0
     while True:
         partitions = consumer.poll(timeout_ms=1000, max_records=100)
         if partitions:
             for topic_info, partition in partitions.items():
-                if topic_info.topic == 'track-events':
-                    for te in (TrackEvent.deserialize(serialized.value) for serialized in partition):
+                if topic_info.topic == 'node-tracks':
+                    for te in (NodeTrack.deserialize(serialized.value) for serialized in partition):
                         count += 1
                         associator.handle_event(te)
         else:

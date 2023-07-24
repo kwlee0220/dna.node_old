@@ -5,7 +5,7 @@ from collections.abc import Iterable
 import logging
 
 from dna import TrackId
-from dna.event import EventQueue, EventProcessor, TrackEvent
+from dna.event import EventQueue, EventProcessor, NodeTrack
 from .types import ZoneRelation, ZoneEvent, LocationChanged
 
 
@@ -35,10 +35,10 @@ class ZoneEventRefiner(EventProcessor):
         self.location_event_queue.close()
         super().close()
                 
-    def handle_event(self, ev:Union[ZoneEvent,TrackEvent]) -> None:
+    def handle_event(self, ev:Union[ZoneEvent,NodeTrack]) -> None:
         if isinstance(ev, ZoneEvent):
             self.handle_zone_event(ev)
-        elif isinstance(ev, TrackEvent) and ev.is_deleted():
+        elif isinstance(ev, NodeTrack) and ev.is_deleted():
             self.handle_track_deleted(ev)
         else:
             if self.logger and self.logger.isEnabledFor(logging.DEBUG):
@@ -95,7 +95,7 @@ class ZoneEventRefiner(EventProcessor):
         else:
             raise ValueError(f'invalid ZoneEvent: {zone_ev}')
                 
-    def handle_track_deleted(self, ev:TrackEvent) -> None:
+    def handle_track_deleted(self, ev:NodeTrack) -> None:
         # 삭제된 track의 location 정보를 삭제한다
         self.locations.pop(ev.track_id, None)
         

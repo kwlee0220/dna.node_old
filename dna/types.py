@@ -4,6 +4,7 @@ from typing import TypeAlias, NewType, Union
 from collections.abc import Callable
 import numbers
 from dataclasses import dataclass, field
+import json
 
 import numpy as np
 import numpy.typing as npt
@@ -28,6 +29,13 @@ class TrackletId:
 
     def __iter__(self):
         return iter((self.node_id, self.track_id))
+
+    @staticmethod
+    def from_json_object(json_obj:dict[str,object]) -> TrackletId:
+        return TrackletId(node_id=json_obj['node'], track_id=json_obj['track'])
+
+    def to_json_object(self) -> str:
+        return {'node':self.node_id, 'track':self.track_id}
 
     def __repr__(self) -> str:
         return f'{self.node_id}[{self.track_id}]'

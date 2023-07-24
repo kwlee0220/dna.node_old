@@ -57,12 +57,14 @@ def publish_kafka_events(producer:KafkaProducer, events:Union[Iterator[KafkaEven
 
 
 def read_topics(consumer:KafkaConsumer, **poll_args) -> Generator[ConsumerRecord, None, None]:
+    mapping:dict[str,int] = dict()
     while True:
         partitions = consumer.poll(**poll_args)
         if partitions:
-            for _, partition in partitions.items():
-                for record in partition:
-                    yield record
+            for part_info, partition in partitions.items():
+                print(f"partition={part_info.partition}, count={len(partition)}")
+                # for record in partition:
+                #     yield record
         else:
             break
 
@@ -82,7 +84,9 @@ def read_pickle_event_file(file:str) -> Generator[KafkaEvent, None, None]:
         except EOFError:
             return
         
-def read_event_file(file:str, *, event_type:Optional[type[KafkaEvent]]=None) -> Generator[KafkaEvent, None, None]:
+def read_event_file(file:str,
+                    *,
+                    event_type:Optional[type[KafkaEvent]]=None) -> Generator[KafkaEvent, None, None]:
     from pathlib import Path
     suffix = Path(file).suffix[1:]
     if suffix == 'json':

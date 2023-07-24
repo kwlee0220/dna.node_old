@@ -13,7 +13,7 @@ from pathlib import Path
 import cv2
 
 from dna import Point
-from dna.event import TrackEvent, EventProcessor
+from dna.event import NodeTrack, EventProcessor
 
 import logging
 LOGGER = logging.getLogger("dna.node.pipeline")
@@ -57,6 +57,10 @@ class WorldCoordinateLocalizer:
     def from_image_coord(self, pt_m:npt.ArrayLike) -> np.ndarray:
         return conv_pixel2meter(np.array(pt_m), self.satellite['origin_pixel'], self.satellite['meter_per_pixel'])
     
+    def from_world_coord(self, pt_5186:npt.ArrayLike) -> np.ndarray:
+        pt_5186 = np.array(pt_5186)
+        return pt_5186[0:2] - self.origin_utm
+        
     def to_world_coord(self, pt_m:npt.ArrayLike) -> np.ndarray:
         pt_m = np.array(pt_m)
         pt_5186 = pt_m[0:2] + self.origin_utm

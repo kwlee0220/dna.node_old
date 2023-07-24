@@ -40,28 +40,39 @@ camera = create_opencv_camera_from_conf(camera_conf)
 
 localizer = None
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
-# localizer = WorldCoordinateLocalizer('regions/etri_testbed/etri_testbed.json', 0, contact_point=ContactPointType.Simulation)
+localizer = WorldCoordinateLocalizer('regions/etri_testbed/etri_testbed.json', 0, contact_point=ContactPointType.Simulation)
 
 track_zones = [
-    [[182, 399], [182, 478], [523, 503], [799, 460], [1194, 299],
-      [1408, 313], [1362, 488], [1807, 595], [1814, 930], [4, 927], [0, 399]]
+    # [[182, 399], [182, 478], [523, 503], [799, 460], [1194, 299],
+    #   [1408, 313], [1362, 488], [1807, 595], [1814, 930], [4, 927], [0, 399]]
 ]
 blind_zones = [
 ]
 exit_zones = [
-    [[55, 492], [7, 505], [7, 441], [103, 440], [100, 459]],
-    [175, 395, 257, 485],
-    [1148, 200, 1415, 310],
-    [600, 930, 1918, 1080],
+    # [[55, 492], [7, 505], [7, 441], [103, 440], [100, 459]],
+    # [175, 395, 257, 485],
+    # [1148, 200, 1415, 310],
+    # [600, 930, 1918, 1080],
 ]
 zones = [
-    [[93, 482], [328, 667], [-25, 812], [-17, 519], [93, 482]],
-    # [[686, 481], [1242, 584], [1407, 320], [1154, 315], [686, 481]],
-    # [[209, 975], [356, 806], [1035, 631], [1598, 645], [1644, 980], [209, 975]],
+    [[887, 287], [886, 362], [251, 370], [253, 289], [887, 287]],   # C-0
+    [[888, 368], [888, 427], [249, 437], [250, 374], [888, 368]],   # 0-C
+    [[168, 167], [170, 264], [106, 265], [92, 167], [168, 167]],    # 0-B
+    [[94, 299], [35, 299], [36, 227], [95, 276], [94, 299]],        # B-0
+    [[90, 959], [32, 958], [35, 474], [93, 473], [90, 959]],        # 0-A
+    [[156, 957], [100, 958], [101, 530], [160, 529], [156, 957]],   # A-0
+    [[579, 1108], [200, 1107], [201, 1051], [578, 1056], [577, 1108]],  # D-1
+    [[577, 1173], [196, 1173], [199, 1111], [580, 1112], [577, 1173]],  # 1-D
+    
+    [[19, 1233], [20, 1111], [81, 1131], [80, 1236], [19, 1233]],    # 1-E
+    [[86, 1236], [86, 1145], [160, 1177], [157, 1238], [86, 1236]],  # E-1
+    [[39, 310], [235, 308], [233, 455], [39, 455], [39, 310]],      # 0
+    [[30, 995], [161, 995], [176, 1167], [28, 1102],[30, 995]],     # 1
 ]
 
 with closing(camera.open()) as cap:
     src_img = cap().image
+    src_img = cv2.imread("output/ETRI_221011.png", cv2.IMREAD_COLOR)
     
     box = Box.from_image(src_img)
     
@@ -72,7 +83,9 @@ with closing(camera.open()) as cap:
 # img = cv2.imread("output/ETRI_221011.png", cv2.IMREAD_COLOR)
 
 def shift(coords, amount=SHIFT):
-    if isinstance(coords[0], list):
+    if not coords:
+        return []
+    elif isinstance(coords[0], list):
         return [[c[0]+amount, c[1]+amount] for c in coords]
     else:
         return [c+amount for c in coords]
@@ -91,11 +104,12 @@ def image_to_world(localizer:WorldCoordinateLocalizer, pt_p):
     return localizer.to_world_coord(pt_m).astype(int)
 
 polygon = []
-polygon = [[111, 496], [328, 667], [-25, 812], [-17, 530], [64, 503]]
+polygon = [[30, 995], [161, 995], [176, 1167], [28, 1102],[30, 995]]
 coords = PolygonDrawer(img, shift(polygon)).run()
+coords = shift(coords, -SHIFT)
 if localizer:
     coords = [list(image_to_world(localizer, coord)) for coord in coords]
 
-print(shift(coords, -SHIFT))
+print(coords)
 
 cv2.destroyAllWindows()

@@ -18,7 +18,7 @@ from dna import Point, Box, Size2d, Frame, TrackId
 from dna.config import load_node_conf2
 from dna.camera import ImageProcessor, FrameProcessor, create_opencv_camera_from_conf
 from dna.track.track_state import TrackState
-from dna.event import TrackEvent, EventProcessor
+from dna.event import NodeTrack, EventProcessor
 from dna.node import TrackEventPipeline
 from dna.node.zone import ZoneEvent, ZonePipeline
 from dna.event.utils import read_tracks_json
@@ -41,8 +41,8 @@ def parse_args():
     return parser.parse_known_args()
 
 
-def load_tracklets_by_frame(tracklet_gen:Generator[TrackEvent, None, None]) -> dict[int,list[TrackEvent]]:
-    tracklets:dict[int,list[TrackEvent]] = dict()
+def load_tracklets_by_frame(tracklet_gen:Generator[NodeTrack, None, None]) -> dict[int,list[NodeTrack]]:
+    tracklets:dict[int,list[NodeTrack]] = dict()
     for track in tracklet_gen:
         tracks = tracklets.get(track.frame_index)
         if tracks is None:
@@ -54,7 +54,7 @@ def load_tracklets_by_frame(tracklet_gen:Generator[TrackEvent, None, None]) -> d
 
 
 class TrackletCropWriter(FrameProcessor):
-    def __init__(self, tracks_per_frame_index:dict[int, list[TrackEvent]],
+    def __init__(self, tracks_per_frame_index:dict[int, list[NodeTrack]],
                  global_tracklet_mappings: dict[TrackId,tuple[str,str,str]],
                  output_dir:str,
                  margin:int=5,
@@ -98,7 +98,7 @@ class TrackletCropWriter(FrameProcessor):
 
         return frame
 
-    def crop_file_path(self, track:TrackEvent) -> str:
+    def crop_file_path(self, track:NodeTrack) -> str:
         gid = self.global_tracklet_mappings.get((track.node_id, track.track_id))
         if not gid:
             if (track.node_id, track.track_id) not in self.non_global_tracklets:
