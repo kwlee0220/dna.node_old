@@ -97,7 +97,7 @@ class MotionBasedAssociator(EventProcessor):
             for assoc in self.associate(ev[0].events, tracklet_id=ev[1]):
                 self._publish_event(assoc)
         
-    def associate(self, track_events:list[NodeTrack], *,
+    def associate(self, node_tracks:list[NodeTrack], *,
                   tracklet_id:Optional[TrackletId]=None) -> Generator[Association, None, None]:
         def get_tracklet_id(track:NodeTrack):
             return track.tracklet_id
@@ -114,18 +114,26 @@ class MotionBasedAssociator(EventProcessor):
                 base = ev_list1
             return min(calc_split_distance(base, split) for split in splits)
         
-        # 주어진 TrackEvent들을 tracklet별로 그룹핑한다.
-        tracklets = iterables.groupby(track_events, key_func=get_tracklet_id)
+        # 주어진 NodeTrack event들을 tracklet별로 그룹핑한다.
+        tracklets = iterables.groupby(node_tracks, key_func=get_tracklet_id)
         
+        # 검색 대상 tracklet 식별자가 주어진 경우, 이 식별자가 tracklet group에 포함되지 않은 경우에는
+        # 바로 반환한다.
         if tracklet_id and tracklet_id not in tracklets:
             return
         
         t1 = tracklet_id if tracklet_id else iterables.first(tracklets.keys())
         while tracklets:
+            # tracklet별로 모은 event들을 사용
             events1 = tracklets.pop(t1)
             for peer_node in self.schema.peers(t1.node_id):
+                # 'tracklets' group들 중에서 t1과 overlap되는 node들의 식별자를 찾는다.
                 peer_tracklet_ids = (t2 for t2 in tracklets.keys() if t2.node_id == peer_node)
                 for t2 in peer_tracklet_ids:
+                    # t1과 overlap되는 tracklet t2의 이벤트를 얻어, t1에 속한 event들 사이의
+                    # 거리를 얻어 두 tracklet 사이의 거리를 계산한다.
+                    # 이때, 두 tracklet의 거리는 t1과 t2에 속하는 event pair 중에서
+                    # 그 거리 값이 가장 가까운 값으로 정의한다.
                     events2 = tracklets[t2]
                 
                     dist = calc_distance(events1, events2)
