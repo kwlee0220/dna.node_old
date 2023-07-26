@@ -166,7 +166,7 @@ class AssociationCollection:
     def _guarded_add(self, assoc:Association) -> bool:
         if len(self) == 0:
             self.collection.append(assoc)
-            return
+            return True
         
         # collection에 이미 추가하려는 association보다 더 specific한 association이 하나라도 이미 존재하는 확인한다.
         prev = self.query_first(MoreSpecificMatch(assoc))
