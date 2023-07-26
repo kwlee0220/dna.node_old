@@ -41,7 +41,7 @@ def main():
     if args.offsets is not None:
         offsets = [int(vstr) for vstr in args.offsets.split(',')]
     else:
-        offsets = [0] * len(args.video_uris)
+        offsets = [0] * len(args.track_files)
         
     shift = 0 - min(offsets)
     offsets = [o + shift for o in offsets]
