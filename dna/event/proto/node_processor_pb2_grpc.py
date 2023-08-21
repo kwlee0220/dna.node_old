@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from . import node_processor_pb2 as node__processor__pb2
+import node_processor_pb2 as node__processor__pb2
 
 
 class NodeProcessorStub(object):

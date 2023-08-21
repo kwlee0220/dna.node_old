@@ -210,15 +210,18 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:NodeTrackEventPipeline,
         
         distinct_distance = publish_features_conf.get('distinct_distance', 0.0)
         min_crop_size = Size2d.from_expr(publish_features_conf.get('min_crop_size', '80x80'))
+        max_iou = publish_features_conf.get('max_iou', 1)
         publish = PublishReIDFeatures(extractor=load_feature_extractor(normalize=True),
                                       distinct_distance=distinct_distance,
-                                      min_crop_size=min_crop_size)
+                                      min_crop_size=min_crop_size,
+                                      max_iou=max_iou,
+                                      logger=sub_logger(logger, 'feature'))
         pipeline.group_event_queue.add_listener(publish)
         image_processor.add_frame_processor(publish)
         
         kafka_brokers = config.get(publish_features_conf, 'kafka_brokers', default=default_kafka_brokers)
         topic = config.get(publish_features_conf, 'topic', default='track-features')
-        plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=sub_logger(logger, 'kafka.features'))
+        plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=sub_logger(logger, 'features'))
         publish.add_listener(plugin)
         
     zone_pipeline:ZonePipeline = pipeline.plugins.get('zone_pipeline')

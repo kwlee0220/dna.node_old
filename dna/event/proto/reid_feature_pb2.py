@@ -13,15 +13,14 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12reid_feature.proto\x12\x0e\x64na.node.proto\"\x97\x01\n\x11TrackFeatureProto\x12\x0f\n\x07node_id\x18\x01 \x01(\t\x12\x10\n\x08track_id\x18\x02 \x01(\t\x12\x12\n\x08\x62\x66\x65\x61ture\x18\x03 \x01(\x0cH\x00\x12\x15\n\rzone_relation\x18\x04 \x01(\t\x12\x13\n\x0b\x66rame_index\x18\x05 \x01(\x03\x12\n\n\x02ts\x18\x06 \x01(\x03\x42\x13\n\x11optional_bfeatureB\x12\n\x0e\x64na.node.protoP\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12reid_feature.proto\x12\x0e\x64na.node.proto\"\x7f\n\x11TrackFeatureProto\x12\x0f\n\x07node_id\x18\x01 \x01(\t\x12\x10\n\x08track_id\x18\x02 \x01(\t\x12\x0f\n\x07\x66\x65\x61ture\x18\x03 \x03(\x02\x12\x15\n\rzone_relation\x18\x04 \x01(\t\x12\x13\n\x0b\x66rame_index\x18\x05 \x01(\x03\x12\n\n\x02ts\x18\x06 \x01(\x03\x42\x12\n\x0e\x64na.node.protoP\x01\x62\x06proto3')
 
-_globals = globals()
-_builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'reid_feature_pb2', _globals)
+_builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'reid_feature_pb2', globals())
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
   DESCRIPTOR._serialized_options = b'\n\016dna.node.protoP\001'
-  _globals['_TRACKFEATUREPROTO']._serialized_start=39
-  _globals['_TRACKFEATUREPROTO']._serialized_end=190
+  _TRACKFEATUREPROTO._serialized_start=38
+  _TRACKFEATUREPROTO._serialized_end=165
 # @@protoc_insertion_point(module_scope)

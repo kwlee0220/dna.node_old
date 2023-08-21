@@ -11,7 +11,7 @@ camera:
   open_ts: 0
 
 tracker:
-  draw: ['tracks', 'track_zones']
+  draw: ['tracks']
   detection_min_size: [30, 30]
   max_age: 20
   drop_border_detections: true
@@ -58,5 +58,6 @@ publishing:
       topic: 'track-motions'
     publish_features:
       topic: 'track-features'
-      distinct_distance: 0.2
-      min_crop_size: 80x60
+      distinct_distance: 0.4
+      min_crop_size: 60x35
+      max_iou: 0.2

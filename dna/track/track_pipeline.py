@@ -84,7 +84,7 @@ class TrackingPipeline(FrameProcessor):
             convas = frame.image
             if 'track_zones' in self._draw:
                 for zone in self.tracker.params.track_zones:
-                    convas = zone.draw(convas, color.RED, 1)
+                    convas = zone.draw(convas, color.BLUE, 1)
             if 'blind_zones' in self._draw:
                 for zone in self.tracker.params.blind_zones:
                     convas = zone.draw(convas, color.YELLOW, 1)

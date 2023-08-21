@@ -44,28 +44,39 @@ class GlobalTrack(KafkaEvent):
     track_id: str                                   # track id
     location: Point = field(hash=False)
     overlap_area: str = field(hash=False)           # overlap area id (nullable)
-    support: list[LocalTrack] = field(hash=False)   # nullable
+    supports: list[LocalTrack] = field(hash=False)   # nullable
     ts: int = field(hash=False)
 
     def key(self) -> str:
         return self.node
     
+    def is_deleted(self) -> bool:
+        return self.location == None
+    
+    def is_in_overlap_area(self) -> bool:
+        return self.overlap_area != None
+    
     def is_same_track(self, ltrack:LocalTrack) -> bool:
         return self.node == ltrack.node and self.track_id == ltrack.track_id
+    
+    def is_associated(self) -> bool:
+        return self.supports != None
 
     @staticmethod
     def from_json(json_str:str) -> GlobalTrack:
         json_obj = json.loads(json_str)
         
-        support_json_obj = json_obj.get('support')
-        support = None if support_json_obj is None \
+        loc_obj = json_obj.get('location')
+        location = Point(loc_obj) if loc_obj else None
+            
+        support_json_obj = json_obj.get('supports')
+        supports = None if support_json_obj is None \
                         else [LocalTrack.from_json_object(sj) for sj in support_json_obj]
         
-        support = [LocalTrack.from_json_object(sj) for sj in json_obj['support']]
         return GlobalTrack(node=json_obj['node'], track_id=json_obj['track_id'],
-                            location=Point(json_obj.get('location')),
+                            location=location,
                             overlap_area=json_obj.get('overlap_area'),
-                            support=support,
+                            supports=supports,
                             ts=json_obj['ts'])
 
     def to_json(self) -> str:
@@ -76,7 +87,7 @@ class GlobalTrack(KafkaEvent):
         }
         if self.overlap_area:
             serialized['overlap_area'] = self.overlap_area
-            serialized['support'] = [s.to_json_object() for s in self.support]
+            serialized['support'] = [s.to_json_object() for s in self.supports]
         serialized['ts'] = self.ts
             
         return json.dumps(serialized, separators=(',', ':'))
@@ -89,9 +100,12 @@ class GlobalTrack(KafkaEvent):
         return GlobalTrack.from_json(serialized.decode('utf-8'))
 
     def __repr__(self) -> str:
+        if self.is_deleted():
+            return f"{self.node}[{self.track_id}]: Deleted#{self.ts}"
+        
         support_str = ""
         if self.overlap_area:
-            lt_str = '-'.join(f"{lt.node}[{lt.track_id}]" for lt in self.support)
+            lt_str = '-'.join(f"{lt.node}[{lt.track_id}]" for lt in self.supports)
             support_str = f" - {self.overlap_area}:{{{lt_str}}}"
         return f"{self.node}[{self.track_id}]:{self.location}#{self.ts}{support_str}"
 

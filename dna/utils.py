@@ -49,24 +49,6 @@ def get_first_param(args: dict[str,object], key: str, def_value=None) -> object:
     value = args.get(key)
     return value[0] if value else def_value
 
-def split_list(list:list[T], cond) -> tuple[list[T],list[T]]:
-    trues = []
-    falses = []
-    for v in list:
-        if cond(v):
-            trues.append(v)
-        else:
-            falses.append(v)
-    return trues, falses
-    
-def remove_cond_from_list(list:list[T], cond:Callable[[T],bool]) -> list[T]:
-    length = len(list)
-    removeds = []
-    for idx in range(length-1, -1, -1):
-        if cond(list[idx]):
-            removeds.append(list.pop(idx))
-    return removeds
-
 def rindex(lst, value):
     return len(lst) - lst[::-1].index(value) - 1
 

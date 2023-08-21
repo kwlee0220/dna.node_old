@@ -11,7 +11,7 @@ camera:
   open_ts: 0
 
 tracker:
-  draw: ["tracks", "track_zones"]
+  draw: ["tracks"]
   n_init: 3
 
   track_zones:
@@ -53,8 +53,9 @@ publishing:
       topic: 'track-motions'
     publish_features:
       topic: 'track-features'
-      distinct_distance: 0.2
+      distinct_distance: 0.4
       min_crop_size: 80x80
+      max_iou: 0.2
 
   # plugins:
   #   local_path:

@@ -6,13 +6,13 @@ camera:
   # uri: data/etri_04_hot.mp4
   uri: data/2022/etri_041.mp4
   sync: False
-  # begin_frame: 5750
+  # begin_frame: 1400
   # end_frame: 100
   open_ts: 0
 
 tracker:
   drop_border_detections: true
-  draw: ["tracks", "track_zones"]
+  draw: ["tracks"]
   track_zones:
     - [[1204, 397], [1183, 412], [1069, 935], [5, 894], [0, 730], [956, 373], [959, 360], [960, 323], [1205, 346]]
   magnifying_zones:
@@ -52,5 +52,6 @@ publishing:
       topic: 'track-motions'
     publish_features:
       topic: 'track-features'
-      distinct_distance: 0.2
-      min_crop_size: 80x40
+      distinct_distance: 0.35
+      min_crop_size: 60x35
+      max_iou: 0.2

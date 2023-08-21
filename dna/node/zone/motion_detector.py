@@ -31,19 +31,20 @@ class MotionDetector(EventProcessor):
                 if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'detect motion: track={ev.track_id}, seq={seq_str}, motion={motion.motion}, '
                                         f'frame={ev.frame_index}')
+                    
+                motion = TrackletMotion(node_id=ev.node_id,
+                                        track_id=ev.track_id,
+                                        zone_sequence=seq_str,
+                                        enter_zone=enter_zone,
+                                        exit_zone=exit_zone,
+                                        motion=motion_id,
+                                        frame_index=ev.frame_index,
+                                        ts=ev.ts)
+                self._publish_event(motion)
             else:
+                print(f"id={ev.track_id}, seq={seq}")
                 if self.logger:
                     self.logger.warn(f'unknown motion: track={ev.track_id}, seq={seq_str}, frame={ev.frame_index}')
-                    
-            motion = TrackletMotion(node_id=ev.node_id,
-                                    track_id=ev.track_id,
-                                    zone_sequence=seq_str,
-                                    enter_zone=enter_zone,
-                                    exit_zone=exit_zone,
-                                    motion=motion_id,
-                                    frame_index=ev.frame_index,
-                                    ts=ev.ts)
-            self._publish_event(motion)
         else:
             self._publish_event(ev)
     

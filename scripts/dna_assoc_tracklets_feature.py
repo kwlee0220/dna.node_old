@@ -66,7 +66,7 @@ def main():
     interval_collector.add_listener(closuer_builder)
     
     with closing(open_kafka_consumer(brokers=args.kafka_brokers,
-                                     offset=args.kafka_offset,
+                                     offset_reset=args.kafka_offset,
                                      key_deserializer=lambda k: k.decode('utf-8'))) as feature_consumer:
         feature_consumer.subscribe(['track-features'])
         

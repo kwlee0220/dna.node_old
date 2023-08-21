@@ -23,10 +23,11 @@
             "program": "${workspaceFolder}/scripts/dna_node.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                // "--camera", "data/2022/etri_041.mp4",
-                "--conf", "conf/etri_testbed/etri_07.yaml",
+                "--camera", "data/2022/etri_041.mp4",
+                "--conf", "conf/etri_testbed/etri_04.yaml",
+                // "--conf", "conf/shibuya_7_8.yaml",
                 // "--kafka_brokers", "localhost:9092",
-                "--output", "D:/Temp/dna_output/etri_071_event.json",   // -o <file>
+                // "--output", "D:/Temp/dna_output/etri_071_event.json",   // -o <file>
                 // "--output_video", "D:/Temp/dna_output/etri_041_track.mp4",   // -v <file>
                 // "--begin_frame", "4000",
                 // "--end_frame", "4100",
@@ -58,7 +59,8 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--camera", "data/2022/crops/etri_041_crop.mp4", "--sync",
-                "--conf", "conf/etri_testbed/etri_04.yaml",
+                // "--conf", "conf/etri_testbed/etri_04.yaml",
+                "--conf", "conf/shibuya_7_8.yaml",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 // "--detector", "dna.detect.yolov4:score=0.1",
                 // "--detector", "dna.detect.rcnn50_fpn",
@@ -81,7 +83,8 @@
                 "DNA_NODE_FFMPEG_PATH": "C:\\local\\ffmpeg\\bin\\ffmpeg"
             },
             "args": [
-                "--conf", "conf/etri_testbed/etri_04.yaml",
+                // "--conf", "conf/etri_testbed/etri_04.yaml",
+                "--conf", "conf/shibuya_7_8.yaml",
                 // "--camera", "data/2022/crops/etri_041_crop.mp4",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/5/media.smp",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
@@ -116,20 +119,49 @@
         { "name": "----MCMOT--------------", "type": "python", "request": "launch" },
 
 
+        { "name": "DownloadNodeEvents",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_download_node_events.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "node-tracks", "track-features",
+                "--output", "output/sorted_1.pickle",
+                "--offsets", "0, 7, 3, 0",     // 041, 051, 061, 071
+                // "--offsets", "1, 7, 2, 0",     // 042, 052, 062, 072
+                // "--offsets", "10, 6, 1, 0",     // 043, 053, 063, 073
+                // "--offsets", "11, 6, 1, 0",     // 044, 054, 064, 074
+                // "--max_camera_distance", "57",
+                "--stop_on_poll_timeout",
+            ],
+            "justMyCode": true
+        },
+        { "name": "UploadNodeEvents",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_upload_node_events.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "output/sorted_1.pickle",
+                // "--sync",
+            ],
+            "justMyCode": true
+        },
+
+
+
         { "name": "MergeSortTrackEvents",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_merge_track_events.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "output/2022/etri_043_event.json",
-                "output/2022/etri_053_event.json",
-                "output/2022/etri_063_event.json",
-                "output/2022/etri_073_event.json",
-                "--output", "output/sorted_3.pickle",
-                // "--offsets", "0, 2, 0, -8",     // 041, 051, 061, 071
-                // "--offsets", "0, 5, 2, -4",     // 042, 052, 062, 072
-                "--offsets", "6, 4, 0, -7",    // 043, 053, 063, 073
-                // "--offsets", "3, 4, 0, -4",     // 044, 054, 064, 074
+                "output/2022/etri_041_event.json",
+                "output/2022/etri_051_event.json",
+                "output/2022/etri_061_event.json",
+                "output/2022/etri_071_event.json",
+                "--output", "output/sorted_1.pickle",
+                "--offsets", "0, 7, 3, 0",     // 041, 051, 061, 071
+                // "--offsets", "1, 7, 2, 0",     // 042, 052, 062, 072
+                // "--offsets", "10, 6, 1, 0",     // 043, 053, 063, 073
+                // "--offsets", "11, 6, 1, 0",     // 044, 054, 064, 074
                 // "--max_camera_distance", "57",
             ],
             "justMyCode": true
@@ -140,54 +172,78 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "output/2022/etri_test_event.json",
-                // "output/sorted.pickle"
+                // "output/sorted_2.pickle"
                 "output/sorted_1.pickle", "--begin_frames", "0", "0", "0",
                 // "output/sorted_2.pickle", "--begin_frames", "41", "5843", "584300",
                 // "output/sorted_3.pickle", "--begin_frames", "89", "9893", "989300",
                 // "output/sorted_4.pickle", "--begin_frames", "145", "15880", "1588000",
                 // "output/sorted_5.pickle", "--begin_frames", "191", "21862", "2186200",
                 // "output/sorted_A.pickle",
-                // "--sync",
+                "--sync",
             ],
             "justMyCode": true
         },
         { "name": "Show global tracks",
             "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_show_global_tracks_old.py",
+            "program": "${workspaceFolder}/scripts/dna_show_global_tracks.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "output/sorted_1.pickle",
                 // "--kafka_brokers", "localhost:9092",
                 // "--kafka_offset", "earliest",
+                "--topic", "global-tracks-overlap",
+                // "--topic", "global-tracks-overlap-tentative",
                 // "--start", "748",
-                // "--start", "12950",
-                // "--output_video", "output/global_tracks_1.mp4",   // -v <file>
+                "--output_video", "output/global_tracks_1.mp4",   // -v <file>
+                // "--stop_on_poll_timeout",
+                "--sync",
             ],
             "justMyCode": true
         },
         { "name": "------------------------------", "type": "python", "request": "launch" },
 
 
-
+        { "name": "ExportTopic",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_export_topic.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "--kafka_offset", "earliest",
+                "--topic", "track-features",
+                "--output", "output/track-features.pickle",
+                "--stop_on_poll_timeout",
+                "--sleep_millis", "50",
+            ],
+            "justMyCode": true
+        },
+        { "name": "ImportTopic",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_import_topic.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "output/track-features.pickle",
+                "--topic", "track-features",
+            ],
+            "justMyCode": true
+        },
         { "name": "ShowMultipleVideos",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_show_multiple_videos.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "data/2022/etri_041.mp4",
-                "data/2022/etri_051.mp4",
-                // "data/2022/etri_061.mp4",
-                // "data/2022/etri_071.mp4",
-                "--frame_offset", "0, 2, 0, -8",     // 041, 051, 061, 071
-                // "--begin_frames", "0, 7, 3, 0",     // 041, 051, 061, 071
-                // "--begin_frames", "0, 7, 2, 1",     // 042, 052, 062, 072
-                // "--begin_frames", "10, 6, 0, 0",     // 043, 053, 063, 073
-                // "--begin_frames", "12, 8, 1, 0",     // 044, 054, 064, 074
-                "--start", "88",
+                "output/2022/etri_041_track.mp4",
+                "output/2022/etri_051_track.mp4",
+                "output/2022/etri_061_track.mp4",
+                "output/2022/etri_071_track.mp4",
+                "--begin_frames", "1, 6, 2, 0",     // 041, 051, 061, 071
+                // "--begin_frames", "1, 7, 2, 0",     // 042, 052, 062, 072
+                // "--begin_frames", "10, 6, 1, 0",     // 043, 053, 063, 073
+                // "--begin_frames", "11, 6, 1, 0",     // 044, 054, 064, 074
+                // "--start", "500",
+                "--output_video", "output/multiple_videos.mp4",   // -v <file>
             ],
             "justMyCode": true
         },
-
 
 
 
@@ -202,17 +258,6 @@
 
 
         
-
-        { "name": "DownloadNodeEvents",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_download_node_events.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "--kafka_offset", "earliest",
-                "--output", "output/sorted.pickle",
-            ],
-            "justMyCode": true
-        },
         { "name": "StoreTopics",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_store_topics.py",
@@ -278,14 +323,14 @@
             "program": "${workspaceFolder}/scripts/dna_show_mc_locations.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "output/2022/etri_044_event.json",
-                "output/2022/etri_054_event.json",
-                "output/2022/etri_064_event.json",
-                "output/2022/etri_074_event.json",
+                "output/2022/etri_043_event.json",
+                "output/2022/etri_053_event.json",
+                "output/2022/etri_063_event.json",
+                "output/2022/etri_073_event.json",
                 // "--offsets", "0, 7, 3, 0",     // 041, 051, 061, 071
-                // "--offsets", "0, 7, 2, 1",     // 042, 052, 062, 072
-                // "--offsets", "10, 6, 0, 0",    // 043, 053, 063, 073
-                "--offsets", "12, 8, 1, 0",     // 044, 054, 064, 074
+                // "--offsets", "1, 7, 2, 3",     // 042, 052, 062, 072
+                "--offsets", "10, 6, 1, 0",     // 043, 053, 063, 073
+                // "--offsets", "11, 6, 1, 0",     // 044, 054, 064, 074
                 // "--max_camera_distance", "57",
             ],
             "justMyCode": true

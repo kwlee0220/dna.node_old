@@ -59,8 +59,8 @@ class ZoneEventGenerator(EventProcessor):
                     self.logger.debug(f'{left_event}')
                 self._publish_event(left_event)
 
-            from dna.utils import split_list
-            enter_events, through_events = split_list(zone_events, lambda ev: ev.relation == ZoneRelation.Entered)
+            from dna.support.iterables import partition
+            enter_events, through_events = partition(zone_events, lambda ev: ev.relation == ZoneRelation.Entered)
             if len(through_events) == 1:
                 self._publish_event(through_events[0])
             elif len(through_events) > 1:

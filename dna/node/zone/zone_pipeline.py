@@ -48,7 +48,8 @@ class ZonePipeline(MultiStagePipeline):
         
         if motions := config.get(conf, "motions"):
             from .motion_detector import MotionDetector
-            motion = MotionDetector(dict(motions), logger=sub_logger(logger, 'motion'))
+            motion_def = {v:k for k, v in motions.items()}
+            motion = MotionDetector(dict(motion_def), logger=sub_logger(logger, 'motion'))
             last_zone_seq.add_listener(motion)
             self.event_queues['motions'] = motion
 

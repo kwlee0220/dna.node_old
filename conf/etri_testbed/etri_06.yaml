@@ -10,7 +10,7 @@ camera:
   open_ts: 0
 
 tracker:
-  draw: ['tracks', 'track_zones', 'magnifying_zones']
+  draw: ['tracks']
   n_init: 5
   drop_border_detections: true
   track_zones:
@@ -55,5 +55,6 @@ publishing:
       topic: 'track-motions'
     publish_features:
       topic: 'track-features'
-      distinct_distance: 0.2
-      min_crop_size: 80x50
+      distinct_distance: 0.35
+      min_crop_size: 60x35
+      max_iou: 0.2

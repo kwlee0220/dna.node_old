@@ -54,12 +54,15 @@ class GroupByFrameIndex(EventProcessor):
             self._publish_event(group)
         super().close()
 
+    # TODO: 만일 track이 delete 된 후, 한동안 물체가 검출되지 않으면
+    # 이 delete event는 계속적으로 publish되지 않는 문제를 해결해야 함.
+    # 궁극적으로는 이후 event가 발생되지 않아서 'handle_event' 메소드가 호출되지 않아서 발생하는 문제임.
     def handle_event(self, ev:Union[NodeTrack,TimeElapsed]) -> None:
         if isinstance(ev, NodeTrack):
             # 만일 새 TrackEvent가 이미 publish된 track event group의 frame index보다 작은 경우
             # late-arrived event 문제가 발생하여 예외를 발생시킨다.
             if ev.frame_index <= self.max_published_index:
-                raise ValueError(f'late arrived TrackEvent: {ev}')
+                raise ValueError(f'A late TrackEvent: {ev}')
 
             group = self.groups[ev.frame_index]
             group.append(ev)
@@ -83,6 +86,8 @@ class GroupByFrameIndex(EventProcessor):
                         self.logger.debug(f'publish TrackEvent group: frame_index={idx}, count={len(group)}')
                     self._publish_event(group)
                     self.max_published_index = max(self.max_published_index, idx)
+        else:
+            print(ev)
 
     def __repr__(self) -> str:
         keys = list(self.groups.keys())

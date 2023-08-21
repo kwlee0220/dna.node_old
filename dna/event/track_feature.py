@@ -47,7 +47,7 @@ class TrackFeature(KafkaEvent):
         proto.node_id = self.node_id
         proto.track_id = self.track_id
         if self.feature is not None:
-            proto.bfeature = self.feature.tobytes()
+            proto.feature.extend(self.feature.tolist())
         proto.zone_relation = self.zone_relation
         proto.frame_index = self.frame_index
         proto.ts = self.ts
@@ -59,7 +59,7 @@ class TrackFeature(KafkaEvent):
         proto = TrackFeatureProto()
         proto.ParseFromString(binary_data)
         
-        feature = np.frombuffer(proto.bfeature, dtype=np.float32) if proto.HasField('bfeature') else None
+        feature = np.array(proto.feature, dtype=np.float32) if len(proto.feature) > 0 else None
         return TrackFeature(node_id=proto.node_id, track_id=proto.track_id, feature=feature,
                             zone_relation=proto.zone_relation, frame_index=proto.frame_index, ts=proto.ts)
 

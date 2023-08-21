@@ -63,15 +63,11 @@ loggers:
         level: INFO
         handlers: [console]
         propagate: no
+    dna.node.event.feature:
+        level: WARN
+        handlers: [console]
+        propagate: no
     dna.node.zone:
-        level: INFO
-        handlers: [console]
-        propagate: no
-    dna.node.zone.zone:
-        level: INFO
-        handlers: [console]
-        propagate: no
-    dna.node.zone.motion:
         level: INFO
         handlers: [console]
         propagate: no

@@ -109,6 +109,7 @@ class DNATracker(ObjectTracker):
         if self.params.blind_zones:
             detections = [det for det in detections if self.params.find_blind_zone(det.bbox) < 0]
         
+        # 'drop_border_detection'이 enable된 경우, detection-box가 border와 근접한 경우 무시한다.
         if self.params.drop_border_detections:
             def is_close_to_border(det:Detection):
                 x1, y1, x2, y2 = tuple(det.bbox.tlbr)
@@ -127,11 +128,14 @@ class DNATracker(ObjectTracker):
             return survivors
         detections = supress_overlaps(detections)
 
-        # 모든 detection들에게 exit-zone 소속 여부에 따라 zone-id를 부여한다.
+        # 모든 detection들에게 exit-zone 소속 여부에 따라 해당 exit-zone의 id를 부여한다.
+        # Exit-zone에 포함되었다고 여기서 버리면, association시 다른 detection과 binding될 수 있기 때문에
+        # 여기서는 해당 detection에 exit-zone id만 부여하고 나중에 처리한다.
         for det in detections:
             det.exit_zone = self.params.find_exit_zone(det.bbox)
         
         # exit-zone에 있는 모든 weak detection들은 무시한다
+        # 즉, exit-zone에 포함되지 않거나, strong-detection인 경우에만 candiate detection으로 선택한다.
         detections = [det for det in detections if det.exit_zone < 0 or self.params.is_strong_detection(det)]
         
         # Filtering을 마친 detection에 대해서는 영상 내의 해당 영역에서 feature를 추출하여 부여한다.
@@ -171,7 +175,7 @@ class DNATracker(ObjectTracker):
         if self.params.draw:
             if 'track_zones' in self.params.draw:
                 for zone in self.params.track_zones:
-                    convas = zone.draw(convas, color.RED, 1)
+                    convas = zone.draw(convas, color.BLUE, 1)
             if 'blind_zones' in self.params.draw:
                 for zone in self.params.blind_zones:
                     convas = zone.draw(convas, color.YELLOW, 1)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Union, TypeVar, Optional
-from collections.abc import Iterable, Iterator, Callable, Generator
+from collections.abc import Iterable, Iterator, Callable, Generator, Sequence
 
 import itertools
 from heapq import heappush
@@ -29,11 +29,14 @@ def find(iterable:Iterable[T], key:K, *, keyer:Optional[Callable[[T],K]]=None) -
             return elm
     return None
 
-def find_cond(iterable:Iterable[T], cond:Callable[[T], bool]) -> Optional[T]:
-    for elm in iterable:
+def find_first(iterable:Iterable[T], cond:Callable[[T], bool]) -> tuple[int,Optional[T]]:
+    for idx, elm in enumerate(iterable):
         if cond(elm):
-            return elm
-    return None
+            return idx, elm
+    return -1, None
+
+def exists(iterable:Iterable[T], cond:Callable[[T], bool]) -> bool:
+    return find_first(iterable, cond=cond)[0] >= 0
 
 def argfind(iterable:Iterable[T], key:K, *, keyer:Optional[Callable[[T],K]]=None) -> tuple[int,Optional[T]]:
     for idx, elm in enumerate(iterable):
@@ -41,6 +44,25 @@ def argfind(iterable:Iterable[T], key:K, *, keyer:Optional[Callable[[T],K]]=None
         if key == item:
             return idx, elm
     return -1, None
+    
+def remove_if(seq:Sequence[T], cond:Callable[[T],bool]) -> list[T]:
+    length = len(seq)
+    removeds = []
+    for idx in range(length-1, -1, -1):
+        if cond(seq[idx]):
+            removeds.append(seq.pop(idx))
+    return removeds
+
+def partition(list:Iterable[T], cond:Callable[[T],bool]) -> tuple[list[T],list[T]]:
+    trues = []
+    falses = []
+    for v in list:
+        if cond(v):
+            trues.append(v)
+        else:
+            falses.append(v)
+    return trues, falses
+     
 
 def flatmap(func, iterable):
     return itertools.chain.from_iterable(map(func, iterable))
@@ -83,7 +105,8 @@ def buffer_iterable(list:Iterable[T], count:int, skip:int=None) -> Generator[lis
             
 def groupby(list:Iterable[T], key_func:Callable[[T],K],
             *,
-            value_func:Optional[Callable[[T],V]]=None) -> dict[K,list[Union[T,V]]]:
+            value_func:Optional[Callable[[T],V]]=None,
+            init_dict=dict()) -> dict[K,list[Union[T,V]]]:
     """주어진 입력 리스트에 속한 원소들을 지정된 key를 기준으로 grouping한다.
 
     Args:
@@ -98,7 +121,7 @@ def groupby(list:Iterable[T], key_func:Callable[[T],K],
     if value_func is None:
         value_func = default_get_value
         
-    groups:dict[K,list[T]] = dict()
+    groups:dict[K,list[T]] = init_dict
     for v in list:
         grp_key = key_func(v)
         if grp_key not in groups:

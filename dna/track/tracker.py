@@ -35,11 +35,11 @@ class Tracker:
         self.logger = logger
 
     def track(self, frame:Frame, detections: list[Detection]) -> tuple[MatchingSession, list[DNATrack], list[NodeTrack]]:
-        # Estimate the next state for each tracks using Kalman filter
+        # 추적 중인 모든 track에 대해 다음 frame에서의 위치를 Kalman filter를 사용하여 예측한다.
         for track in self.tracks:
             track.predict(self.kf, frame.index, frame.ts)
 
-        # Run matching
+        # 추적 중인 track과 새 frame에서 검출된 detection들 사이에 matching을 실시한다.
         session = self.match(detections)
         if self.logger.isEnabledFor(logging.DEBUG):
             self.logger.debug(f'{session}')
@@ -48,7 +48,7 @@ class Tracker:
         #     # display matching track and detection pairs
         #     self.draw_matched_detections("detections", frame.image.copy(), session.matches, detections)
 
-        # Update locations of tracks from their matched detections.
+        # 새 frame에서 검출된 detection과 match된 track의 경우, 새 위치를 추정하여 갱신시킨다.
         for track, det in session.associations:
             track.update(self.kf, frame, det)
         
@@ -57,6 +57,7 @@ class Tracker:
         for tidx in session.unmatched_track_idxes:
             track = self.tracks[tidx]
             if not track.is_deleted():
+                # track의 크기가 너무 큰 경우에는 delete된 것으로 간주한다.
                 if self.params.detection_max_size and track.location.size() > self.params.detection_max_size:
                     track.mark_deleted()
                 elif track.exit_zone >= 0:
@@ -79,7 +80,12 @@ class Tracker:
         track_event_list = []
         if self.params.stable_zones:
             merged_tracks = self.merge_fragment(session, frame, track_event_list)
-
+              
+        # Track 결과가 exit zone에 있다고 무조건 delete 시키면, exit-zone에서 등장하는 경우도 함께 delete 된는 문제 발생
+        # for t in (t for t in self.tracks if not t.is_deleted() and self.params.find_exit_zone(t.location) >= 0):
+        #     # print(f"delete {t}")
+        #     t.mark_deleted()
+            
         deleted_tracks = [t for t in self.tracks if t.is_deleted()]
         self.tracks = [t for t in self.tracks if not t.is_deleted()]
 

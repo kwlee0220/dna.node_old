@@ -1,24 +1,28 @@
 
+from pathlib import Path
+
 import argparse
 import cv2
 import numpy as np
 
 from dna import initialize_logger, Size2d, color, Frame, Image, Box
 from dna.camera import Camera, ImageCapture, create_opencv_camera
+from dna.camera.video_writer import VideoWriter
 from dna.camera.utils import multi_camera_context
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Show multiple videos")
     parser.add_argument("video_uris", nargs='+', help="video uris to display")
-    parser.add_argument("--frame_offset", metavar="csv", help="camera offsets")
+    parser.add_argument("--begin_frames", metavar="csv", help="first frame indexes")
     parser.add_argument("--start", default=0, type=int, help="start frame index")
+    parser.add_argument("--output_video", metavar="path", help="output video file path")
     parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
 
     return parser.parse_known_args()
 
 class MultipleCameraConvas:
-    def __init__(self, captures:list[ImageCapture]) -> None:
+    def __init__(self, captures:list[ImageCapture], *, output_video:str=None) -> None:
         self.captures = captures
 
         size:Size2d = captures[0].size
@@ -32,6 +36,16 @@ class MultipleCameraConvas:
                      roi.translate(Size2d([size.width, 0])),
                      roi.translate(Size2d([0, size.height])),
                      roi.translate(size)]
+        
+        if output_video:
+            self.writer = VideoWriter(Path(output_video).resolve(), 10, Size2d.from_image(self.convas))
+            self.writer.open()
+        else:
+            self.writer = None
+        
+    def close(self) -> None:
+        if self.writer:
+            self.writer.close()
 
     @property
     def size(self) -> int:
@@ -39,6 +53,8 @@ class MultipleCameraConvas:
     
     def show(self, title:str) -> None:
         cv2.imshow(title, self.convas)
+        if self.writer:
+            self.writer.write(self.convas)
 
     def reset_offset(self) -> None:
         self.offset = min(frame.index for frame in self.last_frames)
@@ -93,23 +109,23 @@ def main():
 
     initialize_logger(args.logger)
 
-    if args.frame_offset is not None:
-        frame_offset = [int(vstr) for vstr in args.frame_offset.split(',')]
+    if args.begin_frames is not None:
+        begin_frames = [int(vstr) for vstr in args.begin_frames.split(',')]
     else:
-        frame_offset = [0] * len(args.video_uris)
-    offset = args.start - min(frame_offset)
-    frame_offset = [idx+offset for idx in frame_offset]
+        begin_frames = [0] * len(args.video_uris)
+    offset = args.start - min(begin_frames)
+    begin_frames = [idx+offset for idx in begin_frames]
 
     size:Size2d = None
     camera_list:list[Camera] = []
     for idx, uri in enumerate(args.video_uris):
-        camera = create_opencv_camera(uri, begin_frame=frame_offset[idx])
+        camera = create_opencv_camera(uri, begin_frame=begin_frames[idx])
         if idx == 0:
             size = (camera.size * 0.6).to_rint()
         camera_list.append(camera.resize(size))
 
     with multi_camera_context(camera_list) as caps:
-        display:MultipleCameraConvas = MultipleCameraConvas(caps)
+        display:MultipleCameraConvas = MultipleCameraConvas(caps, output_video=args.output_video)
         while any(display.update_all()):
             display.show("multiple cameras")
             key = cv2.waitKey(1) & 0xFF
@@ -120,6 +136,7 @@ def main():
                 break
             elif key == ord('r'):
                 display.reset_offset()
+        display.close()
         cv2.destroyWindow("multiple cameras")
 
 if __name__ == '__main__':

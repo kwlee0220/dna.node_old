@@ -25,13 +25,13 @@ class NodeEventType(Enum):
         return self.event_type.deserialize
 
     @classmethod
-    def topics(cls) -> list[str]:
-        return [node_ev.topic for node_ev in cls]
-
-    @classmethod
     def from_topic(cls, topic:str) -> NodeEventType:
         return iterables.first(node_ev for node_ev in cls if node_ev.topic == topic)
 
     @classmethod
-    def from_event_type(cls, event_type:type[KafkaEvent]) -> NodeTrack:
+    def from_event_type(cls, event_type:type[KafkaEvent]) -> NodeEventType:
         return iterables.first(node_ev for node_ev in cls if node_ev.event_type == event_type)
+    
+    @staticmethod
+    def find_topic(event:KafkaEvent) -> str:
+        return NodeEventType.from_event_type(type(event)).topic

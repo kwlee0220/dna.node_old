@@ -81,7 +81,7 @@ def consume_features_upto(consumer:KafkaConsumer, listening_nodes, listener:Even
         
 def open_consumer(args) -> KafkaConsumer:
     return open_kafka_consumer(brokers=args.kafka_brokers,
-                               offset=args.kafka_offset,
+                               offset_reset=args.kafka_offset,
                                key_deserializer=lambda k: k.decode('utf-8'))
 
 def main():
