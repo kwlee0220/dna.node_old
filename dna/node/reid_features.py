@@ -98,8 +98,10 @@ class PublishReIDFeatures(FrameProcessor,EventProcessor):
         for track in deleted_tracks:
             if self.logger and self.logger.isEnabledFor(logging.INFO):
                 self.logger.info(f"publish closed feature: track={track.track_id}")
-            self._publish_event(TrackFeature(node_id=track.node_id, track_id=track.track_id, feature=np.empty(shape=(1024,), dtype=np.float32),
-                                                zone_relation=track.zone_relation, frame_index=track.frame_index, ts=track.ts))
+            self._publish_event(TrackFeature(node_id=track.node_id, track_id=track.track_id,
+                                             feature=np.empty(shape=(1024,), dtype=np.float32),
+                                             zone_relation=track.zone_relation,
+                                             frame_index=track.frame_index, ts=track.ts))
         
             
     def _publish_reid_features(self, reid_tracks:list[NodeTrack], frame:Frame) -> None:

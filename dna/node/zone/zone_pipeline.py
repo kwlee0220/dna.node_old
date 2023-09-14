@@ -19,16 +19,16 @@ class ZonePipeline(MultiStagePipeline):
         
         from .to_line_transform import ToLineTransform
         to_line = ToLineTransform(logger=sub_logger(logger, 'line'))
-        self.add_stage(to_line)
+        self.add_stage('line', to_line)
         
         from .zone_event_generator import ZoneEventGenerator
         named_zones = config.get(conf, "zones", default=[])
         zone_detector = ZoneEventGenerator(named_zones, logger=sub_logger(logger, 'zone_gen'))
-        self.add_stage(zone_detector)
+        self.add_stage('generate_zone_event', zone_detector)
         
         from .zone_event_refiner import ZoneEventRefiner
         event_refiner = ZoneEventRefiner(logger=sub_logger(logger, 'zone_refine'))
-        self.add_stage(event_refiner)
+        self.add_stage('refine_zone_event', event_refiner)
         self.event_queues['location_changes'] = event_refiner.location_event_queue
         
         from .resident_changes import ResidentChanges
@@ -46,12 +46,14 @@ class ZonePipeline(MultiStagePipeline):
         collector.add_listener(last_zone_seq)
         self.event_queues['last_zone_sequences'] = last_zone_seq
         
+        from .motion_detector import MotionDetector
         if motions := config.get(conf, "motions"):
-            from .motion_detector import MotionDetector
             motion_def = {v:k for k, v in motions.items()}
-            motion = MotionDetector(dict(motion_def), logger=sub_logger(logger, 'motion'))
-            last_zone_seq.add_listener(motion)
-            self.event_queues['motions'] = motion
+        else:
+            motion_def = dict()
+        motion = MotionDetector(dict(motion_def), logger=sub_logger(logger, 'motion'))
+        last_zone_seq.add_listener(motion)
+        self.event_queues['motions'] = motion
 
     def close(self) -> None:
         for queue in self.event_queues.values():

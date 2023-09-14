@@ -165,9 +165,10 @@ class DNATrack(ObjectTrack):
 
     def to_track_event(self) -> NodeTrack:
         d_box = d.bbox if (d := self.detections[-1]) else None
+        firtst_ts = int(round(self.timestamp * 1000))
         return NodeTrack(node_id=None, track_id=str(self.id), state=self.state, location=self.location,
-                          frame_index=self.frame_index, ts=int(round(self.timestamp * 1000)),
-                          detection_box=d_box)
+                         first_ts=firtst_ts, frame_index=self.frame_index, ts=int(round(self.timestamp * 1000)),
+                         detection_box=d_box)
         
     @property
     def state_str(self) -> str:

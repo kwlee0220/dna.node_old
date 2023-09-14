@@ -1,9 +1,6 @@
 id: etri:07
 
 camera:
-  # uri: data/2021/etri_07_hot.mp4
-  # uri: data/2022/crops/etri_074_crop.mp4
-  # uri: data/2022/etri_07_hot.mp4
   uri: data/2022/etri_071.mp4
   sync: False
   # begin_frame: 1830
@@ -44,18 +41,18 @@ publishing:
       A: [[8, 613], [215, 509], [661, 507], [143, 840], [8, 613]]
       D: [[686, 481], [1242, 584], [1407, 320], [1154, 315], [686, 481]]
       E: [[209, 975], [356, 806], [1035, 631], [1598, 645], [1644, 980], [209, 975]]
-    motions:
-      'AD': 'AD'
-      'AE': 'AE'
-      'DA': 'DA'
-      'EA': 'EA'
+  #   motions:
+  #     'AD': 'AD'
+  #     'AE': 'AE'
+  #     'DA': 'DA'
+  #     'EA': 'EA'
 
   plugins:
     kafka_brokers: [localhost:9092]
     publish_tracks:
       topic: 'node-tracks'
     publish_motions:
-      topic: 'track-motions'
+      topic: 'tracklet-motions'
     publish_features:
       topic: 'track-features'
       distinct_distance: 0.4

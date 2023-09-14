@@ -371,6 +371,7 @@ class TestingVideoFileCapture(VideoFileCapture):
         if frame is None:
             return frame
         
-        self.last_ts += self.inc_secs
-        frame = dataclasses.replace(frame, ts=self.last_ts)
+        # self.last_ts += self.inc_secs
+        ts = frame.index / 10
+        frame = dataclasses.replace(frame, ts=ts)
         return frame

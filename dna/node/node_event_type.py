@@ -4,13 +4,15 @@ from enum import Enum
 
 from dna import ByteString
 from dna.event import KafkaEvent, NodeTrack, TrackFeature, TrackletMotion, KafkaEventDeserializer, KafkaEventSerializer
+from dna.assoc import GlobalTrack
 from dna.support import iterables
 
 
 class NodeEventType(Enum):
     NODE_TRACK = ("node-tracks", NodeTrack)
     FEATURE = ("track-features", TrackFeature)
-    MOTION = ("track-motions", TrackletMotion)
+    MOTION = ("tracklet-motions", TrackletMotion)
+    GLOBAL_TRACK = ("global-tracks", GlobalTrack)
 
     def __init__(self, topic:str, event_type:type[KafkaEvent]) -> None:
         self.topic = topic
@@ -35,3 +37,6 @@ class NodeEventType(Enum):
     @staticmethod
     def find_topic(event:KafkaEvent) -> str:
         return NodeEventType.from_event_type(type(event)).topic
+    
+    def deserialize(self, bytes:bytes) -> KafkaEvent:
+        return self.event_type.deserialize(bytes)

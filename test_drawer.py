@@ -30,13 +30,13 @@ def create_blank_image(size:Size2d, *, color:color=color.WHITE) -> np.ndarray:
     return blank_img
 
 camera_conf = OmegaConf.create()
-# camera_conf.uri = "data/2022/crops/etri_07_crop.mp4"
+# camera_conf.uri = "data/2022/etri_041.mp4"
 # camera_conf.uri = "data/2023/etri_07_join.mp4"
 # camera_conf.uri = "data/ai_city/ai_city_t3_c01.avi"
 # camera_conf.uri = "data/crossroads/crossroad_04.mp4"
-camera_conf.uri = "data/shibuya_7_8.mp4"
-# camera_conf.uri = "output/track_07.mp4"
-camera_conf.begin_frame = 6701
+# camera_conf.uri = "data/shibuya_7_8.mp4"
+camera_conf.uri = "data/2023/etri_10.mp4"
+camera_conf.begin_frame = 10
 camera = create_opencv_camera_from_conf(camera_conf)
 
 localizer = None
@@ -44,35 +44,20 @@ from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPoin
 # localizer = WorldCoordinateLocalizer('regions/etri_testbed/etri_testbed.json', 0, contact_point=ContactPointType.Simulation)
 
 track_zones = [
-    [[575, 178], [690, 180], [898, 232], [857, 299], [912, 397], [729, 565], [255, 525], [114, 321], [253, 224]]
+    [[1786, 87], [1723, 135], [1769, 175], [908, 781], [730, 802], [389, 593], [121, 733], [551, 1080], [1121, 1076], [1915, 253], [1916, 121]]
 ]
 blind_zones = [
 ]
 exit_zones = [
-    [[491, 155], [574, 192], [250, 238], [228, 192]],   # 윗쪽 출구
-    [[924, 200], [770, 152], [707, 184], [708, 217], [866, 263]],   # 오른쪽 출구
-    [[588, 540], [867, 349], [942, 387], [748, 574]],   # 아랫쪽 출구
-    [[113, 319], [172, 284], [386, 511], [259, 533]],   # 왼쪽 출구
+    [[1737, 149], [1808, 89], [1786, 76], [1711, 132]],   # 윗쪽 출구
+    [[123, 747], [403, 595], [374, 569], [99, 720]],   # 아랫쪽 출구
+    [[1245, 970], [1164, 929], [1017, 1078], [1143, 1083]],
 ]
 zones = [
-    [[573, 172], [580, 209], [269, 264], [242, 237]],   # 위쪽 라인
-    [[863, 276], [844, 300], [626, 202], [643, 177]],   # 오른쪽 라인
-    [[856, 323], [510, 531]],   # 아랫쪽 라인
-    [[398, 532], [445, 481], [239, 266], [178, 264], [120, 317], [257, 528], [398, 532]],   # 왼쪽 라인
-    # [[887, 287], [886, 362], [251, 370], [253, 289], [887, 287]],   # C-0
-    # [[888, 368], [888, 427], [249, 437], [250, 374], [888, 368]],   # 0-C
-    # [[168, 167], [170, 264], [106, 265], [92, 167], [168, 167]],    # 0-B
-    # [[94, 299], [35, 299], [36, 227], [95, 276], [94, 299]],        # B-0
-    # [[90, 959], [32, 958], [35, 474], [93, 473], [90, 959]],        # 0-A
-    # [[156, 957], [100, 958], [101, 530], [160, 529], [156, 957]],   # A-0
-    # [[579, 1108], [200, 1107], [201, 1051], [578, 1056], [577, 1108]],  # D-1
-    # [[577, 1173], [196, 1173], [199, 1111], [580, 1112], [577, 1173]],  # 1-D
-    
-    # [[19, 1233], [20, 1111], [81, 1131], [80, 1236], [19, 1233]],    # 1-E
-    # [[86, 1236], [86, 1145], [160, 1177], [157, 1238], [86, 1236]],  # E-1
-    # [[39, 310], [235, 308], [233, 455], [39, 455], [39, 310]],      # 0
-    # [[30, 995], [161, 995], [176, 1167], [28, 1102],[30, 995]],     # 1
-    # [250, 230, 820, 500]
+    [[1749, 182], [1857, 89]],   # 위쪽 라인
+    [[1722, 197], [1911, 280]],   # 오른쪽 라인
+    [[1304, 910], [1171, 907], [1003, 1030], [992, 1102]],
+    [[162, 789], [460, 613]],
 ]
 
 with closing(camera.open()) as cap:
@@ -109,7 +94,7 @@ def image_to_world(localizer:WorldCoordinateLocalizer, pt_p):
     return localizer.to_world_coord(pt_m).astype(int)
 
 polygon = []
-# polygon = [[268, 263], [600, 204], [574, 171], [238, 237]]
+# polygon = [[432, 824], [218, 644], [3, 694], [4, 1076], [120, 1072]]
 coords = PolygonDrawer(img, shift(polygon)).run()
 coords = shift(coords, -SHIFT)
 if localizer:

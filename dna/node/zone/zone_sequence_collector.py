@@ -32,7 +32,7 @@ class ZoneSequenceCollector(EventProcessor):
         
         seq = self.sequences.get(ev.track_id)
         if seq is None:
-            seq = ZoneSequence(node_id=ev.node_id, track_id=ev.track_id, visits=[])
+            seq = ZoneSequence(node_id=ev.node_id, track_id=ev.track_id, visits=[], source=ev.source)
             self.sequences[ev.track_id] = seq
             
         if ev.is_entered():
@@ -70,6 +70,6 @@ class FinalZoneSequenceFilter(EventProcessor):
         if isinstance(ev, ZoneSequence):
             self.sequences[ev.track_id] = ev
         elif isinstance(ev, NodeTrack) and ev.is_deleted():
-            zseq = self.sequences.get(ev.track_id)
+            zseq = self.sequences.pop(ev.track_id, None)
             if zseq:
                 self._publish_event(zseq)

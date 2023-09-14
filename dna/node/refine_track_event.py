@@ -17,6 +17,7 @@ class Session:
     '''본 세션에 해당하는 track id.'''
     state: TrackState = field(hash=False, compare=False)
     '''본 track session의 상태.'''
+    first_ts: int = field(hash=True)
     pendings: list[NodeTrack] = field(hash=False, compare=False)
     '''TrackEvent refinement를 위해 track별로 보류되고 있는 TrackEvent 리스트.'''
     
@@ -77,6 +78,7 @@ class RefineTrackEvent(EventProcessor):
                 deleted = NodeTrack(node_id=session.node_id, track_id=session.track_id,
                                      state=TrackState.Deleted,
                                      location=Box([0, 0, 0, 0]),
+                                     first_ts=session.first_ts,
                                      frame_index=self.max_frame_index,
                                      ts=self.max_ts)
                 self.handle_event(deleted)
@@ -129,7 +131,8 @@ class RefineTrackEvent(EventProcessor):
     def __on_initial(self, ev:NodeTrack) -> None:
         # track과 관련된 session 정보가 없다는 것은 이 track event가 한 물체의 첫번째 track event라는 것을 
         # 의미하기 때문에 session을 새로 생성한다.
-        self.sessions[ev.track_id] = session = Session(node_id=ev.node_id, track_id=ev.track_id, state=ev.state, pendings=[])
+        self.sessions[ev.track_id] = session = Session(node_id=ev.node_id, track_id=ev.track_id, state=ev.state,
+                                                       first_ts=ev.first_ts, pendings=[])
         if ev.state == TrackState.Tentative:
             self._append_track_event(session, ev)
         elif ev.state == TrackState.Confirmed:

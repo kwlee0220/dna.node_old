@@ -8,12 +8,13 @@ from datetime import timedelta
 import numpy as np
 from omegaconf import OmegaConf
 
-from dna import Frame, Size2d, config, NodeId, sub_logger
+from dna import Frame, Size2d, config, NodeId, sub_logger, TrackletId
 from dna.camera import ImageProcessor
 from dna.event import TimeElapsed, NodeTrack, MultiStagePipeline, EventQueue, EventProcessor, DropEventByType, TimeElapsedGenerator
 from dna.track.types import TrackProcessor, ObjectTrack
 from dna.track.dna_tracker import DNATracker
 from dna.node.utils import GroupByFrameIndex
+from .zone.types import ZoneSequence
 from .zone.zone_pipeline import ZonePipeline
 
 _DEFAULT_BUFFER_SIZE = 30
@@ -75,7 +76,7 @@ class NodeTrackEventPipeline(MultiStagePipeline, TrackProcessor):
             buffer_timeout = config.get(refind_track_conf, 'buffer_timeout', default=_DEFAULT_BUFFER_TIMEOUT)
             refine_tracks = RefineTrackEvent(buffer_size=buffer_size, buffer_timeout=buffer_timeout,
                                              logger=sub_logger(logger, "refine"))
-            self.add_stage(refine_tracks)
+            self.add_stage("refine_tracks", refine_tracks)
             self.min_frame_indexers.append(refine_tracks)
 
         # drop too-short tracks of an object
@@ -83,31 +84,32 @@ class NodeTrackEventPipeline(MultiStagePipeline, TrackProcessor):
         if min_path_length > 0:
             from .drop_short_trail import DropShortTrail
             drop_short_trail = DropShortTrail(min_path_length, logger=sub_logger(logger, 'drop_short_tail'))
-            self.add_stage(drop_short_trail)
+            self.add_stage("drop_short_trail", drop_short_trail)
             self.min_frame_indexers.append(drop_short_trail)
 
         # attach world-coordinates to each track
         if config.exists(publishing_conf, 'attach_world_coordinates'):
             from .world_coord_attach import WorldCoordinateAttacher
-            self.add_stage(WorldCoordinateAttacher(publishing_conf.attach_world_coordinates))
+            self.add_stage("attach_world_coordinates", WorldCoordinateAttacher(publishing_conf.attach_world_coordinates))
 
         if config.exists(publishing_conf, 'stabilization'):
             from .stabilizer import Stabilizer
             stabilizer = Stabilizer(publishing_conf.stabilization)
-            self.add_stage(stabilizer)
+            self.add_stage("stabilization", stabilizer)
             self.min_frame_indexers.append(stabilizer)
             
-        self.add_stage(DropEventByType([TimeElapsed]))
+        self.add_stage("drop TimeElapsed", DropEventByType([TimeElapsed]))
         
         # generate zone-based events
         zone_pipeline_conf = config.get(publishing_conf, 'zone_pipeline')
         if zone_pipeline_conf:
             zone_logger = logging.getLogger('dna.node.zone')
             zone_pipeline = ZonePipeline(zone_pipeline_conf, logger=zone_logger)
-            self.add_stage(zone_pipeline)
+            self.add_stage('zone_pipeline', zone_pipeline)
             
             transform = ZoneToTrackEventTransform()
-            self.add_stage(transform)
+            zone_pipeline.event_queues['last_zone_sequences'].add_listener(transform)
+            self.add_stage('attach_zone_info', transform)
             
             draw_motions = config.get(zone_pipeline_conf, "draw", default=True)
             if image_processor.is_drawing and draw_motions:
@@ -167,13 +169,21 @@ class NodeTrackEventPipeline(MultiStagePipeline, TrackProcessor):
         
 from .zone import ZoneEvent
 class ZoneToTrackEventTransform(EventProcessor):
-    def handle_event(self, ev:Union[ZoneEvent,NodeTrack]) -> None:
+    def __init__(self) -> None:
+        super().__init__()
+        self.pendings:dict[TrackletId,ZoneSequence] = dict()
+        
+    def handle_event(self, ev:Union[ZoneEvent,NodeTrack,ZoneSequence]) -> None:
         if isinstance(ev, ZoneEvent):
             if ev.source:
                 track_ev = replace(ev.source, zone_relation=ev.relation_str())
                 self._publish_event(track_ev)
+        elif isinstance(ev, ZoneSequence):
+            self.pendings[ev.tracklet_id] = ev.sequence_str()
+            pass
         elif isinstance(ev, NodeTrack) and ev.is_deleted():
-            track_ev = replace(ev, zone_relation='D')
+            seq = self.pendings.pop(ev.tracklet_id, None)
+            track_ev = replace(ev, zone_relation='D', zone_sequence=seq)
             self._publish_event(track_ev)
         
     def __repr__(self) -> str:
@@ -224,7 +234,7 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:NodeTrackEventPipeline,
         plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=sub_logger(logger, 'features'))
         publish.add_listener(plugin)
         
-    zone_pipeline:ZonePipeline = pipeline.plugins.get('zone_pipeline')
+    zone_pipeline:ZonePipeline = pipeline.stages.get('zone_pipeline')
     if zone_pipeline:
         publish_motions_conf = config.get(plugins_conf, 'publish_motions')
         if publish_motions_conf:
@@ -232,7 +242,7 @@ def load_plugins(plugins_conf:OmegaConf, pipeline:NodeTrackEventPipeline,
             motions = zone_pipeline.event_queues.get('motions')
             if motions:
                 kafka_brokers = config.get(publish_motions_conf, 'kafka_brokers', default=default_kafka_brokers)
-                topic = config.get(publish_motions_conf, 'topic', default='track-motions')
+                topic = config.get(publish_motions_conf, 'topic', default='tracklet-motions')
                 plugin = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=sub_logger(logger, 'kafka.motions'))
                 motions.add_listener(plugin)
     

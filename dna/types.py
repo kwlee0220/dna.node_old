@@ -29,6 +29,11 @@ class TrackletId:
 
     def __iter__(self):
         return iter((self.node_id, self.track_id))
+    
+    @classmethod
+    def from_string(cls, id:str) -> TrackletId:
+        idx = id.rindex('[')
+        return TrackletId(id[:idx], id[idx+1:-1])
 
     @staticmethod
     def from_json_object(json_obj:dict[str,object]) -> TrackletId:

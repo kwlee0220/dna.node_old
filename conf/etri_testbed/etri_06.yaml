@@ -35,24 +35,25 @@ publishing:
 #     look_ahead: 7
 #     # smoothing_factor: 1
   zone_pipeline:
+    draw: False
     zones:
       A: [[1409, 516], [955, 721], [974, 1037], [1836, 1033], [1827, 606], [1409, 516]]
       B: [[519, 521], [700, 714], [696, 1047], [20, 1051], [18, 562], [519, 521]]
       C: [[651, 529], [1352, 526], [1122, 353], [896, 354], [651, 529]]
-    motions:
-      'AB': 'AB'
-      'AC': 'AC'
-      'BA': 'BA'
-      'BC': 'BC'
-      'CA': 'CA'
-      'CB': 'CB'
+  #   motions:
+  #     'AB': 'AB'
+  #     'AC': 'AC'
+  #     'BA': 'BA'
+  #     'BC': 'BC'
+  #     'CA': 'CA'
+  #     'CB': 'CB'
 
   plugins:
     kafka_brokers: [localhost:9092]
     publish_tracks:
       topic: 'node-tracks'
     publish_motions:
-      topic: 'track-motions'
+      topic: 'tracklet-motions'
     publish_features:
       topic: 'track-features'
       distinct_distance: 0.35

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import cv2
+import heapq
 from omegaconf import OmegaConf
 from kafka import KafkaConsumer
 
@@ -43,6 +44,8 @@ def parse_args():
     parser.add_argument("--topic", metavar="name", default='global-tracks-overlap', help="topic name for input global tracks")
     parser.add_argument("--sync", action='store_true', help="sync to camera fps")
     parser.add_argument("--stop_on_poll_timeout", action='store_true', help="stop when a poll timeout expires")
+    parser.add_argument("--timeout_ms", metavar="milli-seconds", type=int, default=1000, help="Kafka poll timeout in milli-seconds")
+    parser.add_argument("--initial_timeout_ms", metavar="milli-seconds", type=int, default=5000, help="initial Kafka poll timeout in milli-seconds")
     parser.add_argument("--output_video", metavar="path", help="output video file path")
     
     parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
@@ -87,8 +90,13 @@ class GlobalTrackDrawer:
                     convas = cv2.line(convas, gloc, sample, track_color, thickness=1, lineType=cv2.LINE_AA)
                     convas = cv2.circle(convas, sample, radius=RADIUS_LOCAL, color=track_color, thickness=-1, lineType=cv2.LINE_AA)
             else:
-                track_color = COLORS[gtrack.node]
+                node = TrackletId.from_string(gtrack.id).node_id
+                track_color = COLORS[node]
                 convas = cv2.circle(convas, gloc, radius=RADIUS_LOCAL, color=track_color, thickness=-1, lineType=cv2.LINE_AA)
+                
+            label_pos = Point(gloc) + [-35, 30]
+            convas = plot_utils.draw_label(convas, f'{gtrack.id}', label_pos.to_rint(), font_scale=0.5,
+                                       color=color.BLACK, fill_color=color.YELLOW, thickness=1)
             
         # convas = ROI.crop(convas)
         if self.writer:
@@ -124,10 +132,18 @@ def main():
         done = False
         last_ts = -1
         tracks:list[GlobalTrack] = []
+        heap:list[GlobalTrack] = []
+        
         while not done:
-            for record in read_topics(consumer, initial_timeout_ms=10000, timeout_ms=5000, stop_on_poll_timeout=args.stop_on_poll_timeout):
+            for record in read_topics(consumer, initial_timeout_ms=args.initial_timeout_ms,
+                                      timeout_ms=args.timeout_ms,
+                                      stop_on_poll_timeout=args.stop_on_poll_timeout):
                 track = GlobalTrack.deserialize(record.value)
-                # print(track)
+                
+                heapq.heappush(heap, track)
+                if len(heap) < 30:
+                    continue
+                track = heapq.heappop(heap)
                 
                 if track.is_deleted():
                     continue
@@ -151,6 +167,28 @@ def main():
                     tracks.clear()
                     last_ts = track.ts
                     
+                tracks.append(track)
+            
+            while len(heap) > 0:
+                track = heapq.heappop(heap)
+                if track.is_deleted():
+                    continue
+                    
+                if last_ts != track.ts:
+                    drawer.draw_tracks(tracks)
+                    
+                    delay_ms = track.ts - last_ts if args.sync else 1
+                    if delay_ms <= 0:
+                        delay_ms = 1
+                    elif delay_ms >= 5000:
+                        delay_ms = 100
+                    key = cv2.waitKey(delay_ms) & 0xFF
+                    if key == ord('q'):
+                        done = True
+                        break
+                        
+                    tracks.clear()
+                    last_ts = track.ts
                 tracks.append(track)
             break
         drawer.close()

@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        { "name": "------[ NODES ]----------", "type": "python", "request": "launch" },
         { "name": "NodeProcessor",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_node_processor.py",
@@ -24,13 +25,14 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "--camera", "data/2022/etri_041.mp4",
-                "--conf", "conf/etri_testbed/etri_04.yaml",
+                "--conf", "conf/etri_testbed/etri_04_reduced.yaml",
                 // "--conf", "conf/shibuya_7_8.yaml",
                 // "--kafka_brokers", "localhost:9092",
                 // "--output", "D:/Temp/dna_output/etri_071_event.json",   // -o <file>
                 // "--output_video", "D:/Temp/dna_output/etri_041_track.mp4",   // -v <file>
                 // "--begin_frame", "4000",
                 // "--end_frame", "4100",
+                "--sync",
                 "--show", //"1280x720",
                 // "--show_progress",  // -p
             ],
@@ -42,8 +44,9 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--camera", "data/2021/etri_05.mp4",
+                "--camera", "rtsp://admin:Urc2004^^@129.254.184.215:554/profile2/media.smp",     // etri:08
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
-                "--conf", "conf/etri_testbed/etri_04.yaml",
+                "--conf", "conf/etri_testbed/etri_10.yaml",
                 // "--conf", "conf/ai_city/ai_city_09.yaml",
                 // "--output", "output/etri_07_2021.csv",   // -o <file>
                 // "--output_video", "output/etri_041.mp4",   // -v <file>
@@ -59,8 +62,8 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 // "--camera", "data/2022/crops/etri_041_crop.mp4", "--sync",
-                // "--conf", "conf/etri_testbed/etri_04.yaml",
-                "--conf", "conf/shibuya_7_8.yaml",
+                "--conf", "conf/etri_testbed/etri_02.yaml",
+                // "--conf", "conf/shibuya_7_8.yaml",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 // "--detector", "dna.detect.yolov4:score=0.1",
                 // "--detector", "dna.detect.rcnn50_fpn",
@@ -83,15 +86,21 @@
                 "DNA_NODE_FFMPEG_PATH": "C:\\local\\ffmpeg\\bin\\ffmpeg"
             },
             "args": [
-                // "--conf", "conf/etri_testbed/etri_04.yaml",
-                "--conf", "conf/shibuya_7_8.yaml",
+                "--conf", "conf/etri_testbed/etri_10.yaml",
+                // "--conf", "conf/shibuya_7_8.yaml",
                 // "--camera", "data/2022/crops/etri_041_crop.mp4",
+                // "--camera", "rtsp://admin:Urc2004^^@129.254.165.110:554/profile2/media.smp",    // etri:01 (zoom 0)
+                // "--camera", "rtsp://admin:Urc2004^^@129.254.171.195:554/profile2/media.smp",    // etri:02 (zoom 0)
+                // "--camera", "rtsp://admin:Urc2004^^@129.254.171.135:554/profile2/media.smp",    // etri:03 (zoom 4)
+                // "--camera", "rtsp://admin:Urc2004^^@129.254.169.88:554/profile2/media.smp",     // etri:08
+                "--camera", "rtsp://admin:Urc2004^^@129.254.184.215:554/profile2/media.smp",    // etri:10
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/5/media.smp",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/3/media.smp/start=20220502T085000&end=20220502T090000",
                 // "--begin_frame", "840",
                 // "--end_frame", "870",
                 // "--nosync",
                 // "--show", //"1280x720",
+                "--output_video", "output/etri_10.mp4",   // -v <file>
             ],
             "justMyCode": true
         },
@@ -116,16 +125,16 @@
             ],
             "justMyCode": true
         },
-        { "name": "----MCMOT--------------", "type": "python", "request": "launch" },
 
 
-        { "name": "DownloadNodeEvents",
+        { "name": "-----[ MCMOT ]----------", "type": "python", "request": "launch" },
+        { "name": "Download node events",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_download_node_events.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "node-tracks", "track-features",
-                "--output", "output/sorted_1.pickle",
+                "node-tracks", "track-features", "tracklet-motions",
+                "--output", "output/sorted_feature_1.pickle",
                 "--offsets", "0, 7, 3, 0",     // 041, 051, 061, 071
                 // "--offsets", "1, 7, 2, 0",     // 042, 052, 062, 072
                 // "--offsets", "10, 6, 1, 0",     // 043, 053, 063, 073
@@ -135,16 +144,86 @@
             ],
             "justMyCode": true
         },
-        { "name": "UploadNodeEvents",
+        { "name": "Upload node events",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_upload_node_events.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "output/sorted_1.pickle",
+                // "output/sorted_1.pickle",
+                "output/sorted_feature_1.pickle",
+                "--sync",
+                "--show_progress",
+            ],
+            "justMyCode": true
+        },
+        { "name": "Show global tracks",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_show_global_tracks.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                // "output/sorted_1.pickle",
+                // "--kafka_brokers", "localhost:9092",
+                // "--kafka_offset", "earliest",
+                // "--topic", "global-tracks",
+                "--topic", "global-tracks-tentative",
+                // "--start", "748",
+                "--output_video", "output/global_tracks_F.mp4",   // -v <file>
+                "--stop_on_poll_timeout",
+                "--timeout_ms", "1000",
                 // "--sync",
             ],
             "justMyCode": true
         },
+        { "name": "Show multiple videos",
+            // "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_show_multiple_videos.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "output/2022/etri_041_track.mp4",
+                "output/2022/etri_051_track.mp4",
+                "output/2022/etri_061_track.mp4",
+                "output/2022/etri_071_track.mp4",
+                "--begin_frames", "1, 6, 2, 0",     // 041, 051, 061, 071
+                // "--begin_frames", "1, 7, 2, 0",     // 042, 052, 062, 072
+                // "--begin_frames", "10, 6, 1, 0",     // 043, 053, 063, 073
+                // "--begin_frames", "11, 6, 1, 0",     // 044, 054, 064, 074
+                // "--start", "500",
+                "--output_video", "output/multiple_videos.mp4",   // -v <file>
+            ],
+            "justMyCode": true
+        },
+        { "name": "-------------------------", "type": "python", "request": "launch" },
+
+
+        { "name": "ExportTopic",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_export_topic.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "--kafka_offset", "earliest",
+                "--topic", "global-tracks",
+                "--output", "output/global-tracks-feature.json",
+                "--stop_on_poll_timeout",
+                // "--sleep_millis", "10",
+            ],
+            "justMyCode": true
+        },
+        { "name": "ImportTopic",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_import_topic.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "output/2022/motion/etri_071_event.json",
+                "--topic", "node-tracks",
+            ],
+            "justMyCode": true
+        },
+
+
+
+
+
+
 
 
 
@@ -183,73 +262,6 @@
             ],
             "justMyCode": true
         },
-        { "name": "Show global tracks",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_show_global_tracks.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                // "output/sorted_1.pickle",
-                // "--kafka_brokers", "localhost:9092",
-                // "--kafka_offset", "earliest",
-                "--topic", "global-tracks-overlap",
-                // "--topic", "global-tracks-overlap-tentative",
-                // "--start", "748",
-                "--output_video", "output/global_tracks_1.mp4",   // -v <file>
-                // "--stop_on_poll_timeout",
-                "--sync",
-            ],
-            "justMyCode": true
-        },
-        { "name": "------------------------------", "type": "python", "request": "launch" },
-
-
-        { "name": "ExportTopic",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_export_topic.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "--kafka_offset", "earliest",
-                "--topic", "track-features",
-                "--output", "output/track-features.pickle",
-                "--stop_on_poll_timeout",
-                "--sleep_millis", "50",
-            ],
-            "justMyCode": true
-        },
-        { "name": "ImportTopic",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_import_topic.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "output/track-features.pickle",
-                "--topic", "track-features",
-            ],
-            "justMyCode": true
-        },
-        { "name": "ShowMultipleVideos",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_show_multiple_videos.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "output/2022/etri_041_track.mp4",
-                "output/2022/etri_051_track.mp4",
-                "output/2022/etri_061_track.mp4",
-                "output/2022/etri_071_track.mp4",
-                "--begin_frames", "1, 6, 2, 0",     // 041, 051, 061, 071
-                // "--begin_frames", "1, 7, 2, 0",     // 042, 052, 062, 072
-                // "--begin_frames", "10, 6, 1, 0",     // 043, 053, 063, 073
-                // "--begin_frames", "11, 6, 1, 0",     // 044, 054, 064, 074
-                // "--start", "500",
-                "--output_video", "output/multiple_videos.mp4",   // -v <file>
-            ],
-            "justMyCode": true
-        },
-
-
-
-
-
-
 
 
 

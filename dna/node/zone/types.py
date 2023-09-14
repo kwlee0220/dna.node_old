@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Union
+from typing import Union, Optional
 from collections.abc import Sequence
 from enum import Enum
 from dataclasses import dataclass, replace
@@ -8,7 +8,7 @@ from dataclasses import dataclass, replace
 import shapely.geometry as geometry
 import numpy as np
 
-from dna import Point, NodeId, TrackId
+from dna import Point, NodeId, TrackId, TrackletId
 from dna.event import NodeTrack
 
 
@@ -189,16 +189,21 @@ class ZoneVisit:
 
 
 class ZoneSequence:
-    __slots__ = ( 'node_id', 'track_id', 'visits', '_first_frame_index', '_first_ts', '_frame_index', '_ts' )
+    __slots__ = ( 'node_id', 'track_id', 'visits', '_first_frame_index', '_first_ts', '_frame_index', '_ts', 'source' )
 
-    def __init__(self, node_id:NodeId, track_id:TrackId, visits:list[ZoneVisit]) -> None:
+    def __init__(self, node_id:NodeId, track_id:TrackId, visits:list[ZoneVisit], source:Optional[NodeTrack]=None) -> None:
         self.node_id = node_id
         self.track_id = track_id
         self.visits = visits
         self._first_frame_index = visits[0].enter_frame_index if visits else -1
         self._first_ts = visits[0].enter_ts if visits else -1
         self._frame_index = -2
+        self.source = source
         self._ts = -2
+
+    @property
+    def tracklet_id(self) -> int:
+        return TrackletId(self.node_id, self.track_id)
 
     @property
     def first_frame_index(self) -> int:
@@ -232,7 +237,7 @@ class ZoneSequence:
         if isinstance(index, int):
             return self.visits[index]
         else:
-            return ZoneSequence(node_id=self.node_id, track_id=self.track_id, visits=self.visits[index])
+            return ZoneSequence(node_id=self.node_id, track_id=self.track_id, visits=self.visits[index], source=self.source)
     
     def __len__(self) -> int:
         return len(self.visits)
@@ -256,7 +261,7 @@ class ZoneSequence:
         
     def duplicate(self) -> ZoneSequence:
         dup_visits = [visit.duplicate() for visit in self.visits]
-        return ZoneSequence(node_id=self.node_id, track_id=self.track_id, visits=dup_visits)
+        return ZoneSequence(node_id=self.node_id, track_id=self.track_id, visits=dup_visits, source=self.source)
     
     def sequence_str(self) -> str:
         seq_str = ''.join([visit.zone_id for visit in self.visits])

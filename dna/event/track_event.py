@@ -24,11 +24,13 @@ class NodeTrack(KafkaEvent):
     track_id: TrackId   # tracking object id
     state: TrackState   # tracking state
     location: Box = field(hash=False)
+    first_ts: int = field(hash=False)
     frame_index: int
     ts: int = field(hash=False)
     world_coord: Optional[Point] = field(default=None, repr=False, hash=False)
     distance: Optional[float] = field(default=None, repr=False, hash=False)
     zone_relation: Optional[str] = field(default=None)
+    zone_sequence: Optional[str] = field(default=None)
     detection_box: Optional[Box] = field(default=None)  # local-only
 
     def key(self) -> str:
@@ -97,7 +99,9 @@ class NodeTrack(KafkaEvent):
                             location=json_to_box(json_obj['location']),
                             world_coord=world_coord,
                             distance=distance,
-                            zone_relation = zone_relation,
+                            zone_relation = json_obj.get('zone_relation', None),
+                            zone_sequence = json_obj.get('zone_sequence', None),
+                            first_ts = json_obj['first_ts'],
                             frame_index=json_obj['frame_index'],
                             ts=json_obj['ts'])
 
@@ -113,8 +117,11 @@ class NodeTrack(KafkaEvent):
             serialized['distance'] = round(self.distance, _DIST_PRECISION)
         if self.zone_relation:
             serialized['zone_relation'] = self.zone_relation
+        if self.zone_sequence:
+            serialized['zone_sequence'] = self.zone_sequence
         serialized['frame_index'] = self.frame_index
         serialized['ts'] = self.ts
+        serialized['first_ts'] = self.first_ts
 
         return json.dumps(serialized, separators=(',', ':'))
 
@@ -151,16 +158,17 @@ class NodeTrack(KafkaEvent):
         state = TrackState[parts[2]]
         loc = Box([float(s) for s in parts[3:7]])
         frame_idx = int(parts[7])
-        ts = int(parts[8])
-        xy_str = parts[9:11]
+        first_ts = int(parts[8])
+        ts = int(parts[9])
+        xy_str = parts[10:12]
         if len(xy_str[0]) > 0:
             world_coord = Point(np.array([float(s) for s in xy_str]))
-            dist = float(parts[11])
+            dist = float(parts[12])
         else:
             world_coord = None
             dist = None
 
-        return NodeTrack(node_id=node_id, track_id=track_id, state=state, location=loc,
+        return NodeTrack(node_id=node_id, track_id=track_id, state=state, location=loc, first_ts=first_ts,
                             frame_index=frame_idx, ts=ts, world_coord=world_coord, distance=dist)
 
     def __repr__(self) -> str:

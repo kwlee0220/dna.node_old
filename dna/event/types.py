@@ -10,6 +10,11 @@ import time
 from dna import ByteString, NodeId, TrackId, TrackletId
 from dna.track import TrackState
 
+    
+from typing import Protocol
+class Timestamped(Protocol):
+    ts: int
+
 
 class KafkaEvent(metaclass=ABCMeta):
     @abstractmethod

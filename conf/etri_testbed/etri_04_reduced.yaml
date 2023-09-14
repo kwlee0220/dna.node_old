@@ -1,0 +1,44 @@
+id: etri:04
+
+camera:
+  uri: data/2022/etri_041.mp4
+  sync: False
+  # begin_frame: 80
+  # end_frame: 100
+  open_ts: 0
+
+tracker:
+  drop_border_detections: true
+  draw: ["tracks", "track_zones", "exit_zones"]
+  track_zones:
+    - [[1069, 935], [5, 894], [0, 730], [812, 417], [1172, 452]]
+  exit_zones:
+    - [[1187, 423], [865, 386], [791, 416], [1180, 455]]          # 윗쪽 방향
+    - [[432, 824], [218, 644], [3, 694], [4, 1076], [120, 1072]]  # 아랫쪽 방향
+
+publishing:
+  tick_interval: 1.0
+  refine_tracks:
+    buffer_size: 5
+    buffer_timeout: 1
+  min_path_length: 10
+  attach_world_coordinates:
+    camera_geometry: regions/etri_testbed/etri_testbed.json
+    camera_index: 0
+  zone_pipeline:
+    draw: false
+    zones:
+      A: [[760, 423], [1187, 477]]
+      B: [[506, 516], [1179, 619]]
+
+  plugins:
+    kafka_brokers: [localhost:9092]
+    publish_tracks:
+      topic: 'node-tracks'
+    publish_motions:
+      topic: 'tracklet-motions'
+    publish_features:
+      topic: 'track-features'
+      distinct_distance: 0.35
+      min_crop_size: 60x35
+      max_iou: 0.2

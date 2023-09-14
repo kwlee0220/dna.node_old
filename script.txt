@@ -7,10 +7,10 @@ set DNA_NODE_SHOW=True
 set DNA_NODE_SHOW_PROGRESS=True
 python scripts/dna_node.py
 
-python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_041.mp4 --output D:/Temp/dna_output/etri_041_event.json --show_progress
-python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_051.mp4 --output D:/Temp/dna_output/etri_051_event.json --show_progress
-python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_061.mp4 --output D:/Temp/dna_output/etri_061_event.json --show_progress
-python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_071.mp4 --output D:/Temp/dna_output/etri_071_event.json --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_041.mp4 --output D:/Temp/dna_output/etri_041_event.json --output_video D:/Temp/dna_output/etri_041_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_051.mp4 --output D:/Temp/dna_output/etri_051_event.json --output_video D:/Temp/dna_output/etri_051_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_06.yaml --camera data/2022/etri_061.mp4 --output D:/Temp/dna_output/etri_061_event.json --output_video D:/Temp/dna_output/etri_061_track.mp4 --show_progress
+python scripts/dna_node.py --conf conf/etri_testbed/etri_07.yaml --camera data/2022/etri_071.mp4 --output D:/Temp/dna_output/etri_071_event.json --output_video D:/Temp/dna_output/etri_071_track.mp4 --show_progress
 
 python scripts/dna_node.py --conf conf/etri_testbed/etri_04.yaml --camera data/2022/etri_042.mp4 --output D:/Temp/dna_output/etri_042_event.json --show_progress
 python scripts/dna_node.py --conf conf/etri_testbed/etri_05.yaml --camera data/2022/etri_052.mp4 --output D:/Temp/dna_output/etri_052_event.json --show_progress

@@ -33,20 +33,23 @@ def main():
     
     print(f"uploading events to topic '{args.topic}' from the file '{args.file}'.")
     with closing(open_kafka_producer(args.kafka_brokers)) as producer:
-        for kv in read_event_file(args.file):
-            producer.send(args.topic, value=kv[1], key=kv[0])
+        for kv in read_event_file(args.file, event_type=NodeTrack):
+            if isinstance(kv, tuple):
+                producer.send(args.topic, value=kv[1], key=kv[0])
+            else:
+                producer.send(args.topic, value=kv.serialize(), key=kv.key())
 
   
-def read_event_file(file:str) -> Generator[tuple[object,object], None, None]:
-    import pickle
-    from pathlib import Path
+# def read_event_file(file:str) -> Generator[tuple[object,object], None, None]:
+#     import pickle
+#     from pathlib import Path
     
-    with open(file, 'rb') as fp:
-        try:
-            while True:
-                yield pickle.load(fp)
-        except EOFError:
-            return
+#     with open(file, 'rb') as fp:
+#         try:
+#             while True:
+#                 yield pickle.load(fp)
+#         except EOFError:
+#             return
 
 if __name__ == '__main__':
     main()

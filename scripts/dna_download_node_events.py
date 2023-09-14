@@ -15,7 +15,8 @@ from pathlib import Path
 from tqdm import tqdm
 
 from dna import NodeId
-from dna.event import NodeTrack, KafkaEvent, TrackFeature, read_json_event_file, read_topics, open_kafka_consumer
+from dna.event import NodeTrack, KafkaEvent, TrackFeature, read_json_event_file, read_topics, open_kafka_consumer, Timestamped, process_kafka_events
+from dna.node import NodeEventType
 from dna.support import iterables
 
 import argparse
@@ -30,11 +31,13 @@ def parse_args():
     parser.add_argument("--output", "-o", metavar="path", default=None, help="output file.")
     return parser.parse_known_args()
 
-def read_adjusted_track_events(track_file:str, offset:int):
-    def adjust_frame_index(track:NodeTrack):
-        return replace(track, frame_index=track.frame_index + offset)
-    return (adjust_frame_index(track) for track in read_json_event_file(track_file, NodeTrack))
-    
+def calibrate(ev:KafkaEvent, offset_delta:int, ts_delta:int) -> KafkaEvent:
+    if hasattr(ev, 'first_ts'):
+        return replace(ev, frame_index=ev.frame_index-offset_delta, first_ts=ev.first_ts-ts_delta, ts=ev.ts-ts_delta)
+    else:
+        return replace(ev, frame_index=ev.frame_index-offset_delta, ts=ev.ts-ts_delta)
+
+
 NODE_IDS = ['etri:04', 'etri:05', 'etri:06', 'etri:07']
 def main():
     args, _ = parse_args()
@@ -60,21 +63,39 @@ def main():
         consumer.subscribe(args.topics)
         for record in tqdm(read_topics(consumer, initial_timeout_ms=10000, timeout_ms=3000,
                                        stop_on_poll_timeout=args.stop_on_poll_timeout)):
-            if record.topic == 'node-tracks':
-                full_events.append(NodeTrack.deserialize(record.value))
-            elif record.topic == 'track-features':
-                full_events.append(TrackFeature.deserialize(record.value))
+            type = NodeEventType.from_topic(record.topic)
+            full_events.append(type.deserialize(record.value))
             download_counts[record.topic] += 1
     print(f"downloaded {len(full_events)} topic events: {dict(download_counts)}")
                 
     print(f"shifting {len(full_events)} events.")
+    
+    # node별로 전체 event를 grouping한다.
+    node_event_groups:dict[NodeId,list[KafkaEvent]] = iterables.groupby(full_events, lambda ev: ev.node_id)
+    
     shifted_events:list[KafkaEvent] = []
     for node_id, offset in zip(NODE_IDS, offsets):
-        node_events = [ev for ev in full_events if ev.node_id == node_id]
-        frame_delta = node_events[offset].frame_index - node_events[0].frame_index
-        ts_delta = node_events[offset].ts - node_events[0].ts
+        node_events:list[KafkaEvent] = node_event_groups.get(node_id)
+        if node_events is None:
+            continue
         
-        shifted_events.extend([replace(ev, frame_index = ev.frame_index-frame_delta, ts = ev.ts-ts_delta) for ev in node_events[offset:]])
+        # 각 노드별로 frame_index의 offset에 따른 timestamp의 delta를 구한다.
+        # 이때는 거의 모든 frame별로 event가 생성되는 NodeTrack 이벤트를 사용한다.
+        node_tracks:list[NodeTrack] = [ev for ev in node_events if isinstance(ev, NodeTrack)]
+        if len(node_tracks) > 0:
+            # 첫번째 event의 frame_index를 기준으로 삼아, 이것보다 offset만큼 큰 frame_index를 갖는 event를 찾아서
+            # 두 event 사이의 timestamp 차이를 구한다.
+            first_event = node_tracks[0]
+            idx, found = iterables.find_first(node_tracks, lambda ev: (ev.frame_index - first_event.frame_index) == offset)
+            ts_delta = found.ts - first_event.ts
+            
+            # 계산된 frame_index offset과 timestamp offset을 이용하여 지정된 node에서 생성된 모든 event들을 calibration한다.
+            # 'NodeTrack'의 경우에는 first_ts가 존재하기 때문에 이것도 함께 보정해야 한다.
+            if offset > 0:
+                shifted_events.extend([calibrate(ev, offset_delta=offset, ts_delta=ts_delta)
+                                        for ev in node_events if ev.frame_index >= offset])
+            else:
+                shifted_events.extend(node_events)
             
     shifted_events.sort(key=lambda ev:ev.ts)
     print(f"sorted {len(shifted_events)} events by timestamp.")
@@ -84,6 +105,8 @@ def main():
     with open(args.output, 'wb') as fp:
         for ev in tqdm(shifted_events):
             pickle.dump(ev, fp)
+
+    
     
 if __name__ == '__main__':
     main()

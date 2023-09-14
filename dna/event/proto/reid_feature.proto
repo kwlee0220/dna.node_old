@@ -10,7 +10,9 @@ message TrackFeatureProto {
     string node_id = 1;
     string track_id = 2;
 		repeated float feature = 3;
-    string zone_relation = 4;
+    oneof optional_zone_relation {
+      string zone_relation = 4;
+    }
 		int64 frame_index = 5;
     int64 ts = 6;
 };

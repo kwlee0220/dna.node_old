@@ -25,26 +25,26 @@ class MotionDetector(EventProcessor):
             seq_str = ev.sequence_str()
             enter_zone = seq[0] if seq else None
             exit_zone = seq[-1] if seq else None
-            motion_id = self.motion_definitions.get(seq)
+            motion_id = self.motion_definitions.get(seq) if self.motion_definitions else None
             
             if motion_id:
                 if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'detect motion: track={ev.track_id}, seq={seq_str}, motion={motion.motion}, '
                                         f'frame={ev.frame_index}')
-                    
-                motion = TrackletMotion(node_id=ev.node_id,
-                                        track_id=ev.track_id,
-                                        zone_sequence=seq_str,
-                                        enter_zone=enter_zone,
-                                        exit_zone=exit_zone,
-                                        motion=motion_id,
-                                        frame_index=ev.frame_index,
-                                        ts=ev.ts)
-                self._publish_event(motion)
-            else:
-                print(f"id={ev.track_id}, seq={seq}")
+            elif self.motion_definitions:
+                # motion 정보가 등록되어 있음에도 motion 검출에 실패한 경우.
                 if self.logger:
                     self.logger.warn(f'unknown motion: track={ev.track_id}, seq={seq_str}, frame={ev.frame_index}')
+                    
+            motion = TrackletMotion(node_id=ev.node_id,
+                                    track_id=ev.track_id,
+                                    zone_sequence=seq_str,
+                                    enter_zone=enter_zone,
+                                    exit_zone=exit_zone,
+                                    motion=motion_id,
+                                    frame_index=ev.frame_index,
+                                    ts=ev.ts)
+            self._publish_event(motion)
         else:
             self._publish_event(ev)
     

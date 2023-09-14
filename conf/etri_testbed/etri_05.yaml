@@ -33,24 +33,25 @@ publishing:
     camera_index: 1
   drop_border_detections: true
   zone_pipeline:
+    draw: False
     zones:
       A: [[1126, 249], [660, 194], [644, 333], [937, 349], [1126, 249]]
       B: [[1245, 273], [1345, 545], [1761, 561], [1806, 412], [1245, 273]]
       C: [[609, 358], [1388, 584], [1165, 1064], [177, 936], [40, 530], [609, 358]]
-    motions:
-      'AB': 'AB'
-      'AC': 'AC'
-      'BA': 'BA'
-      'BC': 'BC'
-      'CA': 'CA'
-      'CB': 'CB'
+  #   motions:
+  #     'AB': 'AB'
+  #     'AC': 'AC'
+  #     'BA': 'BA'
+  #     'BC': 'BC'
+  #     'CA': 'CA'
+  #     'CB': 'CB'
 
   plugins:
     kafka_brokers: [localhost:9092]
     publish_tracks:
       topic: 'node-tracks'
     publish_motions:
-      topic: 'track-motions'
+      topic: 'tracklet-motions'
     publish_features:
       topic: 'track-features'
       distinct_distance: 0.4
